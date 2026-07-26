@@ -6,9 +6,9 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 | ID | Origin (review/issue) | Requirement IDs affected | Description | Severity | Status | PR |
 |----|----------------------|--------------------------|-------------|----------|--------|-----|
-| P-001 | Phase 1 build review | CORE-2, CORE-3, CORE-10 | Preserve FIFO ordering through reentrant listeners, isolate consumer callback errors, clone queued/replayed payloads, and make undecided withdrawal emit `change`. | blocker | done | Phase 1 PR |
-| P-002 | Phase 1 build review | CORE-4, CORE-5, CORE-11 | Use prototype-safe choice maps and reject stored states with invalid UUID/revision/canonical UTC timestamps. | blocker | done | Phase 1 PR |
-| P-003 | Phase 1 build review | CFG-3, CFG-6, CORE-1 | Compare normalized record keys canonically and validate enabled effective Consent Mode mappings plus unknown signals. | major | done | Phase 1 PR |
+| P-001 | Phase 1 build review | CORE-2, CORE-3, CORE-10 | Preserve FIFO ordering through reentrant listeners, isolate consumer callback errors, clone queued/replayed payloads, and make undecided withdrawal emit `change`. | blocker | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
+| P-002 | Phase 1 build review | CORE-4, CORE-5, CORE-11 | Use prototype-safe choice maps and reject stored states with invalid UUID/revision/canonical UTC timestamps. | blocker | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
+| P-003 | Phase 1 build review | CFG-3, CFG-6, CORE-1 | Compare normalized record keys canonically and validate enabled effective Consent Mode mappings plus unknown signals. | major | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.

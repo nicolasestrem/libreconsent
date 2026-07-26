@@ -20,9 +20,9 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
 - **Findings:** None. The Phase 0 prompt requires empty typed stubs and an empty traceability table, so no functional requirement rows exist yet.
 
 ### Phase 1 — Core
-- **Date / PR:** 2026-07-26 / _PR pending_
+- **Date / PR:** 2026-07-26 / [#2](https://github.com/nicolasestrem/libreconsent/pull/2)
 - **Scope:** CFG-1..7, CFG-9, CORE-1..11.
-- **Verdict:** pass — focused core tests and the full local gate are green; PR CI remains pending.
+- **Verdict:** pass — focused core tests and the full local gate are green; PR CI/review remain pending.
 - **Verification:** core 68/68; full unit suite 71/71; `pnpm check` passed; `git diff --check` passed.
 - **Measured size:** core IIFE 5.54 KB gzip (8 KB limit); core+ui, bridge, and head-snippet budgets also passed.
 - **Guardrails:** core/ui/bridge have zero runtime dependencies; prohibited-construct scan found no TCF provider/emission, `eval`, `new Function`, or config-driven `innerHTML`; storage writes remain decision/reconciliation/reset-only and the absolute pre-decision test passes.
