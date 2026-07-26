@@ -18,6 +18,6 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run --environment jsdom src/index.test.ts"
+    "test": "node ../../scripts/run-vitest.mjs run --root ../.. packages/core/src/index.test.ts"
   }
 }

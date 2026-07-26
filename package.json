@@ -10,7 +10,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
-    "test": "vitest run",
+    "test": "node scripts/run-vitest.mjs run",
     "build": "pnpm -r --if-present build",
     "size": "size-limit",
     "examples:serve": "node scripts/serve-examples.mjs",

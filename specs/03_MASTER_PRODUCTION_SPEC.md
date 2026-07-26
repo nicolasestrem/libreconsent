@@ -30,29 +30,29 @@ libreconsent/
 
 Validated at `init()`; invalid config throws synchronously with the offending path (CFG-6).
 
-- **CFG-1 Categories:** ordered `{ id, label*, description*, readonly?, enabled? }`; a `necessary` category with `readonly: true` always exists (injected if missing). *(labels/descriptions are i18n keys.)*
-- **CFG-2 Services:** per category `{ id, label*, cookies?: CookieTableRow[], onlyRegions?: string[] }`; enables per-service toggles and per-service script gating.
+- **CFG-1 Categories:** ordered `{ id, label, description, readonly?, enabled?, services? }`; a `necessary` category with `readonly: true, enabled: true` always exists and is first (injected or reordered as needed). Readonly categories default enabled; non-readonly categories default disabled and reject configured `enabled: true`. *(labels/descriptions are i18n keys.)*
+- **CFG-2 Services:** nested per category `{ id, label, cookies?: CookieTableRow[], onlyRegions?: string[] }`; service IDs are globally unique because persisted service choices use one flat record. `CookieTableRow` is `{ name, purpose, provider?, duration?, type? }`; prose fields are i18n keys. Region codes normalize to uppercase.
 - **CFG-3 Consent Mode:** `consentMode: { enabled, mapping: Record<GoogleSignal, categoryId>, defaults: 'denied-everywhere' | { deniedRegions: string[] }, waitForUpdate?: number = 500, adsDataRedaction?: boolean, urlPassthrough?: boolean }`. Default mapping: `analytics_storage → analytics`; `ad_storage, ad_user_data, ad_personalization → marketing`.
 - **CFG-4 Storage:** `{ cookieName = 'libreconsent', domain?, expiresDays = 365 (max 395), sameSite = 'Lax' }`.
 - **CFG-5 Revision:** integer `revision = 1`; stored consent with lower revision → re-prompt (CORE-11).
-- **CFG-6 Validation:** as above; never silent.
-- **CFG-7 i18n:** `{ default, autoDetect?, translations: Record<locale, Dictionary> }`; EN built-in, FR shipped as second reference dictionary.
+- **CFG-6 Validation:** synchronous, typed `ConsentError` with stable code and exact paths such as `categories[1].id`; never silent. Selection validation uses the same typed error with selection paths.
+- **CFG-7 i18n:** `{ default = 'en', autoDetect = false, translations: Record<locale, Dictionary> }`; EN built-in, FR shipped as second reference dictionary. All category/service/cookie translation keys referenced by the configuration must exist in the effective default dictionary; secondary locales may be partial and fall back to it.
 - **CFG-8 US module:** `usPrivacy: { enabled, regions?: string[], doNotSellSelector?: string, respectGPC = true }`.
-- **CFG-9 Region resolution:** pluggable `resolveRegion?: () => Promise<string|null>`; no built-in geo-IP (document the Cloudflare `CF-IPCountry` pattern). Unresolved region → strictest configured behavior.
+- **CFG-9 Region resolution:** pluggable `resolveRegion?: () => Promise<string|null>`; initialization awaits it before `ready`, uppercases a returned code, and treats rejection or `null` as unresolved. No built-in geo-IP (document a same-origin Cloudflare endpoint that reads `request.cf.country` / `CF-IPCountry`). Unresolved region → strictest configured behavior: region-restricted services stay denied.
 
 ## 3. CORE — state, storage, lifecycle (`@libreconsent/core`)
 
-- **CORE-1:** `init(config)` idempotent, returns singleton API, callable pre-DOM-ready.
-- **CORE-2:** API: `getConsent()`, `acceptAll()`, `rejectAll()`, `setConsent(partial)`, `withdraw()`, `showPreferences()`, `hide()`, `on/off(event, cb)`, `getConfig()`, `reset()` (test hook).
-- **CORE-3:** Events: `ready`, `consent` (first decision), `change`. Late subscribers to already-fired `ready`/`consent` are invoked immediately with current state.
-- **CORE-4:** State: `{ consentId: UUIDv4 (crypto.randomUUID), createdAt, updatedAt, revision, categories: Record<id, boolean>, services?, region?, gpcApplied? }`.
-- **CORE-5:** Cookie is source of truth (`Secure` on HTTPS, configurable SameSite); localStorage mirror/fallback; corrupt data → "no decision", never a crash.
+- **CORE-1:** `init(config)` is callable pre-DOM-ready. Repeated calls with the same normalized configuration return the singleton API; a material mismatch, including different `resolveRegion` function identity, throws synchronously.
+- **CORE-2:** Package-root API: `init(config: CmpConfig): ConsentApi`; `getConsent()`, `acceptAll()`, `rejectAll()`, `setConsent({ categories?, services? })`, `withdraw()`, DOM-safe Phase 1 intents `showPreferences()` / `hide()`, `on/off(event, cb)`, `getConfig()`, and `reset()` (destructive test hook). Decision methods return `void`; decisions called before asynchronous initialization completes are queued and applied in order. `getConfig()` returns a deeply frozen normalized configuration.
+- **CORE-3:** Events: replayable `ready`, replayable `consent` (restored state or first active user decision), and non-replayable `change`. `on()` returns an unsubscribe function. Initialization emits `ready` before restored `consent`; subsequent decisions and withdrawal emit `change`. The `ready` payload contains `{ reason: 'new'|'restored'|'expired'|'revision', consent }` and optional sanitized revision `prefill`; prefill is never active consent.
+- **CORE-4:** State: `{ consentId: UUIDv4 (native `crypto.randomUUID`, secure `getRandomValues` v4 fallback), createdAt, updatedAt, revision, categories: Record<id, boolean>, services: Record<id, boolean>, region?, gpcApplied? }`; timestamps are ISO-8601 UTC. Normal changes and withdrawal preserve `consentId` and `createdAt`.
+- **CORE-5:** Encoded cookie is source of truth (`Path=/`, `Secure` only on HTTPS, configurable Domain/SameSite/expiry); localStorage is a mirror/fallback. A valid cookie wins; a valid mirror may recover an absent, inaccessible, or corrupt cookie. Invalid/unavailable storage never crashes. Reconciliation writes are allowed only after a valid prior decision is found.
 - **CORE-6:** `necessary` always true; no API or UI path can toggle it.
-- **CORE-7:** Category true iff ≥1 of its services accepted; category toggle sets all its services.
+- **CORE-7:** Category changes in `setConsent()` apply first, explicit service changes override them, then categories are recomputed. A non-readonly optional category with services is true iff ≥1 applicable service is accepted; a category toggle sets all applicable services. Readonly values retain their configured value and region-inapplicable services remain denied.
 - **CORE-8 (G-4):** Nothing persisted before a user decision — no cookie, no LS key, no "banner shown" flag.
-- **CORE-9:** Decisions older than `expiresDays` → "no decision", re-prompt.
-- **CORE-10:** Withdrawal ≤2 clicks from persistent entry point; immediate effect (events, consent-mode update, storage rewrite).
-- **CORE-11:** Revision bump → re-prompt; previous choices pre-filled in modal, not silently reused.
+- **CORE-9:** Decisions older than `expiresDays`, measured from `updatedAt`, become inactive → "no decision", re-prompt. A renewed decision receives a new UUID.
+- **CORE-10:** Withdrawal ≤2 clicks from persistent entry point; the core immediately persists an all-denied optional state, retains consent ID / creation time, and emits `change` (Consent Mode update arrives in Phase 2).
+- **CORE-11:** Lower-revision decisions become inactive and trigger re-prompt; sanitized known choices are exposed only through `ready.prefill`, never through `getConsent()` or a `consent` event. A renewed decision receives a new UUID.
 
 ## 4. CM — Google Consent Mode v2 (`@libreconsent/core`)
 
