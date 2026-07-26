@@ -14,16 +14,21 @@ function commands(target: TestWindow): unknown[][] {
 }
 
 describe("Consent Mode head bootstrap (CM-1, CM-3)", () => {
-  test("is side-effect-free when bootstrap input is absent or disabled", () => {
+  test("is side-effect-free when bootstrap input is absent, omitted, or disabled", () => {
     const target: TestWindow = {};
+    const omitted: TestWindow = {
+      libreconsentConsentMode: {},
+    };
     const disabled: TestWindow = {
       libreconsentConsentMode: { enabled: false },
     };
 
     installConsentModeDefaults(target);
+    installConsentModeDefaults(omitted);
     installConsentModeDefaults(disabled);
 
     expect(target).toEqual({});
+    expect(omitted).toEqual({ libreconsentConsentMode: {} });
     expect(disabled).toEqual({ libreconsentConsentMode: { enabled: false } });
   });
 

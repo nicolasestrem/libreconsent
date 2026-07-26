@@ -195,10 +195,12 @@ than once; function identity is part of singleton configuration equality.
 
 ## Google Consent Mode v2
 
-Basic mode is the recommended deployment: put Google tags behind the
-declarative blocking integration that arrives in Phase 3. Advanced mode loads
-Google tags immediately, which can send cookieless pings before consent; choose
-it only when that measurement tradeoff matches your policy.
+Basic mode is the recommended finished deployment: put Google tags behind the
+declarative blocking integration delivered in Phase 3. Phase 2 intentionally
+does not provide that gate, so its head defaults alone are not a runnable basic
+deployment. Advanced mode loads Google tags immediately, which can send
+cookieless pings before consent; choose it only when that measurement tradeoff
+matches your policy.
 
 Define one `ConsentModeConfig` object in the document head, expose it as
 `window.libreconsentConsentMode`, and copy the built

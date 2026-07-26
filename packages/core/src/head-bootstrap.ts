@@ -46,7 +46,7 @@ function normalizeStandaloneConfig(
   if (!isRecord(value)) {
     return deniedEverywhere;
   }
-  if (value.enabled === false) {
+  if (value.enabled === undefined || value.enabled === false) {
     return null;
   }
   if (value.enabled !== true) {

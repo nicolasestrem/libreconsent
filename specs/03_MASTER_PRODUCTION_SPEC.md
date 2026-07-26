@@ -59,7 +59,7 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 - **CM-1:** Documented **head snippet** (≤1.5 KB inline) ensures `dataLayer` + `gtag` stub exist and calls `gtag('consent','default', …)` **synchronously before any Google tag**, per CFG-3: all four v2 signals + `wait_for_update`, with `region` arrays for the `deniedRegions` strategy.
 - **CM-2:** On `consent`/`change`/GPC application: `gtag('consent','update', …)` per mapping.
 - **CM-3:** `ads_data_redaction = true` while `ad_storage` denied (when configured); `url_passthrough` per config.
-- **CM-4:** Both deployments supported and documented: **basic** (Google tags gated via BLK) and **advanced** (gtag loads immediately, cookieless pings). Default docs stance: basic.
+- **CM-4:** Both deployment models are documented in Phase 2: **basic** (Google tags are gated via BLK, implemented in Phase 3) and **advanced** (gtag loads immediately, cookieless pings). Default docs stance: basic. Phase 2 does not claim to provide the basic-mode gate or its network-silence guarantee.
 - **CM-5:** GTM: document Consent Initialization trigger; `examples/gtm-site` proves defaults precede GTM consent-init. (Official GTM Community Template: post-v1.)
 - **CM-6 (research-at-implementation):** verify signal names/behavior against https://developers.google.com/tag-platform/security/guides/consent; record doc version in PR.
 

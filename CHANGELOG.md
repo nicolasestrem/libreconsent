@@ -39,5 +39,7 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- An omitted `enabled` value in the standalone Consent Mode head configuration
+  now remains side-effect-free, matching the public configuration default.
 - Traceability verification evidence must reference a configured
   unit/E2E/accessibility test or a supported named CI gate.

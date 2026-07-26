@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-26 | Codex | PR #5 review follow-up | Made omitted standalone Consent Mode enablement side-effect-free and clarified CM-4's Phase 2 documentation versus Phase 3 BLK delivery boundary. |
 | 2026-07-26 | Codex | PR #5 review follow-up | Completed the Phase 2 gate record and made fixture artifact-read failure return a clear HTTP 500 response. |
 | 2026-07-26 | Codex | Phase 2 Consent Mode (CM-1..6) | Added head defaults, lifecycle updates, redaction/URL settings, regional/GTM fixtures, current Google-source records, and Phase 2 traceability. |
 | 2026-07-26 | Codex | Phase 1 phase-gate prerequisite (TOOL-1..5) | Added completed-phase traceability enforcement with valid/broken fixtures and CI integration; corrected stale root status documentation. |
