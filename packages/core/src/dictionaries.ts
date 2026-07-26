@@ -11,6 +11,8 @@ export const en: Readonly<Dictionary> = Object.freeze({
   "ui.rejectAll": "Reject all",
   "ui.customize": "Customize",
   "ui.save": "Save choices",
+  "blocked.notice": "This content is blocked until you give consent.",
+  "blocked.accept": "Accept and load",
 });
 
 /**
@@ -24,4 +26,7 @@ export const fr: Readonly<Dictionary> = Object.freeze({
   "ui.rejectAll": "Tout refuser",
   "ui.customize": "Personnaliser",
   "ui.save": "Enregistrer les choix",
+  "blocked.notice":
+    "Ce contenu est bloqué tant que vous n'avez pas donné votre consentement.",
+  "blocked.accept": "Accepter et charger",
 });

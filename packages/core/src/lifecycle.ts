@@ -1,3 +1,4 @@
+import { BlockingController } from "./blocking";
 import { ConsentModeAdapter } from "./consent-mode";
 import { ConsentError } from "./errors";
 import {
@@ -115,6 +116,8 @@ export class ConsentLifecycle implements ConsentApi {
 
   private readonly consentMode: ConsentModeAdapter;
 
+  private readonly blocking: BlockingController;
+
   constructor(
     private readonly config: NormalizedCmpConfig,
     private readonly release: (lifecycle: ConsentLifecycle) => void,
@@ -128,6 +131,7 @@ export class ConsentLifecycle implements ConsentApi {
       }
     }
     this.consentMode = new ConsentModeAdapter(this, config.consentMode);
+    this.blocking = new BlockingController(this, config);
     void this.initialize();
   }
 
@@ -200,6 +204,7 @@ export class ConsentLifecycle implements ConsentApi {
     this.active = null;
     this.readyPayload = null;
     this.consentMode.dispose();
+    this.blocking.dispose();
     for (const listeners of Object.values(this.listeners)) {
       listeners.clear();
     }

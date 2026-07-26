@@ -36,6 +36,7 @@ export { en, fr } from "./dictionaries";
 export type { ConsentErrorCode } from "./errors";
 export { ConsentError } from "./errors";
 export type {
+  BlockingConfig,
   CategoryConfig,
   CmpConfig,
   ConsentApi,
@@ -50,6 +51,7 @@ export type {
   GoogleSignal,
   I18nConfig,
   InitializationReason,
+  NormalizedBlockingConfig,
   NormalizedCategoryConfig,
   NormalizedCmpConfig,
   NormalizedConsentModeConfig,
