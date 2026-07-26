@@ -9,7 +9,15 @@ const headSnippetPath = resolve(
   process.env.LIBRECONSENT_HEAD_SNIPPET_PATH ??
     "packages/core/dist/head-snippet.global.js",
 );
+const coreArtifactPath = resolve(
+  process.cwd(),
+  process.env.LIBRECONSENT_CORE_ARTIFACT_PATH ??
+    "packages/core/dist/index.global.js",
+);
 const headSnippetMarker = "<!-- LIBRECONSENT_HEAD_SNIPPET -->";
+const coreArtifactRoute = "/dist/core.global.js";
+// Fixtures are served outside dist/, so a sourcemap comment would only 404.
+const sourceMappingComment = /\n?\/\/# sourceMappingURL=.*$/m;
 const port = Number(process.env.PORT ?? "4173");
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -24,9 +32,7 @@ function sendText(response, statusCode, message) {
   response.end(message);
 }
 
-function resolveFixturePath(requestUrl) {
-  const pathname = new URL(requestUrl, "http://localhost").pathname;
-  const decodedPathname = decodeURIComponent(pathname);
+function resolveFixturePath(decodedPathname) {
   const relativePath =
     decodedPathname === "/"
       ? "basic-site/index.html"
@@ -52,14 +58,37 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  let filePath;
+  let pathname;
   try {
-    filePath = resolveFixturePath(request.url);
+    pathname = decodeURIComponent(
+      new URL(request.url, "http://localhost").pathname,
+    );
   } catch {
     sendText(response, 400, "Bad request");
     return;
   }
 
+  if (pathname === coreArtifactRoute) {
+    let coreArtifact;
+    try {
+      coreArtifact = (await readFile(coreArtifactPath, "utf8")).replace(
+        sourceMappingComment,
+        "",
+      );
+    } catch {
+      sendText(
+        response,
+        500,
+        "Core browser artifact is unavailable. Run pnpm build first.",
+      );
+      return;
+    }
+    response.writeHead(200, { "content-type": mimeTypes[".js"] });
+    response.end(coreArtifact);
+    return;
+  }
+
+  const filePath = resolveFixturePath(pathname);
   if (!filePath) {
     sendText(response, 403, "Forbidden");
     return;
@@ -95,7 +124,7 @@ const server = createServer(async (request, response) => {
   let headSnippet;
   try {
     headSnippet = (await readFile(headSnippetPath, "utf8")).replace(
-      /\n?\/\/# sourceMappingURL=.*$/m,
+      sourceMappingComment,
       "",
     );
   } catch {

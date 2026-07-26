@@ -3,31 +3,28 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>libreconsent basic fixture</title>
-    <script>
-      window.libreconsentConsentMode = {
-        enabled: true,
-        defaults: "denied-everywhere",
-        waitForUpdate: 500,
-      };
-    </script>
-    <!-- LIBRECONSENT_HEAD_SNIPPET -->
-    <script>
-      // Real gtag.js requires a Date here; a placeholder string silently
-      // prevents every tag from firing, which would make the flagship
-      // network-silence assertions vacuous.
-      gtag("js", new Date());
-      gtag("config", "G-BASIC");
-    </script>
-    <script type="text/plain" data-cmp-category="analytics" src="https://www.googletagmanager.com/gtag/js?id=G-BASIC"></script>
+    <title>libreconsent blocking fixture</title>
   </head>
   <body>
+    <script>
+      window.__order = [];
+    </script>
     <header>
       <p>libreconsent</p>
     </header>
     <main>
-      <h1>Basic-site fixture</h1>
-      <p data-fixture="basic-site">Consent Mode basic fixture.</p>
+      <h1>Blocking-site fixture</h1>
+      <p data-fixture="blocking-site">Declarative blocking fixture.</p>
+      <script type="text/plain" data-cmp-category="analytics">
+        window.__order.push("inline-1");
+      </script>
+      <script type="text/plain" data-cmp-category="analytics" src="/blocking-site/first.js"></script>
+      <script type="text/plain" data-cmp-category="analytics">
+        window.__order.push("inline-2");
+      </script>
+      <script type="text/plain" data-cmp-category="analytics" src="/blocking-site/late.js" async></script>
+      <iframe title="Embedded demo" data-cmp-src="/blocking-site/embed.html" data-cmp-category="marketing" width="320" height="180"></iframe>
+      <div data-cmp-placeholder data-cmp-category="marketing" data-fixture-widget>Marketing widget content</div>
     </main>
     <script src="/dist/core.global.js"></script>
     <script>
@@ -44,7 +41,6 @@
             description: "category.marketing.description",
           },
         ],
-        consentMode: window.libreconsentConsentMode,
         i18n: {
           translations: {
             en: {

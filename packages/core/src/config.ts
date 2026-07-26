@@ -7,6 +7,7 @@ import type {
   CookieTableRow,
   Dictionary,
   GoogleSignal,
+  NormalizedBlockingConfig,
   NormalizedCategoryConfig,
   NormalizedCmpConfig,
   NormalizedServiceConfig,
@@ -299,6 +300,22 @@ function normalizeI18n(
   };
 }
 
+function normalizeBlocking(
+  config: CmpConfig["blocking"],
+): NormalizedBlockingConfig {
+  if (config !== undefined) {
+    requireRecord(config, "blocking");
+  }
+  if (config?.nonce !== undefined) {
+    requireNonEmptyString(config.nonce, "blocking.nonce");
+  }
+  optionalBoolean(config?.reloadOnWithdraw, "blocking.reloadOnWithdraw");
+  return {
+    ...(config?.nonce === undefined ? {} : { nonce: config.nonce }),
+    reloadOnWithdraw: config?.reloadOnWithdraw ?? false,
+  };
+}
+
 function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
     for (const nested of Object.values(value)) {
@@ -413,37 +430,24 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
       ? { cookieName, expiresDays, sameSite }
       : { cookieName, domain: config.storage.domain, expiresDays, sameSite };
 
-  const normalized: NormalizedCmpConfig =
-    config.resolveRegion === undefined
-      ? {
-          categories,
-          consentMode: {
-            enabled: config.consentMode?.enabled ?? false,
-            mapping,
-            defaults: normalizeDefaults(config.consentMode?.defaults),
-            waitForUpdate,
-            adsDataRedaction: config.consentMode?.adsDataRedaction ?? false,
-            urlPassthrough: config.consentMode?.urlPassthrough ?? false,
-          },
-          storage,
-          revision,
-          i18n: normalizeI18n(config.i18n, referencedKeys),
-        }
-      : {
-          categories,
-          consentMode: {
-            enabled: config.consentMode?.enabled ?? false,
-            mapping,
-            defaults: normalizeDefaults(config.consentMode?.defaults),
-            waitForUpdate,
-            adsDataRedaction: config.consentMode?.adsDataRedaction ?? false,
-            urlPassthrough: config.consentMode?.urlPassthrough ?? false,
-          },
-          storage,
-          revision,
-          i18n: normalizeI18n(config.i18n, referencedKeys),
-          resolveRegion: config.resolveRegion,
-        };
+  const normalized: NormalizedCmpConfig = {
+    categories,
+    consentMode: {
+      enabled: config.consentMode?.enabled ?? false,
+      mapping,
+      defaults: normalizeDefaults(config.consentMode?.defaults),
+      waitForUpdate,
+      adsDataRedaction: config.consentMode?.adsDataRedaction ?? false,
+      urlPassthrough: config.consentMode?.urlPassthrough ?? false,
+    },
+    storage,
+    blocking: normalizeBlocking(config.blocking),
+    revision,
+    i18n: normalizeI18n(config.i18n, referencedKeys),
+    ...(config.resolveRegion === undefined
+      ? {}
+      : { resolveRegion: config.resolveRegion }),
+  };
 
   return deepFreeze(normalized);
 }

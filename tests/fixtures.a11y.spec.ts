@@ -1,7 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const fixtures = ["basic-site", "gtm-site", "us-only-site"] as const;
+const fixtures = [
+  "basic-site",
+  "blocking-site",
+  "csp-site",
+  "gtm-site",
+  "us-only-site",
+] as const;
 
 for (const fixture of fixtures) {
   test(`${fixture} has no serious or critical accessibility violations`, async ({

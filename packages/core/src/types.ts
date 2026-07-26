@@ -90,6 +90,26 @@ declare global {
 }
 
 /**
+ * Declarative script and embed blocking configuration.
+ *
+ * Blocking itself is opted into by markup: a page with no `data-cmp-category`
+ * elements never needs this object. The options here only tune how the
+ * guaranteed path (BLK-1) behaves once gated elements exist.
+ */
+export interface BlockingConfig {
+  /**
+   * CSP nonce applied to re-created scripts that carry no nonce of their own.
+   * An element's own nonce always wins over this value.
+   */
+  nonce?: string;
+  /**
+   * Whether revoking consent for an already-executed script reloads the page.
+   * Scripts cannot be un-executed, so this is the only way to undo their effects.
+   */
+  reloadOnWithdraw?: boolean;
+}
+
+/**
  * First-party consent storage configuration.
  */
 export interface StorageConfig {
@@ -130,6 +150,8 @@ export interface CmpConfig {
   consentMode?: ConsentModeConfig;
   /** First-party persistence settings. */
   storage?: StorageConfig;
+  /** Declarative script and embed blocking settings. */
+  blocking?: BlockingConfig;
   /** Schema revision. A higher value invalidates older active decisions. */
   revision?: number;
   /** Translation dictionaries and locale behavior. */
@@ -168,6 +190,16 @@ export interface NormalizedStorageConfig {
   expiresDays: number;
   /** Cookie SameSite attribute. */
   sameSite: "Strict" | "Lax" | "None";
+}
+
+/**
+ * Fully defaulted and deeply frozen blocking configuration.
+ */
+export interface NormalizedBlockingConfig {
+  /** Fallback CSP nonce for re-created scripts, when configured. */
+  nonce?: string;
+  /** Whether revoking an executed script's category reloads the page. */
+  reloadOnWithdraw: boolean;
 }
 
 /**
@@ -212,6 +244,8 @@ export interface NormalizedCmpConfig {
   consentMode: NormalizedConsentModeConfig;
   /** Fully defaulted persistence settings. */
   storage: NormalizedStorageConfig;
+  /** Fully defaulted blocking settings. */
+  blocking: NormalizedBlockingConfig;
   /** Positive schema revision. */
   revision: number;
   /** Fully merged locale dictionaries. */
