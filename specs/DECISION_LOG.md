@@ -1,0 +1,21 @@
+# Decision Log
+
+Numbered, append-only. Status: `accepted` · `open` (needs maintainer) · `superseded (by D-xxx)`.
+
+| ID | Date | Decision | Rationale | Status |
+|----|------|----------|-----------|--------|
+| D-001 | 2026-07-26 | Project name: **libreconsent** (repo `libreconsent`, npm scope `@libreconsent`). | Chosen by the maintainer from a vetted shortlist. npm name + scope free and GitHub org unclaimed as of 2026-07-26; no consent-industry product found under the name. Candidates Consentio/Konsento/ConsentKit rejected (existing-company collisions). "Libre" signals free-as-in-freedom, matching the project's positioning. **Action before Phase 0:** register npm name/scope and GitHub org. | accepted |
+| D-002 | 2026-07-26 | License **MIT** (default). Alternative: AGPL-3.0 to deter closed-SaaS freeriding. | MIT is the category convention (cookieconsent, tarteaucitron); maximizes adoption. Must be settled **before first publish** — relicensing later is difficult. | **open** (MIT assumed) |
+| D-003 | 2026-07-26 | **No TCF, permanently** — no TC string emission, no `__tcfapi` provider, no CMP ID. Read-only `__tcfapi` consumption allowed in bridge only. | IAB registration ~€1,500/yr + Google annual recertification + CMP-ID liability for all forks = structurally incompatible with free FOSS (01 §1). | accepted |
+| D-004 | 2026-07-26 | EEA/UK/CH-audience AdSense domains use **Google Privacy & messaging** as the sole banner; libreconsent runs there in bridge mode only. | Free, Google-certified, TCF v2.3-ready, drives Consent Mode incl. analytics_storage. Only zero-cost compliant option (01 §2, §4). | accepted |
+| D-005 | 2026-07-26 | Google scope = **Consent Mode v2** (GA4, Google Ads tags, GTM). Chosen over "everything Google" after cost analysis. | Maintainer scoping decision (2026-07-26); ad serving covered per D-004. | accepted |
+| D-006 | 2026-07-26 | **EEA-wide GDPR/ePrivacy baseline** (equal-prominence reject, prior blocking, etc.); member-state-specific extras (e.g., CNIL guidance) treated as good practice, not requirements. | Any EEA visitor triggers GDPR; Google's rule is contractual and regulator-independent (01 §3). | accepted |
+| D-007 | 2026-07-26 | Architecture: pnpm monorepo — `@libreconsent/core` / `ui` / `bridge` / `worker-log`; TypeScript strict; tsup ESM+IIFE; Vitest + Playwright; size-limit CI gates. | Standard, well-supported toolchain suited to AI-assisted implementation; size budgets enforce the lightweight goal. | accepted |
+| D-008 | 2026-07-26 | **Zero runtime dependencies** in core/ui/bridge; Shadow DOM UI; CSS-custom-property theming; no external assets. | Embeddability, supply-chain safety, size budgets (03 §10). | accepted |
+| D-009 | 2026-07-26 | Consent mode default strategy configurable: `denied-everywhere` (default) or `deniedRegions` list. | Safest default; region list serves mixed-audience portfolios (CFG-3). | accepted |
+| D-010 | 2026-07-26 | **No built-in geo-IP**; pluggable `resolveRegion` with documented Cloudflare header pattern; strictest behavior when unresolved. | Keeps library network-silent (NFR-2/3); geo is deployment-specific (CFG-9). | accepted |
+| D-011 | 2026-07-26 | US module is **opt-out** model with GPC auto-honor; no blocking wall in US regions. | Matches US state law model; GPC increasingly enforced (03 §7). | accepted |
+| D-012 | 2026-07-26 | Consent receipts backend is **optional** (CF Worker + D1); core never depends on it; no IP/UA stored. | Keeps €0 + privacy promises; receipts are an audit aid, not a requirement (03 §9). | accepted |
+| D-013 | 2026-07-26 | Default consent-mode deployment stance in docs: **basic** (tags gated), advanced opt-in. | EU DPA skepticism of pre-consent pings (07 G-7). | accepted |
+| D-014 | 2026-07-26 | Locales at launch: **EN built-in + FR reference dictionary**. | FR kept as second dictionary to exercise the i18n layer from day one. Drop if undesired. | **open** (default: keep) |
+| D-015 | 2026-07-26 | Specs-first execution: **one phase = one Claude Code session = one PR**, traceability-gated (04 §1). | Reviewability; keeps context small per session; CI as arbiter. | accepted |
