@@ -1,6 +1,1666 @@
-import { expect, test } from "vitest";
-import * as core from "./index";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import {
+  type CmpConfig,
+  type ConsentApi,
+  ConsentError,
+  type ConsentState,
+  en,
+  fr,
+  type GoogleSignal,
+  init,
+  type ReadyEvent,
+} from "./index";
 
-test("the Phase 0 core entry point has no public exports", () => {
-  expect(Object.keys(core)).toEqual([]);
+const DAY = 24 * 60 * 60 * 1000;
+const UUID_V4 =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const dictionary = {
+  "category.analytics.label": "Analytics",
+  "category.analytics.description": "Analytics description",
+  "category.marketing.label": "Marketing",
+  "category.marketing.description": "Marketing description",
+  "category.functional.label": "Functional",
+  "category.functional.description": "Functional description",
+  "service.ga.label": "Google Analytics",
+  "service.amp.label": "Amplitude",
+  "service.ads.label": "Advertising",
+  "service.regional.label": "Regional service",
+  "cookie.ga.purpose": "Measure site usage",
+  "cookie.ga.provider": "Google",
+  "cookie.ga.duration": "Two years",
+  "cookie.ga.type": "HTTP cookie",
+};
+
+function baseConfig(overrides: Partial<CmpConfig> = {}): CmpConfig {
+  return {
+    categories: [
+      {
+        id: "analytics",
+        label: "category.analytics.label",
+        description: "category.analytics.description",
+        services: [
+          {
+            id: "ga",
+            label: "service.ga.label",
+            cookies: [
+              {
+                name: "_ga",
+                purpose: "cookie.ga.purpose",
+                provider: "cookie.ga.provider",
+                duration: "cookie.ga.duration",
+                type: "cookie.ga.type",
+              },
+            ],
+          },
+          {
+            id: "amp",
+            label: "service.amp.label",
+          },
+        ],
+      },
+      {
+        id: "marketing",
+        label: "category.marketing.label",
+        description: "category.marketing.description",
+        services: [{ id: "ads", label: "service.ads.label" }],
+      },
+    ],
+    i18n: {
+      default: "en",
+      translations: { en: dictionary },
+    },
+    ...overrides,
+  };
+}
+
+function storedState(overrides: Partial<ConsentState> = {}): ConsentState {
+  const timestamp = new Date().toISOString();
+  return {
+    consentId: "9d235664-2d3d-4db5-8117-36c0ac57e920",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    revision: 1,
+    categories: {
+      necessary: true,
+      analytics: true,
+      marketing: false,
+    },
+    services: {
+      ga: true,
+      amp: false,
+      ads: false,
+    },
+    ...overrides,
+  };
+}
+
+function encodeState(state: ConsentState): string {
+  return encodeURIComponent(JSON.stringify(state));
+}
+
+function setDocumentCookie(value: string): void {
+  // biome-ignore lint/suspicious/noDocumentCookie: the storage contract under test is cookie-based
+  document.cookie = value;
+}
+
+const activeApis = new Set<ConsentApi>();
+
+function start(config: CmpConfig): ConsentApi {
+  const api = init(config);
+  activeApis.add(api);
+  return api;
+}
+
+function waitForReady(api: ConsentApi): Promise<ReadyEvent> {
+  return new Promise((resolve) => {
+    api.on("ready", resolve);
+  });
+}
+
+function expectConsentError(
+  operation: () => unknown,
+  code: "INVALID_CONFIG" | "INVALID_SELECTION",
+  path: string,
+): void {
+  try {
+    operation();
+  } catch (error) {
+    expect(error).toBeInstanceOf(ConsentError);
+    expect(error).toMatchObject({ code, path });
+    expect((error as Error).message).toContain(path);
+    return;
+  }
+  throw new Error(`Expected ${code} at ${path}`);
+}
+
+function clearAllCookies(): void {
+  for (const cookie of document.cookie.split(";")) {
+    const separator = cookie.indexOf("=");
+    const name = (
+      separator === -1 ? cookie : cookie.slice(0, separator)
+    ).trim();
+    if (name) {
+      setDocumentCookie(
+        `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+      );
+    }
+  }
+}
+
+afterEach(() => {
+  for (const api of activeApis) {
+    api.reset();
+  }
+  activeApis.clear();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+  window.localStorage.clear();
+  clearAllCookies();
+  document.body.replaceChildren();
+  vi.unstubAllGlobals();
+});
+
+describe("configuration (CFG-1..7)", () => {
+  test("normalizes defaults, injects necessary first, and deeply freezes getConfig", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    const config = api.getConfig();
+    expect(config.categories.map(({ id }) => id)).toEqual([
+      "necessary",
+      "analytics",
+      "marketing",
+    ]);
+    expect(config.categories[0]).toMatchObject({
+      id: "necessary",
+      readonly: true,
+      enabled: true,
+      services: [],
+    });
+    expect(config.categories[1]).toMatchObject({
+      readonly: false,
+      enabled: false,
+    });
+    expect(config.storage).toEqual({
+      cookieName: "libreconsent",
+      expiresDays: 365,
+      sameSite: "Lax",
+    });
+    expect(config.revision).toBe(1);
+    expect(config.consentMode).toEqual({
+      enabled: false,
+      mapping: {
+        analytics_storage: "analytics",
+        ad_storage: "marketing",
+        ad_user_data: "marketing",
+        ad_personalization: "marketing",
+      },
+      defaults: "denied-everywhere",
+      waitForUpdate: 500,
+      adsDataRedaction: false,
+      urlPassthrough: false,
+    });
+    expect(config.i18n.default).toBe("en");
+    expect(config.i18n.autoDetect).toBe(false);
+    expect(Object.isFrozen(config)).toBe(true);
+    expect(Object.isFrozen(config.categories)).toBe(true);
+    expect(Object.isFrozen(config.categories[1]?.services[0]?.cookies[0])).toBe(
+      true,
+    );
+    expect(() => {
+      config.storage.expiresDays = 1;
+    }).toThrow(TypeError);
+  });
+
+  test("moves a configured necessary category first and forces its invariants", async () => {
+    const config = baseConfig();
+    config.categories.push({
+      id: "necessary",
+      label: "category.necessary.label",
+      description: "category.necessary.description",
+    });
+    const api = start(config);
+    await waitForReady(api);
+
+    expect(api.getConfig().categories[0]).toMatchObject({
+      id: "necessary",
+      readonly: true,
+      enabled: true,
+    });
+  });
+
+  test("normalizes cookie rows, storage, consent settings, and region lists", async () => {
+    const api = start(
+      baseConfig({
+        storage: {
+          cookieName: "cmp-decision",
+          domain: ".example.test",
+          expiresDays: 90,
+          sameSite: "Strict",
+        },
+        revision: 3,
+        consentMode: {
+          enabled: true,
+          mapping: { analytics_storage: "marketing" },
+          defaults: { deniedRegions: ["fr", "US"] },
+          waitForUpdate: 750,
+          adsDataRedaction: true,
+          urlPassthrough: true,
+        },
+      }),
+    );
+    await waitForReady(api);
+
+    const config = api.getConfig();
+    expect(config.storage).toEqual({
+      cookieName: "cmp-decision",
+      domain: ".example.test",
+      expiresDays: 90,
+      sameSite: "Strict",
+    });
+    expect(config.revision).toBe(3);
+    expect(config.consentMode).toMatchObject({
+      enabled: true,
+      defaults: { deniedRegions: ["FR", "US"] },
+      waitForUpdate: 750,
+      adsDataRedaction: true,
+      urlPassthrough: true,
+    });
+    expect(config.consentMode.mapping.analytics_storage).toBe("marketing");
+    expect(config.categories[1]?.services[0]?.cookies[0]).toEqual({
+      name: "_ga",
+      purpose: "cookie.ga.purpose",
+      provider: "cookie.ga.provider",
+      duration: "cookie.ga.duration",
+      type: "cookie.ga.type",
+    });
+  });
+
+  test("readonly categories default enabled while optional categories cannot start enabled", async () => {
+    const config = baseConfig();
+    config.categories.push({
+      id: "functional",
+      label: "category.functional.label",
+      description: "category.functional.description",
+      readonly: true,
+    });
+    const api = start(config);
+    await waitForReady(api);
+
+    expect(
+      api.getConfig().categories.find(({ id }) => id === "functional"),
+    ).toMatchObject({ readonly: true, enabled: true });
+
+    expectConsentError(
+      () =>
+        start(
+          baseConfig({
+            categories: [
+              {
+                id: "analytics",
+                label: "category.analytics.label",
+                description: "category.analytics.description",
+                enabled: true,
+              },
+            ],
+          }),
+        ),
+      "INVALID_CONFIG",
+      "categories[0].enabled",
+    );
+  });
+
+  test.each([
+    {
+      name: "malformed category id",
+      config: {
+        categories: [
+          {
+            id: "necessary",
+            label: "category.necessary.label",
+            description: "category.necessary.description",
+          },
+          {
+            id: "",
+            label: "category.analytics.label",
+            description: "category.analytics.description",
+          },
+        ],
+      },
+      path: "categories[1].id",
+    },
+    {
+      name: "disabled necessary category",
+      config: {
+        categories: [
+          {
+            id: "necessary",
+            label: "category.necessary.label",
+            description: "category.necessary.description",
+            enabled: false,
+          },
+        ],
+      },
+      path: "categories[0].enabled",
+    },
+    {
+      name: "invalid cookie purpose",
+      config: {
+        categories: [
+          {
+            id: "analytics",
+            label: "category.analytics.label",
+            description: "category.analytics.description",
+            services: [
+              {
+                id: "ga",
+                label: "service.ga.label",
+                cookies: [{ name: "_ga", purpose: "" }],
+              },
+            ],
+          },
+        ],
+      },
+      path: "categories[0].services[0].cookies[0].purpose",
+    },
+    {
+      name: "invalid expiry",
+      config: { ...baseConfig(), storage: { expiresDays: 396 } },
+      path: "storage.expiresDays",
+    },
+    {
+      name: "invalid revision",
+      config: { ...baseConfig(), revision: 0 },
+      path: "revision",
+    },
+    {
+      name: "invalid wait time",
+      config: {
+        ...baseConfig(),
+        consentMode: { waitForUpdate: -1 },
+      },
+      path: "consentMode.waitForUpdate",
+    },
+    {
+      name: "unknown mapping category",
+      config: {
+        ...baseConfig(),
+        consentMode: { mapping: { ad_storage: "missing" } },
+      },
+      path: "consentMode.mapping.ad_storage",
+    },
+  ])("throws a typed synchronous error for $name", ({ config, path }) => {
+    expectConsentError(
+      () => start(config as CmpConfig),
+      "INVALID_CONFIG",
+      path,
+    );
+  });
+
+  test("rejects duplicate category IDs and globally duplicate service IDs", () => {
+    const duplicateCategory = baseConfig();
+    duplicateCategory.categories.push({
+      id: "analytics",
+      label: "category.analytics.label",
+      description: "category.analytics.description",
+    });
+    expectConsentError(
+      () => start(duplicateCategory),
+      "INVALID_CONFIG",
+      "categories[2].id",
+    );
+
+    const duplicateService = baseConfig();
+    duplicateService.categories[1]?.services?.push({
+      id: "ga",
+      label: "service.ga.label",
+    });
+    expectConsentError(
+      () => start(duplicateService),
+      "INVALID_CONFIG",
+      "categories[1].services[1].id",
+    );
+  });
+
+  test("rejects duplicate regions after case normalization", () => {
+    const config = baseConfig();
+    config.categories[0]?.services?.push({
+      id: "regional",
+      label: "service.regional.label",
+      onlyRegions: ["fr", "FR"],
+    });
+    expectConsentError(
+      () => start(config),
+      "INVALID_CONFIG",
+      "categories[0].services[2].onlyRegions[1]",
+    );
+  });
+
+  test("ships EN and FR dictionaries and falls partial secondary locales back to default", async () => {
+    expect(en["ui.acceptAll"]).toBe("Accept all");
+    expect(fr["ui.acceptAll"]).toBe("Tout accepter");
+
+    const config = baseConfig({
+      i18n: {
+        default: "en",
+        autoDetect: true,
+        translations: {
+          en: dictionary,
+          de: { "category.analytics.label": "Analyse" },
+        },
+      },
+    });
+    const api = start(config);
+    await waitForReady(api);
+
+    expect(api.getConfig().i18n.autoDetect).toBe(true);
+    expect(
+      api.getConfig().i18n.translations.de?.["category.analytics.label"],
+    ).toBe("Analyse");
+    expect(api.getConfig().i18n.translations.de?.["service.ga.label"]).toBe(
+      "Google Analytics",
+    );
+    expect(api.getConfig().i18n.translations.fr?.["ui.acceptAll"]).toBe(
+      "Tout accepter",
+    );
+  });
+
+  test("requires every referenced prose key in the default dictionary", () => {
+    const config = baseConfig({
+      i18n: {
+        default: "en",
+        translations: {
+          en: {
+            ...dictionary,
+            "service.ga.label": undefined,
+          } as unknown as Record<string, string>,
+        },
+      },
+    });
+    expectConsentError(
+      () => start(config),
+      "INVALID_CONFIG",
+      "i18n.translations.en.service.ga.label",
+    );
+  });
+
+  test("validates every effective mapping target when Consent Mode is enabled", () => {
+    const config = baseConfig({
+      categories: [
+        {
+          id: "analytics",
+          label: "category.analytics.label",
+          description: "category.analytics.description",
+        },
+      ],
+      consentMode: { enabled: true },
+    });
+
+    expectConsentError(
+      () => start(config),
+      "INVALID_CONFIG",
+      "consentMode.mapping.ad_storage",
+    );
+  });
+
+  test("rejects unknown Consent Mode signal keys", () => {
+    const config = baseConfig({
+      consentMode: {
+        enabled: true,
+        mapping: {
+          analytics_storage: "analytics",
+          unknown_storage: "analytics",
+        } as unknown as Partial<Record<GoogleSignal, string>>,
+      },
+    });
+
+    expectConsentError(
+      () => start(config),
+      "INVALID_CONFIG",
+      "consentMode.mapping.unknown_storage",
+    );
+  });
+});
+
+describe("initialization, region resolution, and singleton behavior (CFG-9, CORE-1)", () => {
+  test("returns the same singleton for the same normalized configuration", () => {
+    const first = start(baseConfig());
+    const second = start(baseConfig());
+
+    expect(second).toBe(first);
+  });
+
+  test("includes resolver function identity in singleton compatibility", () => {
+    const resolver = async () => "fr";
+    const first = start(baseConfig({ resolveRegion: resolver }));
+
+    expect(start(baseConfig({ resolveRegion: resolver }))).toBe(first);
+    expectConsentError(
+      () => start(baseConfig({ resolveRegion: async () => "fr" })),
+      "INVALID_CONFIG",
+      "config",
+    );
+  });
+
+  test("throws synchronously when a repeated init is materially different", () => {
+    start(baseConfig());
+
+    expectConsentError(
+      () => start(baseConfig({ revision: 2 })),
+      "INVALID_CONFIG",
+      "config",
+    );
+  });
+
+  test("treats dictionary key insertion order as semantically identical", () => {
+    const first = start(baseConfig());
+    const reversedDictionary = Object.fromEntries(
+      Object.entries(dictionary).reverse(),
+    );
+    const second = start(
+      baseConfig({
+        i18n: {
+          default: "en",
+          translations: { en: reversedDictionary },
+        },
+      }),
+    );
+
+    expect(second).toBe(first);
+  });
+
+  test("awaits region resolution, normalizes it, and applies matching services", async () => {
+    let resolveRegion: ((region: string | null) => void) | undefined;
+    const pendingRegion = new Promise<string | null>((resolve) => {
+      resolveRegion = resolve;
+    });
+    const config = baseConfig({ resolveRegion: () => pendingRegion });
+    config.categories[0]?.services?.push({
+      id: "regional",
+      label: "service.regional.label",
+      onlyRegions: ["fr"],
+    });
+    const api = start(config);
+    const ready = vi.fn();
+    api.on("ready", ready);
+    api.acceptAll();
+
+    await Promise.resolve();
+    expect(ready).not.toHaveBeenCalled();
+    expect(api.getConsent()).toBeNull();
+
+    resolveRegion?.("fr");
+    await waitForReady(api);
+    expect(api.getConsent()).toMatchObject({
+      region: "FR",
+      services: { regional: true },
+    });
+    expect(api.getConfig().categories[1]?.services[2]?.onlyRegions).toEqual([
+      "FR",
+    ]);
+  });
+
+  test.each([
+    {
+      name: "null",
+      resolveRegion: async () => null,
+    },
+    {
+      name: "rejection",
+      resolveRegion: async () => {
+        throw new Error("offline");
+      },
+    },
+    {
+      name: "outside configured regions",
+      resolveRegion: async () => "DE",
+    },
+  ])(
+    "uses strict behavior for $name region resolution",
+    async ({ resolveRegion }) => {
+      const config = baseConfig({ resolveRegion });
+      config.categories[0]?.services?.push({
+        id: "regional",
+        label: "service.regional.label",
+        onlyRegions: ["FR"],
+      });
+      const api = start(config);
+      api.acceptAll();
+      await waitForReady(api);
+
+      expect(api.getConsent()?.services.regional).toBe(false);
+    },
+  );
+});
+
+describe("consent lifecycle and invariants (CORE-2..4, CORE-6..7, CORE-10)", () => {
+  test("keeps getConsent active-only and creates a UUIDv4 state on first decision", async () => {
+    const api = start(baseConfig());
+    expect(api.getConsent()).toBeNull();
+    await waitForReady(api);
+    expect(api.getConsent()).toBeNull();
+
+    expect(api.rejectAll()).toBeUndefined();
+    const state = api.getConsent();
+    expect(state?.consentId).toMatch(UUID_V4);
+    expect(state?.createdAt).toMatch(/Z$/);
+    expect(state?.updatedAt).toMatch(/Z$/);
+    expect(state?.revision).toBe(1);
+    expect(state?.categories).toEqual({
+      necessary: true,
+      analytics: false,
+      marketing: false,
+    });
+  });
+
+  test("uses getRandomValues for UUIDv4 when crypto.randomUUID is unavailable", async () => {
+    const getRandomValues = vi.fn((bytes: Uint8Array) => {
+      for (let index = 0; index < bytes.length; index += 1) {
+        bytes[index] = index;
+      }
+      return bytes;
+    });
+    vi.stubGlobal("crypto", { getRandomValues });
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    api.rejectAll();
+
+    expect(getRandomValues).toHaveBeenCalledOnce();
+    expect(getRandomValues).toHaveBeenCalledWith(expect.any(Uint8Array));
+    expect(api.getConsent()?.consentId).toBe(
+      "00010203-0405-4607-8809-0a0b0c0d0e0f",
+    );
+    expect(api.getConsent()?.consentId).toMatch(UUID_V4);
+  });
+
+  test("applies category changes before service overrides and recomputes categories", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    expect(
+      api.setConsent({
+        categories: { analytics: true, marketing: true },
+        services: { ga: false, ads: false },
+      }),
+    ).toBeUndefined();
+    expect(api.getConsent()).toMatchObject({
+      categories: {
+        necessary: true,
+        analytics: true,
+        marketing: false,
+      },
+      services: {
+        ga: false,
+        amp: true,
+        ads: false,
+      },
+    });
+
+    api.setConsent({ services: { amp: false } });
+    expect(api.getConsent()?.categories.analytics).toBe(false);
+  });
+
+  test("acceptAll and rejectAll affect every optional choice but never necessary", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    api.acceptAll();
+    expect(api.getConsent()).toMatchObject({
+      categories: {
+        necessary: true,
+        analytics: true,
+        marketing: true,
+      },
+      services: { ga: true, amp: true, ads: true },
+    });
+
+    api.rejectAll();
+    expect(api.getConsent()).toMatchObject({
+      categories: {
+        necessary: true,
+        analytics: false,
+        marketing: false,
+      },
+      services: { ga: false, amp: false, ads: false },
+    });
+  });
+
+  test("supports service-less category choices", async () => {
+    const config = baseConfig();
+    config.categories.push({
+      id: "functional",
+      label: "category.functional.label",
+      description: "category.functional.description",
+    });
+    const api = start(config);
+    await waitForReady(api);
+
+    api.setConsent({ categories: { functional: true } });
+    expect(api.getConsent()?.categories.functional).toBe(true);
+    api.rejectAll();
+    expect(api.getConsent()?.categories.functional).toBe(false);
+  });
+
+  test("preserves enabled readonly categories and rejects attempts to change them", async () => {
+    const config = baseConfig();
+    config.categories.push({
+      id: "functional",
+      label: "category.functional.label",
+      description: "category.functional.description",
+      readonly: true,
+      services: [{ id: "regional", label: "service.regional.label" }],
+    });
+    const api = start(config);
+    await waitForReady(api);
+
+    api.rejectAll();
+    expect(api.getConsent()).toMatchObject({
+      categories: { necessary: true, functional: true },
+      services: { regional: true },
+    });
+    expectConsentError(
+      () => api.setConsent({ categories: { necessary: false } }),
+      "INVALID_SELECTION",
+      "selection.categories.necessary",
+    );
+    expectConsentError(
+      () => api.setConsent({ categories: { functional: false } }),
+      "INVALID_SELECTION",
+      "selection.categories.functional",
+    );
+    expectConsentError(
+      () => api.setConsent({ services: { regional: false } }),
+      "INVALID_SELECTION",
+      "selection.services.regional",
+    );
+  });
+
+  test("safely persists __proto__ category and service IDs as own boolean choices", async () => {
+    const config = baseConfig({
+      categories: [
+        {
+          id: "__proto__",
+          label: "category.functional.label",
+          description: "category.functional.description",
+        },
+        {
+          id: "analytics",
+          label: "category.analytics.label",
+          description: "category.analytics.description",
+          services: [{ id: "__proto__", label: "service.ga.label" }],
+        },
+      ],
+    });
+    const api = start(config);
+    await waitForReady(api);
+
+    api.acceptAll();
+    const state = api.getConsent();
+    expect(
+      Object.getOwnPropertyDescriptor(state?.categories ?? {}, "__proto__"),
+    ).toMatchObject({ value: true });
+    expect(
+      Object.getOwnPropertyDescriptor(state?.services ?? {}, "__proto__"),
+    ).toMatchObject({ value: true });
+
+    const encoded = window.localStorage.getItem("libreconsent");
+    const persisted = JSON.parse(decodeURIComponent(encoded ?? "")) as {
+      categories: Record<string, boolean>;
+      services: Record<string, boolean>;
+    };
+    expect(
+      Object.getOwnPropertyDescriptor(persisted.categories, "__proto__"),
+    ).toMatchObject({ value: true });
+    expect(
+      Object.getOwnPropertyDescriptor(persisted.services, "__proto__"),
+    ).toMatchObject({ value: true });
+  });
+
+  test.each([
+    {
+      selection: { categories: { missing: true } },
+      path: "selection.categories.missing",
+    },
+    {
+      selection: { services: { missing: true } },
+      path: "selection.services.missing",
+    },
+    {
+      selection: { categories: { analytics: "yes" } },
+      path: "selection.categories.analytics",
+    },
+  ])("rejects invalid selections at $path", async ({ selection, path }) => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    expectConsentError(
+      () =>
+        api.setConsent(
+          selection as unknown as Parameters<ConsentApi["setConsent"]>[0],
+        ),
+      "INVALID_SELECTION",
+      path,
+    );
+    expect(api.getConsent()).toBeNull();
+  });
+
+  test("returns defensive state copies", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.acceptAll();
+
+    const copy = api.getConsent();
+    if (!copy) {
+      throw new Error("Expected active consent");
+    }
+    copy.categories.analytics = false;
+    copy.services.ga = false;
+
+    expect(api.getConsent()).toMatchObject({
+      categories: { analytics: true },
+      services: { ga: true },
+    });
+  });
+
+  test("preserves consent ID and createdAt across changes and withdrawal", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-26T10:00:00.000Z"));
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.acceptAll();
+    const first = api.getConsent();
+
+    vi.setSystemTime(new Date("2026-07-26T11:00:00.000Z"));
+    api.setConsent({ services: { ga: false } });
+    const changed = api.getConsent();
+    vi.setSystemTime(new Date("2026-07-26T12:00:00.000Z"));
+    expect(api.withdraw()).toBeUndefined();
+    const withdrawn = api.getConsent();
+
+    expect(changed?.consentId).toBe(first?.consentId);
+    expect(changed?.createdAt).toBe(first?.createdAt);
+    expect(changed?.updatedAt).toBe("2026-07-26T11:00:00.000Z");
+    expect(withdrawn?.consentId).toBe(first?.consentId);
+    expect(withdrawn?.createdAt).toBe(first?.createdAt);
+    expect(withdrawn?.updatedAt).toBe("2026-07-26T12:00:00.000Z");
+    expect(withdrawn).toMatchObject({
+      categories: {
+        necessary: true,
+        analytics: false,
+        marketing: false,
+      },
+      services: { ga: false, amp: false, ads: false },
+    });
+  });
+
+  test("keeps Phase 1 UI intents DOM-safe and renderer-free", async () => {
+    document.body.innerHTML = "<main>Site</main>";
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    expect(api.showPreferences()).toBeUndefined();
+    expect(api.hide()).toBeUndefined();
+    expect(document.body.innerHTML).toBe("<main>Site</main>");
+  });
+});
+
+describe("events and queued decisions (CORE-3)", () => {
+  test("emits ready before first consent and change only for later decisions", async () => {
+    const api = start(baseConfig());
+    const events: string[] = [];
+    api.on("ready", () => events.push("ready"));
+    api.on("consent", () => events.push("consent"));
+    api.on("change", () => events.push("change"));
+
+    await waitForReady(api);
+    api.acceptAll();
+    api.rejectAll();
+
+    expect(events).toEqual(["ready", "consent", "change"]);
+  });
+
+  test("emits ready before consent when restoring an active decision", async () => {
+    const state = storedState();
+    setDocumentCookie(`libreconsent=${encodeState(state)}; Path=/`);
+    const api = start(baseConfig());
+    const events: string[] = [];
+    api.on("ready", () => events.push("ready"));
+    api.on("consent", () => events.push("consent"));
+
+    await waitForReady(api);
+
+    expect(events).toEqual(["ready", "consent"]);
+    expect(api.getConsent()?.consentId).toBe(state.consentId);
+  });
+
+  test("replays ready and current consent to late subscribers but never change", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.acceptAll();
+    api.rejectAll();
+
+    const ready = vi.fn();
+    const consent = vi.fn();
+    const change = vi.fn();
+    api.on("ready", ready);
+    api.on("consent", consent);
+    api.on("change", change);
+
+    expect(ready).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "new", consent: null }),
+    );
+    expect(consent).toHaveBeenCalledOnce();
+    expect(consent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categories: expect.objectContaining({ analytics: false }),
+      }),
+    );
+    expect(change).not.toHaveBeenCalled();
+  });
+
+  test("isolates errors from late ready replay callbacks", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const replay = vi.fn(() => {
+      throw new Error("late ready listener failed");
+    });
+
+    let unsubscribe: (() => void) | undefined;
+    expect(() => {
+      unsubscribe = api.on("ready", replay);
+    }).not.toThrow();
+
+    expect(replay).toHaveBeenCalledOnce();
+    expect(unsubscribe).toBeTypeOf("function");
+    unsubscribe?.();
+  });
+
+  test("isolates errors from late consent replay callbacks", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.acceptAll();
+    const replay = vi.fn(() => {
+      throw new Error("late consent listener failed");
+    });
+
+    let unsubscribe: (() => void) | undefined;
+    expect(() => {
+      unsubscribe = api.on("consent", replay);
+    }).not.toThrow();
+
+    expect(replay).toHaveBeenCalledOnce();
+    expect(unsubscribe).toBeTypeOf("function");
+    unsubscribe?.();
+  });
+
+  test("supports unsubscribe and off", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const first = vi.fn();
+    const second = vi.fn();
+    const unsubscribe = api.on("change", first);
+    api.on("change", second);
+
+    api.acceptAll();
+    unsubscribe();
+    api.off("change", second);
+    api.rejectAll();
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).not.toHaveBeenCalled();
+  });
+
+  test("invokes ready listeners in subscription order", async () => {
+    const api = start(baseConfig());
+    const order: string[] = [];
+    api.on("ready", () => order.push("first"));
+    api.on("ready", () => order.push("second"));
+    api.on("ready", () => order.push("third"));
+
+    await waitForReady(api);
+
+    expect(order).toEqual(["first", "second", "third"]);
+  });
+
+  test("isolates throwing listeners so queued decisions still initialize in FIFO order", async () => {
+    let resolveRegion: ((region: string | null) => void) | undefined;
+    const pendingRegion = new Promise<string | null>((resolve) => {
+      resolveRegion = resolve;
+    });
+    const api = start(baseConfig({ resolveRegion: () => pendingRegion }));
+    const events: string[] = [];
+    api.on("consent", () => {
+      events.push("throwing-consent");
+      throw new Error("listener failed");
+    });
+    api.on("consent", () => events.push("later-consent"));
+    api.on("change", (state) =>
+      events.push(`change:${String(state.categories.analytics)}`),
+    );
+    const ready = waitForReady(api);
+
+    api.acceptAll();
+    api.rejectAll();
+    resolveRegion?.("FR");
+    await ready;
+    await Promise.resolve();
+
+    expect(events).toEqual([
+      "throwing-consent",
+      "later-consent",
+      "change:false",
+    ]);
+    expect(api.getConsent()?.categories.analytics).toBe(false);
+  });
+
+  test("delivers reentrant decisions to every listener in FIFO order", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const observed: string[] = [];
+
+    api.on("consent", () => api.rejectAll());
+    api.on("consent", (state) =>
+      observed.push(`consent:${String(state.categories.analytics)}`),
+    );
+    api.on("change", (state) => {
+      if (!state.categories.analytics) {
+        api.acceptAll();
+      }
+    });
+    api.on("change", (state) =>
+      observed.push(`change:${String(state.categories.analytics)}`),
+    );
+
+    api.acceptAll();
+
+    expect(observed).toEqual(["consent:true", "change:false", "change:true"]);
+    expect(api.getConsent()?.categories.analytics).toBe(true);
+  });
+
+  test("queues pre-initialization decisions in call order", async () => {
+    let resolveRegion: ((region: string | null) => void) | undefined;
+    const pendingRegion = new Promise<string | null>((resolve) => {
+      resolveRegion = resolve;
+    });
+    const api = start(baseConfig({ resolveRegion: () => pendingRegion }));
+    const events: string[] = [];
+    api.on("ready", () => events.push("ready"));
+    api.on("consent", () => events.push("consent"));
+    api.on("change", () => events.push("change"));
+    const ready = waitForReady(api);
+
+    api.acceptAll();
+    api.rejectAll();
+    api.setConsent({ services: { ga: true } });
+    expect(api.getConsent()).toBeNull();
+
+    resolveRegion?.("US");
+    await ready;
+
+    expect(events).toEqual(["ready", "consent", "change", "change"]);
+    expect(api.getConsent()).toMatchObject({
+      region: "US",
+      categories: { analytics: true, marketing: false },
+      services: { ga: true, amp: false, ads: false },
+    });
+  });
+
+  test("clones queued selection input at call time", async () => {
+    let resolveRegion: ((region: string | null) => void) | undefined;
+    const pendingRegion = new Promise<string | null>((resolve) => {
+      resolveRegion = resolve;
+    });
+    const api = start(baseConfig({ resolveRegion: () => pendingRegion }));
+    const selection = {
+      categories: { analytics: true },
+      services: { ga: true },
+    };
+    const ready = waitForReady(api);
+
+    api.setConsent(selection);
+    selection.categories.analytics = false;
+    selection.services.ga = false;
+    resolveRegion?.("US");
+    await ready;
+
+    expect(api.getConsent()).toMatchObject({
+      categories: { analytics: true },
+      services: { ga: true, amp: true },
+    });
+  });
+
+  test("gives each ready listener and late replay a defensive prefill copy", async () => {
+    const stale = storedState({
+      revision: 1,
+      services: { ga: true, amp: false, ads: true },
+    });
+    window.localStorage.setItem("libreconsent", encodeState(stale));
+    const api = start(baseConfig({ revision: 2 }));
+    const observed: ReadyEvent[] = [];
+    api.on("ready", (payload) => {
+      if (payload.prefill) {
+        payload.prefill.categories.analytics = false;
+        payload.prefill.services.ga = false;
+      }
+    });
+    api.on("ready", (payload) => observed.push(payload));
+
+    await waitForReady(api);
+    let replay: ReadyEvent | undefined;
+    api.on("ready", (payload) => {
+      replay = payload;
+    });
+
+    expect(observed[0]?.prefill).toMatchObject({
+      categories: { analytics: true, marketing: true },
+      services: { ga: true, amp: false, ads: true },
+    });
+    expect(replay?.prefill).toMatchObject({
+      categories: { analytics: true, marketing: true },
+      services: { ga: true, amp: false, ads: true },
+    });
+  });
+});
+
+describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
+  test("performs absolutely no storage write before a user decision", async () => {
+    const cookieSetter = vi.spyOn(document, "cookie", "set");
+    const mirrorSetter = vi.spyOn(window.localStorage, "setItem");
+    const api = start(baseConfig());
+
+    await waitForReady(api);
+    api.showPreferences();
+    api.hide();
+
+    expect(api.getConsent()).toBeNull();
+    expect(cookieSetter).not.toHaveBeenCalled();
+    expect(mirrorSetter).not.toHaveBeenCalled();
+    expect(document.cookie).not.toContain("libreconsent=");
+    expect(window.localStorage.getItem("libreconsent")).toBeNull();
+  });
+
+  test("persists a decision to cookie and localStorage and restores it round-trip", async () => {
+    const first = start(baseConfig());
+    await waitForReady(first);
+    first.setConsent({ services: { ga: true } });
+    const decision = first.getConsent();
+    const encoded = window.localStorage.getItem("libreconsent");
+
+    expect(encoded).not.toBeNull();
+    expect(document.cookie).toContain(`libreconsent=${encoded}`);
+    first.reset();
+    setDocumentCookie(`libreconsent=${encoded}; Path=/`);
+    if (encoded) {
+      window.localStorage.setItem("libreconsent", encoded);
+    }
+
+    const second = start(baseConfig());
+    const ready = await waitForReady(second);
+    expect(ready).toMatchObject({ reason: "restored" });
+    expect(second.getConsent()).toEqual(decision);
+  });
+
+  test("uses a valid cookie as source of truth and reconciles its mirror", async () => {
+    const cookieState = storedState({
+      consentId: "7798ec00-5f8d-4d84-a0c5-93a266d5a0d9",
+      services: { ga: true, amp: false, ads: false },
+    });
+    const mirrorState = storedState({
+      consentId: "2163f168-3060-4d6d-a2cc-d78c7dcc77e3",
+      services: { ga: false, amp: false, ads: true },
+    });
+    setDocumentCookie(`libreconsent=${encodeState(cookieState)}; Path=/`);
+    window.localStorage.setItem("libreconsent", encodeState(mirrorState));
+
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    expect(api.getConsent()?.consentId).toBe(cookieState.consentId);
+    expect(window.localStorage.getItem("libreconsent")).toBe(
+      encodeState(cookieState),
+    );
+  });
+
+  test("recovers an absent or corrupt cookie from a valid mirror", async () => {
+    const mirrorState = storedState({
+      consentId: "a6750c62-fdbc-4484-813a-d6025db2b3c0",
+    });
+    setDocumentCookie("libreconsent=%E0%A4%A; Path=/");
+    window.localStorage.setItem("libreconsent", encodeState(mirrorState));
+
+    const api = start(baseConfig());
+    const ready = await waitForReady(api);
+
+    expect(ready.reason).toBe("restored");
+    expect(api.getConsent()?.consentId).toBe(mirrorState.consentId);
+    expect(document.cookie).toContain(
+      `libreconsent=${encodeState(mirrorState)}`,
+    );
+  });
+
+  test("recovers from inaccessible cookie storage and never crashes on unavailable storage", async () => {
+    const mirrorState = storedState();
+    window.localStorage.setItem("libreconsent", encodeState(mirrorState));
+    const inaccessibleCookie = vi
+      .spyOn(document, "cookie", "get")
+      .mockImplementation(() => {
+        throw new Error("cookie access denied");
+      });
+
+    const api = start(baseConfig());
+    await expect(waitForReady(api)).resolves.toMatchObject({
+      reason: "restored",
+    });
+    expect(api.getConsent()?.consentId).toBe(mirrorState.consentId);
+
+    api.reset();
+    inaccessibleCookie.mockRestore();
+    const unavailableCookieGet = vi
+      .spyOn(document, "cookie", "get")
+      .mockImplementation(() => {
+        throw new Error("cookie access denied");
+      });
+    const unavailableCookieSet = vi
+      .spyOn(document, "cookie", "set")
+      .mockImplementation(() => {
+        throw new Error("cookie access denied");
+      });
+    const unavailableMirrorGet = vi
+      .spyOn(window.localStorage, "getItem")
+      .mockImplementation(() => {
+        throw new Error("storage access denied");
+      });
+    const unavailableMirrorSet = vi
+      .spyOn(window.localStorage, "setItem")
+      .mockImplementation(() => {
+        throw new Error("storage access denied");
+      });
+    const unavailable = start(baseConfig());
+    await expect(waitForReady(unavailable)).resolves.toMatchObject({
+      reason: "new",
+    });
+    expect(() => unavailable.acceptAll()).not.toThrow();
+    expect(unavailable.getConsent()?.categories.analytics).toBe(true);
+
+    unavailableCookieGet.mockRestore();
+    unavailableCookieSet.mockRestore();
+    unavailableMirrorGet.mockRestore();
+    unavailableMirrorSet.mockRestore();
+  });
+
+  test("treats corrupt cookie and mirror values as no decision", async () => {
+    setDocumentCookie("libreconsent=not-json; Path=/");
+    window.localStorage.setItem("libreconsent", "%7B%22revision%22%3A1%7D");
+
+    const api = start(baseConfig());
+    const ready = await waitForReady(api);
+
+    expect(ready).toEqual({ reason: "new", consent: null });
+    expect(api.getConsent()).toBeNull();
+  });
+
+  test.each([
+    {
+      name: "non-UTC createdAt",
+      state: storedState({ createdAt: "2026-07-26T10:00:00+02:00" }),
+    },
+    {
+      name: "malformed updatedAt",
+      state: storedState({ updatedAt: "2026-07-26 10:00:00Z" }),
+    },
+    {
+      name: "zero revision",
+      state: storedState({ revision: 0 }),
+    },
+    {
+      name: "negative revision",
+      state: storedState({ revision: -1 }),
+    },
+  ])("rejects stored consent with $name", async ({ state }) => {
+    window.localStorage.setItem("libreconsent", encodeState(state));
+
+    const api = start(baseConfig());
+    const ready = await waitForReady(api);
+
+    expect(ready).toEqual({ reason: "new", consent: null });
+    expect(api.getConsent()).toBeNull();
+  });
+
+  test("writes configured cookie attributes and adds Secure only for HTTPS", async () => {
+    vi.stubGlobal("location", { protocol: "https:" });
+    const cookieSetter = vi.spyOn(document, "cookie", "set");
+    const api = start(
+      baseConfig({
+        storage: {
+          cookieName: "private-consent",
+          domain: ".example.test",
+          expiresDays: 30,
+          sameSite: "None",
+        },
+      }),
+    );
+    await waitForReady(api);
+    api.acceptAll();
+
+    const write = cookieSetter.mock.calls
+      .map(([value]) => value)
+      .find((value) => value.startsWith("private-consent="));
+    expect(write).toContain("Path=/");
+    expect(write).toContain("Domain=.example.test");
+    expect(write).toContain("SameSite=None");
+    expect(write).toContain("Expires=");
+    expect(write).toContain("Secure");
+  });
+
+  test("omits Secure from cookie writes outside HTTPS", async () => {
+    vi.stubGlobal("location", { protocol: "http:" });
+    const cookieSetter = vi.spyOn(document, "cookie", "set");
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.acceptAll();
+
+    const write = cookieSetter.mock.calls
+      .map(([value]) => value)
+      .find((value) => value.startsWith("libreconsent="));
+    expect(write).not.toContain("Secure");
+  });
+
+  test("expires decisions from updatedAt and leaves them inactive", async () => {
+    const old = new Date(Date.now() - 2 * DAY).toISOString();
+    const expired = storedState({
+      createdAt: new Date(Date.now() - 10 * DAY).toISOString(),
+      updatedAt: old,
+    });
+    window.localStorage.setItem("libreconsent", encodeState(expired));
+
+    const api = start(baseConfig({ storage: { expiresDays: 1 } }));
+    const ready = await waitForReady(api);
+
+    expect(ready).toEqual({ reason: "expired", consent: null });
+    expect(api.getConsent()).toBeNull();
+  });
+
+  test("does not expire a recently updated decision based on an old createdAt", async () => {
+    const active = storedState({
+      createdAt: new Date(Date.now() - 100 * DAY).toISOString(),
+      updatedAt: new Date(Date.now() - DAY).toISOString(),
+    });
+    window.localStorage.setItem("libreconsent", encodeState(active));
+
+    const api = start(baseConfig({ storage: { expiresDays: 30 } }));
+    const ready = await waitForReady(api);
+
+    expect(ready.reason).toBe("restored");
+    expect(api.getConsent()?.consentId).toBe(active.consentId);
+  });
+
+  test("keeps decision timestamps valid when the wall clock moves backward", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-26T12:00:00.000Z"));
+    const config = baseConfig();
+    const api = start(config);
+    await waitForReady(api);
+    api.acceptAll();
+
+    vi.setSystemTime(new Date("2026-07-26T10:00:00.000Z"));
+    api.rejectAll();
+    const decision = api.getConsent();
+    const encoded = window.localStorage.getItem("libreconsent");
+
+    expect(decision?.createdAt).toBe("2026-07-26T12:00:00.000Z");
+    expect(decision?.updatedAt).toBe("2026-07-26T12:00:00.000Z");
+    expect(encoded).not.toBeNull();
+
+    api.reset();
+    window.localStorage.setItem("libreconsent", encoded ?? "");
+    const restored = start(config);
+    const ready = await waitForReady(restored);
+
+    expect(ready.reason).toBe("restored");
+    expect(restored.getConsent()).toMatchObject({
+      createdAt: "2026-07-26T12:00:00.000Z",
+      updatedAt: "2026-07-26T12:00:00.000Z",
+      categories: expect.objectContaining({ analytics: false }),
+    });
+  });
+
+  test("makes lower-revision consent inactive and exposes sanitized prefill", async () => {
+    const stale = storedState({
+      consentId: "278c5234-2f4d-4639-9b79-90b7732d542f",
+      revision: 1,
+      categories: {
+        necessary: false,
+        analytics: true,
+        marketing: true,
+        removed: true,
+      },
+      services: {
+        ga: true,
+        amp: false,
+        ads: true,
+        removed: true,
+      },
+    });
+    window.localStorage.setItem("libreconsent", encodeState(stale));
+
+    const api = start(baseConfig({ revision: 2 }));
+    const ready = await waitForReady(api);
+
+    expect(ready).toEqual({
+      reason: "revision",
+      consent: null,
+      prefill: {
+        categories: {
+          necessary: true,
+          analytics: true,
+          marketing: true,
+        },
+        services: {
+          ga: true,
+          amp: false,
+          ads: true,
+        },
+      },
+    });
+    expect(api.getConsent()).toBeNull();
+
+    api.setConsent({ services: { ads: false } });
+    expect(api.getConsent()).toMatchObject({
+      revision: 2,
+      categories: {
+        necessary: true,
+        analytics: true,
+        marketing: false,
+      },
+      services: { ga: true, amp: false, ads: false },
+    });
+    expect(api.getConsent()?.consentId).not.toBe(stale.consentId);
+    expect(api.getConsent()?.consentId).toMatch(UUID_V4);
+  });
+
+  test("retains service-less category prefill when revision renewal uses an empty selection", async () => {
+    const stale = storedState({
+      revision: 1,
+      categories: {
+        necessary: true,
+        analytics: false,
+        marketing: false,
+        functional: true,
+      },
+      services: { ga: false, amp: false, ads: false },
+    });
+    window.localStorage.setItem("libreconsent", encodeState(stale));
+    const config = baseConfig({
+      revision: 2,
+      categories: [
+        ...baseConfig().categories,
+        {
+          id: "functional",
+          label: "category.functional.label",
+          description: "category.functional.description",
+        },
+      ],
+    });
+    const api = start(config);
+    const ready = await waitForReady(api);
+
+    expect(ready).toMatchObject({
+      reason: "revision",
+      consent: null,
+      prefill: {
+        categories: { functional: true },
+      },
+    });
+
+    api.setConsent({});
+
+    expect(api.getConsent()).toMatchObject({
+      revision: 2,
+      categories: { functional: true },
+    });
+    expect(api.getConsent()?.consentId).not.toBe(stale.consentId);
+  });
+
+  test("sanitizes stored and prefill region-restricted choices against the current region", async () => {
+    const config = baseConfig({
+      revision: 2,
+      resolveRegion: async () => "DE",
+    });
+    config.categories[0]?.services?.push({
+      id: "regional",
+      label: "service.regional.label",
+      onlyRegions: ["FR"],
+    });
+    const stale = storedState({
+      services: { ga: false, amp: false, ads: false, regional: true },
+    });
+    window.localStorage.setItem("libreconsent", encodeState(stale));
+
+    const api = start(config);
+    const ready = await waitForReady(api);
+
+    expect(ready.prefill?.services.regional).toBe(false);
+    expect(ready.prefill?.categories.analytics).toBe(false);
+  });
+
+  test("persists withdrawal and emits change immediately", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.acceptAll();
+    const change = vi.fn();
+    api.on("change", change);
+
+    api.withdraw();
+
+    expect(change).toHaveBeenCalledOnce();
+    expect(change).toHaveBeenCalledWith(api.getConsent());
+    const encoded = window.localStorage.getItem("libreconsent");
+    expect(encoded).not.toBeNull();
+    expect(JSON.parse(decodeURIComponent(encoded ?? ""))).toMatchObject({
+      categories: {
+        necessary: true,
+        analytics: false,
+        marketing: false,
+      },
+      services: { ga: false, amp: false, ads: false },
+    });
+  });
+
+  test("withdraw before active consent emits change rather than consent", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const consent = vi.fn();
+    const change = vi.fn();
+    api.on("consent", consent);
+    api.on("change", change);
+
+    api.withdraw();
+
+    expect(consent).not.toHaveBeenCalled();
+    expect(change).toHaveBeenCalledOnce();
+    expect(change).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categories: {
+          necessary: true,
+          analytics: false,
+          marketing: false,
+        },
+      }),
+    );
+  });
+
+  test("keeps decisions after an initial withdrawal on the change channel", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const consent = vi.fn();
+    const change = vi.fn();
+    api.on("consent", consent);
+    api.on("change", change);
+
+    api.withdraw();
+    api.acceptAll();
+
+    expect(consent).not.toHaveBeenCalled();
+    expect(change).toHaveBeenCalledTimes(2);
+    expect(change).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        categories: expect.objectContaining({ analytics: false }),
+      }),
+    );
+    expect(change).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        categories: expect.objectContaining({ analytics: true }),
+      }),
+    );
+  });
+});
+
+describe("reset (CORE-2)", () => {
+  test("clears active state, listeners, and stored data and releases the singleton", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.acceptAll();
+    const change = vi.fn();
+    api.on("change", change);
+    expect(window.localStorage.getItem("libreconsent")).not.toBeNull();
+
+    api.reset();
+
+    expect(api.getConsent()).toBeNull();
+    expect(window.localStorage.getItem("libreconsent")).toBeNull();
+    expect(document.cookie).not.toContain("libreconsent=");
+    api.rejectAll();
+    expect(change).not.toHaveBeenCalled();
+    const replacement = start(baseConfig());
+    expect(replacement).not.toBe(api);
+    await waitForReady(replacement);
+  });
+
+  test("invalidates pending initialization and drops queued decisions", async () => {
+    let resolveRegion: ((region: string | null) => void) | undefined;
+    const pendingRegion = new Promise<string | null>((resolve) => {
+      resolveRegion = resolve;
+    });
+    const api = start(baseConfig({ resolveRegion: () => pendingRegion }));
+    const ready = vi.fn();
+    const consent = vi.fn();
+    api.on("ready", ready);
+    api.on("consent", consent);
+    api.acceptAll();
+
+    api.reset();
+    resolveRegion?.("FR");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(ready).not.toHaveBeenCalled();
+    expect(consent).not.toHaveBeenCalled();
+    expect(api.getConsent()).toBeNull();
+    expect(window.localStorage.getItem("libreconsent")).toBeNull();
+  });
 });

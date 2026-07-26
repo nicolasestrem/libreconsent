@@ -6,7 +6,12 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 | ID | Origin (review/issue) | Requirement IDs affected | Description | Severity | Status | PR |
 |----|----------------------|--------------------------|-------------|----------|--------|-----|
-| P-001 | _example — remove when first real entry lands_ | — | — | — | — | — |
+| P-001 | Phase 1 build review | CORE-2, CORE-3, CORE-10 | Preserve FIFO ordering through reentrant listeners, isolate consumer callback errors, clone queued/replayed payloads, and make undecided withdrawal emit `change`. | blocker | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
+| P-002 | Phase 1 build review | CORE-4, CORE-5, CORE-11 | Use prototype-safe choice maps and reject stored states with invalid UUID/revision/canonical UTC timestamps. | blocker | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
+| P-003 | Phase 1 build review | CFG-3, CFG-6, CORE-1 | Compare normalized record keys canonically and validate enabled effective Consent Mode mappings plus unknown signals. | major | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
+| P-004 | Phase 1 PR CI | TOOL-4 | Use Node's canonical `--no-experimental-webstorage` flag so the inherited Vitest guard is accepted by both Node 24 CI and Node 26 development. | blocker | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
+| P-005 | PR #2 review | CORE-3, CORE-10 | Keep decisions after an initial withdrawal on `change`, and isolate exceptions from replayed `ready` / `consent` callbacks. | major | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
+| P-006 | PR #2 review | CORE-3, CORE-4, CORE-5 | Queue reentrant listener decisions for FIFO delivery and clamp changed-state timestamps against backward wall-clock adjustments. | major | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -19,4 +24,4 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None yet — build not started._
+_None. P-001..P-006 were fixed and regression-tested within the Phase 1 review cycle._
