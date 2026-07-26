@@ -4,6 +4,8 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-26 | Claude Code | Phase 3 blocking (BLK-1..3, BLK-5) | Added declarative script/embed gating with document-order execution, nonce propagation, i18n placeholders, and `reloadOnWithdraw`; D-020..D-026 recorded. |
+| 2026-07-26 | Claude Code | Phase 3 flagship E2E (spec §11.2) | Proved pre-consent network silence with real vendored `gtag.js`; fixed the fixture's non-Date `gtag("js", …)` that had suppressed every tag and would have made the assertions vacuous. |
 | 2026-07-26 | Codex | PR #5 review follow-up | Made omitted standalone Consent Mode enablement side-effect-free and recorded D-019 for CM-4's Phase 2 documentation versus Phase 3 BLK delivery boundary. |
 | 2026-07-26 | Codex | PR #5 review follow-up | Completed the Phase 2 gate record and made fixture artifact-read failure return a clear HTTP 500 response. |
 | 2026-07-26 | Codex | Phase 2 Consent Mode (CM-1..6) | Added head defaults, lifecycle updates, redaction/URL settings, regional/GTM fixtures, current Google-source records, and Phase 2 traceability. |
