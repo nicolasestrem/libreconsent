@@ -8,6 +8,7 @@
     "pnpm": ">=11"
   },
   "scripts": {
+    "traceability": "node scripts/check-traceability.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "test": "node scripts/run-vitest.mjs run",
@@ -16,7 +17,7 @@
     "examples:serve": "node scripts/serve-examples.mjs",
     "e2e": "playwright test --project=e2e",
     "a11y": "playwright test --project=a11y",
-    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size && pnpm e2e && pnpm a11y"
+    "check": "pnpm traceability && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size && pnpm e2e && pnpm a11y"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

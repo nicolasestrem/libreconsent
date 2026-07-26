@@ -2,9 +2,17 @@
 
 Consent-mode-first, self-hosted consent infrastructure.
 
-## Phase 0 status
+## Phase 1 status
 
-This repository currently contains only typed package stubs and test fixtures. No consent API, storage, UI, TCF support, or network behavior has been implemented.
+`@libreconsent/core` now implements validated configuration, consent state and
+lifecycle events, region resolution, and first-party cookie/localStorage
+persistence. The UI, bridge, and optional Worker receipt service remain typed
+stubs for their later phases. TCF support is intentionally and permanently
+excluded.
+
+The next product phase is Google Consent Mode v2. Completed requirements and
+their verification evidence are tracked in
+[`specs/TRACEABILITY.md`](specs/TRACEABILITY.md) and enforced in CI.
 
 ## Development
 

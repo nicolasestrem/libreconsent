@@ -1,7 +1,18 @@
 # Traceability
 
+Latest completed phase: 1
+
+Advance this marker only after the phase definition of done and its tests pass.
+`pnpm traceability` requires exactly one passing, non-empty, file-backed row for
+every requirement owned by each completed phase.
+
 | Requirement ID | Implementation file(s) | Test file(s) | Status |
 |---|---|---|---|
+| TOOL-1 | `package.json`; `pnpm-workspace.yaml`; `packages/core/package.json`; `packages/ui/package.json`; `packages/bridge/package.json`; `packages/worker-log/package.json` | `.github/workflows/ci.yml` — `Install dependencies`, `Build`; `packages/core/src/index.test.ts`; `packages/ui/src/index.test.ts`; `packages/bridge/src/index.test.ts`; `packages/worker-log/src/index.test.ts` | Passing |
+| TOOL-2 | `tsconfig.json`; `packages/core/tsup.config.ts`; `packages/ui/tsup.config.ts`; `packages/bridge/tsup.config.ts`; `packages/worker-log/tsup.config.ts` | `.github/workflows/ci.yml` — `Typecheck`, `Build` | Passing |
+| TOOL-3 | `vitest.config.ts`; `playwright.config.ts`; `biome.json`; `package.json` | `.github/workflows/ci.yml` — `Lint`, `Unit tests`, `Size budgets`, `E2E tests`, `Accessibility tests`; `tests/fixtures.e2e.spec.ts`; `tests/fixtures.a11y.spec.ts` | Passing |
+| TOOL-4 | `.github/workflows/ci.yml`; `package.json`; `scripts/check-traceability.mjs` | `.github/workflows/ci.yml` — `Traceability`, `All gates`; `scripts/check-traceability.test.mjs` | Passing |
+| TOOL-5 | `packages/core/src/index.ts`; `packages/core/src/types.ts`; `packages/core/README.md`; `packages/ui/README.md`; `packages/bridge/README.md`; `packages/worker-log/README.md` | `.github/workflows/ci.yml` — `Typecheck`, `Lint`, `Build` | Passing |
 | CFG-1 | `packages/core/src/config.ts`; `packages/core/src/types.ts` | `packages/core/src/index.test.ts` — `normalizes defaults, injects necessary first, and deeply freezes getConfig`<br>`moves a configured necessary category first and forces its invariants`<br>`readonly categories default enabled while optional categories cannot start enabled` | Passing |
 | CFG-2 | `packages/core/src/config.ts`; `packages/core/src/types.ts` | `packages/core/src/index.test.ts` — `normalizes cookie rows, storage, consent settings, and region lists`<br>`rejects duplicate category IDs and globally duplicate service IDs` | Passing |
 | CFG-3 | `packages/core/src/config.ts`; `packages/core/src/types.ts` | `packages/core/src/index.test.ts` — `normalizes cookie rows, storage, consent settings, and region lists`<br>`validates every effective mapping target when Consent Mode is enabled`<br>`rejects unknown Consent Mode signal keys` | Passing |
