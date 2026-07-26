@@ -12,6 +12,9 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-004 | Phase 1 PR CI | TOOL-4 | Use Node's canonical `--no-experimental-webstorage` flag so the inherited Vitest guard is accepted by both Node 24 CI and Node 26 development. | blocker | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
 | P-005 | PR #2 review | CORE-3, CORE-10 | Keep decisions after an initial withdrawal on `change`, and isolate exceptions from replayed `ready` / `consent` callbacks. | major | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
 | P-006 | PR #2 review | CORE-3, CORE-4, CORE-5 | Queue reentrant listener decisions for FIFO delivery and clamp changed-state timestamps against backward wall-clock adjustments. | major | done | [#2](https://github.com/nicolasestrem/libreconsent/pull/2) |
+| P-007 | Phase 1 phase-gate audit | TOOL-1..5 | Enforce the completed-phase marker and exactly one passing, non-empty, file-backed traceability row for every requirement through that phase. | blocker | done | This PR |
+| P-008 | Phase 1 documentation audit | TOOL-5 | Replace the root README's obsolete Phase 0 stub status with the completed Phase 1 scope and next milestone. | minor | done | This PR |
+| P-009 | PR #3 review | TOOL-4 | Require verification evidence to identify a configured runnable test or supported named CI check, not merely an existing file. | P1 | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -24,4 +27,4 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-001..P-006 were fixed and regression-tested within the Phase 1 review cycle._
+_None. P-001..P-008 were fixed and regression-tested within the Phase 1 review cycle._

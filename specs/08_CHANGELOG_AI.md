@@ -4,6 +4,8 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-26 | Codex | Phase 1 phase-gate prerequisite (TOOL-1..5) | Added completed-phase traceability enforcement with valid/broken fixtures and CI integration; corrected stale root status documentation. |
+| 2026-07-26 | Codex | PR #3 review follow-up | Restricted traceability verification evidence to configured test files or supported named CI checks; added the non-test-file regression. |
 | 2026-07-26 | Codex | Phase 1 review follow-up (CORE-3..5) | Queued reentrant decisions for FIFO event delivery, clamped timestamps across wall-clock rollback, and added focused regressions without replying to or resolving PR threads. |
 | 2026-07-26 | Codex | Phase 1 CI/review follow-up (TOOL-4, CORE-3, CORE-10) | Fixed Node 24 CI with the canonical Web Storage guard; kept post-withdrawal decisions on `change`; isolated throwing replay callbacks; added focused regressions. |
 | 2026-07-26 | Codex | Phase 1 core (CFG-1..7, CFG-9, CORE-1..11) | Implemented and documented the core configuration, consent lifecycle, events, region resolution, and cookie/localStorage contracts. Local verification passes; PR #2 opened for review. |

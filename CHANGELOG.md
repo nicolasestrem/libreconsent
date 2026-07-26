@@ -6,6 +6,11 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- A phase-aware traceability gate that checks completed requirement coverage,
+  duplicate or malformed rows, passing status, and referenced repository files
+  from both `pnpm check` and GitHub Actions.
+- TOOL-1..5 traceability evidence and structural valid/broken fixtures for the
+  checker.
 - Phase 1 `@libreconsent/core` configuration validation and normalization,
   consent state lifecycle, replayable events, queued decisions, region
   resolution, and cookie/localStorage persistence.
@@ -21,3 +26,13 @@ All notable changes to this project are documented in this file.
 - Monotonic decision timestamps that remain valid when the wall clock moves
   backward.
 - Phase 0 pnpm monorepo scaffold with typed package stubs, CI gates, examples, and test tooling.
+
+### Changed
+
+- Updated the root project status from the obsolete Phase 0 stub description
+  to the completed Phase 1 core scope and next Phase 2 milestone.
+
+### Fixed
+
+- Traceability verification evidence must reference a configured
+  unit/E2E/accessibility test or a supported named CI gate.
