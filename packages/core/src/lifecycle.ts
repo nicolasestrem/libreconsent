@@ -162,10 +162,14 @@ export class ConsentLifecycle implements ConsentApi {
     callback: (payload: ConsentEvents[K]) => void,
   ): () => void {
     this.listeners[event].add(callback);
-    if (event === "ready" && this.readyPayload) {
-      callback(cloneReady(this.readyPayload) as ConsentEvents[K]);
-    } else if (event === "consent" && this.consentHasFired && this.active) {
-      callback(cloneState(this.active) as ConsentEvents[K]);
+    try {
+      if (event === "ready" && this.readyPayload) {
+        callback(cloneReady(this.readyPayload) as ConsentEvents[K]);
+      } else if (event === "consent" && this.consentHasFired && this.active) {
+        callback(cloneState(this.active) as ConsentEvents[K]);
+      }
+    } catch {
+      // Replayed consumer callbacks follow the same isolation as emitted events.
     }
     return () => this.off(event, callback);
   }
@@ -368,7 +372,7 @@ export class ConsentLifecycle implements ConsentApi {
       this.emit("change", cloneState(base));
       return;
     }
-    if (!this.consentHasFired) {
+    if (!this.consentHasFired && !previous) {
       this.consentHasFired = true;
       this.emit("consent", cloneState(base));
     } else {

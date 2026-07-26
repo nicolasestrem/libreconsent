@@ -961,6 +961,41 @@ describe("events and queued decisions (CORE-3)", () => {
     expect(change).not.toHaveBeenCalled();
   });
 
+  test("isolates errors from late ready replay callbacks", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const replay = vi.fn(() => {
+      throw new Error("late ready listener failed");
+    });
+
+    let unsubscribe: (() => void) | undefined;
+    expect(() => {
+      unsubscribe = api.on("ready", replay);
+    }).not.toThrow();
+
+    expect(replay).toHaveBeenCalledOnce();
+    expect(unsubscribe).toBeTypeOf("function");
+    unsubscribe?.();
+  });
+
+  test("isolates errors from late consent replay callbacks", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.acceptAll();
+    const replay = vi.fn(() => {
+      throw new Error("late consent listener failed");
+    });
+
+    let unsubscribe: (() => void) | undefined;
+    expect(() => {
+      unsubscribe = api.on("consent", replay);
+    }).not.toThrow();
+
+    expect(replay).toHaveBeenCalledOnce();
+    expect(unsubscribe).toBeTypeOf("function");
+    unsubscribe?.();
+  });
+
   test("supports unsubscribe and off", async () => {
     const api = start(baseConfig());
     await waitForReady(api);
@@ -1499,6 +1534,33 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
           analytics: false,
           marketing: false,
         },
+      }),
+    );
+  });
+
+  test("keeps decisions after an initial withdrawal on the change channel", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const consent = vi.fn();
+    const change = vi.fn();
+    api.on("consent", consent);
+    api.on("change", change);
+
+    api.withdraw();
+    api.acceptAll();
+
+    expect(consent).not.toHaveBeenCalled();
+    expect(change).toHaveBeenCalledTimes(2);
+    expect(change).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        categories: expect.objectContaining({ analytics: false }),
+      }),
+    );
+    expect(change).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        categories: expect.objectContaining({ analytics: true }),
       }),
     );
   });

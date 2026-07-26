@@ -22,12 +22,12 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
 ### Phase 1 — Core
 - **Date / PR:** 2026-07-26 / [#2](https://github.com/nicolasestrem/libreconsent/pull/2)
 - **Scope:** CFG-1..7, CFG-9, CORE-1..11.
-- **Verdict:** pass — focused core tests and the full local gate are green; PR CI/review remain pending.
-- **Verification:** core 68/68; full unit suite 71/71; `pnpm check` passed; `git diff --check` passed.
+- **Verdict:** pass — focused core tests and the full local gate are green; CI and review follow-ups are fixed and regression-tested.
+- **Verification:** core 71/71 on Node 24 and Node 26; full unit suite 74/74; `pnpm check` passed; `git diff --check` passed.
 - **Measured size:** core IIFE 5.54 KB gzip (8 KB limit); core+ui, bridge, and head-snippet budgets also passed.
 - **Guardrails:** core/ui/bridge have zero runtime dependencies; prohibited-construct scan found no TCF provider/emission, `eval`, `new Function`, or config-driven `innerHTML`; storage writes remain decision/reconciliation/reset-only and the absolute pre-decision test passes.
 - **Documentation:** public API/configuration, lifecycle events, persistence/recovery, revision prefill, region strict mode, and a Cloudflare resolver pattern are documented.
-- **Findings:** lifecycle reentrancy/defensive-copy hardening, stored-state validation, and config-equivalence/mapping validation were found in review, fixed, regression-tested, and logged as P-001..P-003.
+- **Findings:** lifecycle reentrancy/defensive-copy hardening, stored-state validation, config-equivalence/mapping validation, cross-version Vitest startup, replay exception isolation, and post-withdrawal event routing were found in review/CI, fixed, regression-tested, and logged as P-001..P-005.
 
 ### Phase 2 — Consent Mode
 - **Date / PR:** _pending_ · **CM-6 doc version consulted:** _pending_
