@@ -476,6 +476,33 @@ describe("gated script execution (BLK-1)", () => {
     expect(script("esm").type).toBe("module");
   });
 
+  test("keeps unblocking later grants after a failed round", async () => {
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-category="analytics" id="doomed">window.doomedRan = true;</script>
+      <script type="text/plain" data-cmp-category="marketing" id="later">window.laterRan = true;</script>
+    `;
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    const createElement = vi
+      .spyOn(document, "createElement")
+      .mockImplementationOnce(() => {
+        throw new Error("re-creation failed");
+      });
+    api.setConsent({ services: { ga: true } });
+    await flushChain();
+    createElement.mockRestore();
+
+    expect(stillGated("doomed")).toBe(true);
+
+    // A rejected chain would silently swallow every later grant on the page.
+    api.setConsent({ services: { ads: true } });
+    await flushChain();
+
+    expect(stillGated("later")).toBe(false);
+    expect(script("later").textContent).toBe("window.laterRan = true;");
+  });
+
   test("skips a gate detached before consent without stalling the rest", async () => {
     // A detached src gate is the case that can hang the chain: replacing a
     // parentless node is a silent no-op, so a replacement that never enters the

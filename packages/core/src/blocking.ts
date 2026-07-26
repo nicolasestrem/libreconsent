@@ -203,7 +203,10 @@ export class BlockingController {
     }
 
     if (pending.length > 0) {
-      this.chain = this.chain.then(() => this.run(pending));
+      // A failed round must not leave the chain rejected: that would silently
+      // drop every later grant on the page and surface as an unhandled
+      // rejection instead of a contained failure.
+      this.chain = this.chain.then(() => this.run(pending)).catch(() => {});
     }
   }
 
