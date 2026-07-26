@@ -2,13 +2,18 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { describe, expect, test } from "vitest";
 
-function startServer(port) {
+function randomPort() {
+  return 42_000 + Math.floor(Math.random() * 1_000);
+}
+
+function startServer(port, env = {}) {
   const child = spawn(process.execPath, ["scripts/serve-examples.mjs"], {
     env: {
       ...process.env,
       LIBRECONSENT_HEAD_SNIPPET_PATH:
         "packages/core/dist/missing-head-snippet.global.js",
       PORT: String(port),
+      ...env,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -34,7 +39,7 @@ async function stopServer(child) {
 
 describe("example fixture server", () => {
   test("returns a clear 500 when the compiled head artifact is unavailable", async () => {
-    const port = 42_000 + Math.floor(Math.random() * 1_000);
+    const port = randomPort();
     const server = await startServer(port);
 
     try {
@@ -43,6 +48,50 @@ describe("example fixture server", () => {
       expect(response.status).toBe(500);
       await expect(response.text()).resolves.toBe(
         "Consent Mode head artifact is unavailable. Run pnpm build first.",
+      );
+    } finally {
+      await stopServer(server);
+    }
+  });
+
+  test("returns a clear 500 when the compiled core artifact is unavailable", async () => {
+    const port = randomPort();
+    const server = await startServer(port, {
+      LIBRECONSENT_CORE_ARTIFACT_PATH:
+        "packages/core/dist/missing-index.global.js",
+    });
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:${port}/dist/core.global.js`,
+      );
+
+      expect(response.status).toBe(500);
+      await expect(response.text()).resolves.toBe(
+        "Core browser artifact is unavailable. Run pnpm build first.",
+      );
+    } finally {
+      await stopServer(server);
+    }
+  });
+
+  test("serves the compiled core artifact as executable JavaScript", async () => {
+    const port = randomPort();
+    const server = await startServer(port, {
+      LIBRECONSENT_CORE_ARTIFACT_PATH: "scripts/serve-examples.mjs",
+    });
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:${port}/dist/core.global.js`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe(
+        "text/javascript; charset=utf-8",
+      );
+      await expect(response.text()).resolves.toContain(
+        "Serving example fixtures",
       );
     } finally {
       await stopServer(server);

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-lc-e2e-nonce'">
+    <title>libreconsent CSP fixture</title>
+    <script nonce="lc-e2e-nonce">
+      window.__cspViolations = [];
+      window.__executed = [];
+      document.addEventListener("securitypolicyviolation", (event) => {
+        window.__cspViolations.push(event.violatedDirective);
+      });
+    </script>
+  </head>
+  <body>
+    <header>
+      <p>libreconsent</p>
+    </header>
+    <main>
+      <h1>CSP-site fixture</h1>
+      <p data-fixture="csp-site">Nonce propagation fixture.</p>
+      <script type="text/plain" data-cmp-category="analytics">
+        window.__executed.push("config-nonce");
+      </script>
+      <script type="text/plain" data-cmp-category="analytics" nonce="lc-e2e-nonce">
+        window.__executed.push("element-nonce");
+      </script>
+    </main>
+    <script src="/dist/core.global.js"></script>
+    <script nonce="lc-e2e-nonce">
+      window.__lcApi = LibreConsentCore.init({
+        categories: [
+          {
+            id: "analytics",
+            label: "category.analytics.label",
+            description: "category.analytics.description",
+          },
+        ],
+        blocking: { nonce: "lc-e2e-nonce" },
+        i18n: {
+          translations: {
+            en: {
+              "category.analytics.label": "Analytics",
+              "category.analytics.description":
+                "Measures how visitors use this site.",
+            },
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
