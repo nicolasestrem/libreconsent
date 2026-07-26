@@ -31,6 +31,8 @@ All notable changes to this project are documented in this file.
 
 - Updated the root project status from the obsolete Phase 0 stub description
   to the completed Phase 1 core scope and next Phase 2 milestone.
+- Recorded CM-4's explicit Phase 2 documentation and Phase 3 basic-mode BLK
+  delivery boundary in D-019.
 
 ### Added
 

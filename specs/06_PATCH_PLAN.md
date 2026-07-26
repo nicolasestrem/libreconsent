@@ -17,7 +17,7 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-009 | PR #3 review | TOOL-4 | Require verification evidence to identify a configured runnable test or supported named CI check, not merely an existing file. | P1 | done | This PR |
 | P-010 | Phase 2 implementation | CM-1..6 | Implement Google Consent Mode defaults/updates, compiled inline fixtures, current Google-doc alignment, and operator deployment guidance. | major | done | This PR |
 | P-011 | PR #5 review | TOOL-3, CM-1..6 | Complete the Phase 2 gate record and fail fixture-server requests fast when the compiled head artifact is unavailable. | minor | done | [#5](https://github.com/nicolasestrem/libreconsent/pull/5) |
-| P-012 | PR #5 review | CM-1, CM-4 | Treat omitted standalone `enabled` as disabled, and clarify that Phase 2 documents the finished basic deployment while Phase 3 implements its BLK gate and network-silence guarantee. | P1 | done | [#5](https://github.com/nicolasestrem/libreconsent/pull/5) |
+| P-012 | PR #5 review | CM-1, CM-4 | Treat omitted standalone `enabled` as disabled, and record CM-4's Phase 2 documentation versus Phase 3 BLK/network-silence boundary in D-019. | P1 | done | [#5](https://github.com/nicolasestrem/libreconsent/pull/5) |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
