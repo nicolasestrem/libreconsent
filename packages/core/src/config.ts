@@ -360,9 +360,9 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
   if (
     typeof waitForUpdate !== "number" ||
     !Number.isInteger(waitForUpdate) ||
-    waitForUpdate < 0
+    waitForUpdate < 1
   ) {
-    invalid("consentMode.waitForUpdate", "must be a non-negative integer");
+    invalid("consentMode.waitForUpdate", "must be a positive integer");
   }
 
   const suppliedMapping = config.consentMode?.mapping ?? {};

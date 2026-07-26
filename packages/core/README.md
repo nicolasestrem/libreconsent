@@ -1,8 +1,8 @@
 # @libreconsent/core
 
-Consent state, validation, first-party persistence, and lifecycle events for
-libreconsent. Phase 1 deliberately does not render UI, block scripts, or signal
-Google Consent Mode; those integrations are added in later phases.
+Consent state, validation, first-party persistence, lifecycle events, and
+Google Consent Mode v2 signaling for libreconsent. UI rendering and declarative
+tag blocking arrive in later phases.
 
 ## Quickstart
 
@@ -83,9 +83,9 @@ with a stable `code` and a precise `path`, for example
 - `storage` defaults to cookie/localStorage key `libreconsent`, 365 days, and
   `SameSite=Lax`. `expiresDays` must be from 1 through 395.
 - `revision` defaults to `1` and must be a positive integer.
-- `consentMode` is normalized in Phase 1 but not signaled until Phase 2. It
-  defaults to disabled, `denied-everywhere`, a 500 ms wait, and the standard
-  analytics/marketing category mapping.
+- `consentMode` defaults to disabled, `denied-everywhere`, a 500 ms wait, and
+  the standard analytics/marketing category mapping. `waitForUpdate` must be a
+  positive integer.
 - `i18n.default` defaults to `en`, `autoDetect` defaults to `false`, and English
   and French reference dictionaries are exported as `en` and `fr`.
 
@@ -192,6 +192,95 @@ const consent = init({
 
 Keep the resolver function in a stable variable if `init()` can be called more
 than once; function identity is part of singleton configuration equality.
+
+## Google Consent Mode v2
+
+Basic mode is the recommended finished deployment: put Google tags behind the
+declarative blocking integration delivered in Phase 3. Phase 2 intentionally
+does not provide that gate, so its head defaults alone are not a runnable basic
+deployment. Advanced mode loads Google tags immediately, which can send
+cookieless pings before consent; choose it only when that measurement tradeoff
+matches your policy.
+
+Define one `ConsentModeConfig` object in the document head, expose it as
+`window.libreconsentConsentMode`, and copy the built
+`packages/core/dist/head-snippet.global.js` inline immediately after it. The
+same object is then supplied to `init()`. The artifact queues the consent
+default synchronously before every Google `js`, `config`, event, or GTM
+bootstrap command.
+
+```html
+<script>
+  window.libreconsentConsentMode = {
+    enabled: true,
+    defaults: "denied-everywhere",
+    waitForUpdate: 500,
+    adsDataRedaction: true,
+    urlPassthrough: true,
+  };
+</script>
+<script>
+  /* Paste packages/core/dist/head-snippet.global.js here. */
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXX"></script>
+<script>
+  gtag("js", new Date());
+  gtag("config", "G-XXXX");
+</script>
+```
+
+For regional defaults, the artifact first denies the four v2 signals in the
+listed regions, then queues a global granted fallback for everyone else:
+
+```js
+window.libreconsentConsentMode = {
+  enabled: true,
+  defaults: { deniedRegions: ["FR", "US-CA"] },
+  waitForUpdate: 500,
+};
+```
+
+Reuse the exact object during initialization:
+
+```ts
+const consent = init({
+  categories,
+  consentMode: window.libreconsentConsentMode,
+});
+```
+
+When enabled, the core subscribes once to replayed `consent` and subsequent
+`change` events, including restored consent and withdrawal. It sends every v2
+signal as `granted` or `denied` from the effective mapped category. Signaling
+failures never interrupt persistence or lifecycle events. With `enabled:
+false`, the adapter does not touch browser globals or subscribe to lifecycle
+events. A malformed standalone bootstrap value fails closed to a
+denied-everywhere default with a 500 ms wait; `init()` still rejects malformed
+configuration synchronously with `ConsentError`.
+
+`adsDataRedaction: true` queues Google’s redaction setting, which only takes
+effect while `ad_storage` is denied. `urlPassthrough: true` is queued before
+any Google configuration/event command.
+
+### Google Tag Manager
+
+The page-level fallback is the same head placement: put the copied artifact
+before the GTM bootstrap snippet. It ensures all defaults are already queued
+before the container's Consent Initialization work starts. For a GTM-native
+implementation, Google documents a Consent Initialization – All Pages trigger
+using `setDefaultConsentState` and `updateConsentState`; a GTM Community
+Template is deliberately deferred until after v1.
+
+Phase 3 adds declarative tag blocking and the real network-silence guarantee;
+Phase 2 only establishes Consent Mode defaults and updates.
+
+### Consulted Google documentation
+
+Accessed 2026-07-26:
+
+- [Set up consent mode on websites](https://developers.google.com/tag-platform/security/guides/consent), updated 2026-05-06.
+- [Google tag API reference](https://developers.google.com/tag-platform/gtagjs/reference), updated 2026-04-17.
+- [GTM consent-template APIs](https://developers.google.com/tag-platform/tag-manager/templates/consent-apis), updated 2026-03-05.
 
 ## Public API
 

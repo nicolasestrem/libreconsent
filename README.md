@@ -2,16 +2,16 @@
 
 Consent-mode-first, self-hosted consent infrastructure.
 
-## Phase 1 status
+## Phase 2 status
 
 `@libreconsent/core` now implements validated configuration, consent state and
-lifecycle events, region resolution, and first-party cookie/localStorage
-persistence. The UI, bridge, and optional Worker receipt service remain typed
-stubs for their later phases. TCF support is intentionally and permanently
-excluded.
+lifecycle events, region resolution, first-party cookie/localStorage
+persistence, and Google Consent Mode v2 defaults/updates. The UI, bridge,
+declarative blocking, and optional Worker receipt service remain later phases.
+TCF support is intentionally and permanently excluded.
 
-The next product phase is Google Consent Mode v2. Completed requirements and
-their verification evidence are tracked in
+The next product phase is declarative script and embed blocking. Completed
+requirements and their verification evidence are tracked in
 [`specs/TRACEABILITY.md`](specs/TRACEABILITY.md) and enforced in CI.
 
 ## Development

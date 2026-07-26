@@ -4,6 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>libreconsent GTM fixture</title>
+    <script>
+      window.libreconsentConsentMode = {
+        enabled: true,
+        defaults: { deniedRegions: ["FR", "US-CA"] },
+        waitForUpdate: 500,
+      };
+    </script>
+    <!-- LIBRECONSENT_HEAD_SNIPPET -->
+    <script>
+      window.dataLayer.push({ event: "consent-initialization" });
+    </script>
   </head>
   <body>
     <header>
@@ -11,7 +22,7 @@
     </header>
     <main>
       <h1>GTM-site fixture</h1>
-      <p data-fixture="gtm-site">Phase 0 static fixture.</p>
+      <p data-fixture="gtm-site">Consent Mode GTM fixture.</p>
     </main>
   </body>
 </html>

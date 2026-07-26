@@ -31,9 +31,13 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
 - **Findings:** lifecycle reentrancy/defensive-copy hardening, stored-state validation, config-equivalence/mapping validation, cross-version Vitest startup, replay exception isolation, post-withdrawal event routing, FIFO reentrant delivery, monotonic timestamps, the missing traceability gate, the stale root status, and runnable verification evidence were found in review/CI, fixed, regression-tested, and logged as P-001..P-009.
 
 ### Phase 2 — Consent Mode
-- **Date / PR:** _pending_ · **CM-6 doc version consulted:** _pending_
-- **Verdict:** _pending_
-- **Findings:** —
+- **Date / PR:** 2026-07-26 · [#5](https://github.com/nicolasestrem/libreconsent/pull/5)
+- **Google research (CM-6):** accessed 2026-07-26: [Consent Mode setup guide](https://developers.google.com/tag-platform/security/guides/consent) (updated 2026-05-06), [Google tag API reference](https://developers.google.com/tag-platform/gtagjs/reference) (updated 2026-04-17), and [GTM consent-template APIs](https://developers.google.com/tag-platform/tag-manager/templates/consent-apis) (updated 2026-03-05). The API reference now explicitly requires `wait_for_update` to be a positive integer; configuration validation was tightened accordingly.
+- **Implementation:** the actual built head artifact creates/preserves `dataLayer` and `gtag`, queues deny defaults before Google commands, supports regional deny/global-grant defaults, and queues configured redaction/URL-passthrough settings. The core sends isolated four-signal updates from replayed/restored and later consent events.
+- **Verification:** focused core/head unit coverage plus compiled-artifact E2E prove basic `default` ordering before `js`/`config` and GTM defaults before the Consent Initialization marker. Final `pnpm check` passed on 2026-07-26: traceability through Phase 2 (30 requirements), 95 unit tests, all package builds, size budgets (core 5.77 kB; core+ui 6.08 kB; bridge 318 B; head 710 B gzip), 5 E2E tests, and 3 accessibility tests.
+- **Scope:** D-019 records the CM-4 phase boundary: both deployment models and their tradeoffs are documented in Phase 2, while basic mode's declarative BLK gate and real pre-consent network-silence guarantee remain Phase 3. Basic mode is the recommended deployment; no GTM Community Template is included.
+- **Verdict:** pass
+- **Findings:** PR #5 review found the unfinished phase record, an unhandled fixture-artifact read, an omitted `enabled` bootstrap value incorrectly failing closed, and ambiguous CM-4 phase wording. The final gate is recorded; missing artifacts return HTTP 500; an omitted `enabled` value is side-effect-free; and D-019 explicitly records the CM-4 Phase 2/Phase 3 boundary (P-011, P-012).
 
 ### Phase 3 — Blocking
 - **Date / PR:** _pending_

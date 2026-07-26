@@ -1,3 +1,4 @@
+import { ConsentModeAdapter } from "./consent-mode";
 import { ConsentError } from "./errors";
 import {
   clearStored,
@@ -112,6 +113,8 @@ export class ConsentLifecycle implements ConsentApi {
 
   private region: string | null = null;
 
+  private readonly consentMode: ConsentModeAdapter;
+
   constructor(
     private readonly config: NormalizedCmpConfig,
     private readonly release: (lifecycle: ConsentLifecycle) => void,
@@ -124,6 +127,7 @@ export class ConsentLifecycle implements ConsentApi {
         });
       }
     }
+    this.consentMode = new ConsentModeAdapter(this, config.consentMode);
     void this.initialize();
   }
 
@@ -195,6 +199,7 @@ export class ConsentLifecycle implements ConsentApi {
     this.queue = [];
     this.active = null;
     this.readyPayload = null;
+    this.consentMode.dispose();
     for (const listeners of Object.values(this.listeners)) {
       listeners.clear();
     }

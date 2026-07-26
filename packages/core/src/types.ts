@@ -82,6 +82,13 @@ export interface ConsentModeConfig {
   urlPassthrough?: boolean;
 }
 
+declare global {
+  interface Window {
+    /** Stable head-bootstrap configuration reused by `init()`. */
+    libreconsentConsentMode?: ConsentModeConfig;
+  }
+}
+
 /**
  * First-party consent storage configuration.
  */

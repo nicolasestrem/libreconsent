@@ -158,6 +158,8 @@ afterEach(() => {
   window.localStorage.clear();
   clearAllCookies();
   document.body.replaceChildren();
+  delete (window as typeof window & { gtag?: unknown }).gtag;
+  delete (window as typeof window & { dataLayer?: unknown }).dataLayer;
   vi.unstubAllGlobals();
 });
 
@@ -520,6 +522,155 @@ describe("configuration (CFG-1..7)", () => {
       "INVALID_CONFIG",
       "consentMode.mapping.unknown_storage",
     );
+  });
+});
+
+describe("Consent Mode validation and lifecycle signaling (CM-2, CM-3)", () => {
+  test.each([0, -1, 1.5])("requires a positive waitForUpdate (%s)", (value) => {
+    expectConsentError(
+      () =>
+        start(
+          baseConfig({ consentMode: { enabled: true, waitForUpdate: value } }),
+        ),
+      "INVALID_CONFIG",
+      "consentMode.waitForUpdate",
+    );
+  });
+
+  test("keeps disabled Consent Mode side-effect-free", async () => {
+    const gtag = vi.fn();
+    (window as typeof window & { gtag: typeof gtag }).gtag = gtag;
+    const api = start(baseConfig({ consentMode: { enabled: false } }));
+
+    await waitForReady(api);
+    api.acceptAll();
+
+    expect(gtag).not.toHaveBeenCalled();
+  });
+
+  test("maps all four signals for first partial, changed, rejected, and withdrawn consent", async () => {
+    const gtag = vi.fn();
+    (window as typeof window & { gtag: typeof gtag }).gtag = gtag;
+    const api = start(baseConfig({ consentMode: { enabled: true } }));
+    await waitForReady(api);
+
+    api.setConsent({ services: { ga: true } });
+    api.acceptAll();
+    api.rejectAll();
+    api.withdraw();
+
+    expect(gtag.mock.calls).toEqual([
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "granted",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ],
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "granted",
+          ad_storage: "granted",
+          ad_user_data: "granted",
+          ad_personalization: "granted",
+        },
+      ],
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "denied",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ],
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "denied",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ],
+    ]);
+  });
+
+  test("signals restored and queued decisions with custom category mappings", async () => {
+    const restored = storedState({
+      categories: { necessary: true, analytics: false, marketing: true },
+      services: { ga: false, amp: false, ads: true },
+    });
+    window.localStorage.setItem("libreconsent", encodeState(restored));
+    const gtag = vi.fn();
+    (window as typeof window & { gtag: typeof gtag }).gtag = gtag;
+    const restoredApi = start(
+      baseConfig({
+        consentMode: {
+          enabled: true,
+          mapping: {
+            analytics_storage: "marketing",
+            ad_storage: "analytics",
+            ad_user_data: "analytics",
+            ad_personalization: "marketing",
+          },
+        },
+      }),
+    );
+    await waitForReady(restoredApi);
+
+    expect(gtag).toHaveBeenLastCalledWith("consent", "update", {
+      analytics_storage: "granted",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "granted",
+    });
+
+    restoredApi.reset();
+    let resolveRegion: ((region: string | null) => void) | undefined;
+    const pendingRegion = new Promise<string | null>((resolve) => {
+      resolveRegion = resolve;
+    });
+    const queuedApi = start(
+      baseConfig({
+        consentMode: { enabled: true },
+        resolveRegion: () => pendingRegion,
+      }),
+    );
+    queuedApi.rejectAll();
+    resolveRegion?.("FR");
+    await waitForReady(queuedApi);
+
+    expect(gtag).toHaveBeenLastCalledWith("consent", "update", {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+    });
+  });
+
+  test("isolates missing and throwing Google tag globals from consent persistence", async () => {
+    const api = start(baseConfig({ consentMode: { enabled: true } }));
+    await waitForReady(api);
+    expect(() => api.acceptAll()).not.toThrow();
+    expect(api.getConsent()?.categories.analytics).toBe(true);
+
+    api.reset();
+    const gtag = vi.fn(() => {
+      throw new Error("tag unavailable");
+    });
+    (window as typeof window & { gtag: typeof gtag }).gtag = gtag;
+    const failingApi = start(baseConfig({ consentMode: { enabled: true } }));
+    await waitForReady(failingApi);
+    expect(() => failingApi.rejectAll()).not.toThrow();
+    expect(failingApi.getConsent()?.categories.analytics).toBe(false);
   });
 });
 

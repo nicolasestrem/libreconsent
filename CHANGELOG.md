@@ -31,8 +31,17 @@ All notable changes to this project are documented in this file.
 
 - Updated the root project status from the obsolete Phase 0 stub description
   to the completed Phase 1 core scope and next Phase 2 milestone.
+- Recorded CM-4's explicit Phase 2 documentation and Phase 3 basic-mode BLK
+  delivery boundary in D-019.
+
+### Added
+
+- Google Consent Mode v2 head defaults, lifecycle-driven four-signal updates,
+  regional defaults, and compiled-fixture ordering coverage.
 
 ### Fixed
 
+- An omitted `enabled` value in the standalone Consent Mode head configuration
+  now remains side-effect-free, matching the public configuration default.
 - Traceability verification evidence must reference a configured
   unit/E2E/accessibility test or a supported named CI gate.
