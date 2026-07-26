@@ -476,6 +476,57 @@ describe("gated script execution (BLK-1)", () => {
     expect(script("esm").type).toBe("module");
   });
 
+  test("awaits an inline module before opening the next gate", async () => {
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-type="module" data-cmp-category="analytics" id="esm-inline">window.esmRan = true;</script>
+      <script type="text/plain" data-cmp-category="analytics" id="after-esm">window.afterEsmRan = true;</script>
+    `;
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    api.acceptAll();
+    await flushChain();
+
+    expect(script("esm-inline").type).toBe("module");
+    // An inline module's evaluation is deferred, so the chain has to park on
+    // its load. Treating it as synchronous would run the classic gate first.
+    expect(stillGated("after-esm")).toBe(true);
+
+    script("esm-inline").dispatchEvent(new Event("load"));
+    await flushChain();
+
+    expect(stillGated("after-esm")).toBe(false);
+  });
+
+  test("stops a queued gate that lost consent while the chain was parked", async () => {
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-category="analytics" id="slow" src="/slow.js"></script>
+      <script type="text/plain" data-cmp-category="analytics" id="queued">window.queuedRan = true;</script>
+    `;
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    api.acceptAll();
+    await flushChain();
+    expect(stillGated("slow")).toBe(false);
+    expect(stillGated("queued")).toBe(true);
+
+    api.withdraw();
+    await flushChain();
+
+    // #queued was queued under the earlier grant and never ran, so releasing
+    // the chain must not start it now that consent is gone.
+    script("slow").dispatchEvent(new Event("load"));
+    await flushChain();
+    expect(stillGated("queued")).toBe(true);
+
+    // Skipping a gate must not consume it: a later grant still opens it.
+    api.acceptAll();
+    await flushChain();
+
+    expect(stillGated("queued")).toBe(false);
+  });
+
   test("keeps unblocking later grants after a failed round", async () => {
     document.body.innerHTML = `
       <script type="text/plain" data-cmp-category="analytics" id="doomed">window.doomedRan = true;</script>
@@ -630,6 +681,26 @@ describe("embed placeholders (BLK-3)", () => {
     expect(
       document.querySelector("[data-libreconsent-placeholder]"),
     ).toBeNull();
+  });
+
+  test("keeps a generic gate's own src across a block and reveal cycle", async () => {
+    document.body.innerHTML = `
+      <img id="pixel" data-cmp-placeholder data-cmp-category="marketing" src="/pixel.gif" alt="">
+    `;
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    // Stripping this src could not prevent the parser's fetch, and losing it
+    // would leave the element permanently broken once consent arrives.
+    expect(byId("pixel").getAttribute("src")).toBe("/pixel.gif");
+
+    api.acceptAll();
+    expect(byId("pixel").hidden).toBe(false);
+    expect(byId("pixel").getAttribute("src")).toBe("/pixel.gif");
+
+    api.withdraw();
+    expect(byId("pixel").hidden).toBe(true);
+    expect(byId("pixel").getAttribute("src")).toBe("/pixel.gif");
   });
 
   test("opens a service-scoped gate on the service, not its category", async () => {

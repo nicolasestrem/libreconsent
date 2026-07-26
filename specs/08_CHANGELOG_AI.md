@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Claude Code | PR #6 review follow-up (BLK-1, BLK-3, BLK-5) | Re-read each gate's consent before it executes so withdrawal stops a queued gate; awaited inline modules; confined `src` removal to iframe gates; corrected D-025's dropped `sendBeacon` deletion. P-015..P-017. |
 | 2026-07-26 | Claude Code | Phase 3 blocking (BLK-1..3, BLK-5) | Added declarative script/embed gating with document-order execution, nonce propagation, i18n placeholders, and `reloadOnWithdraw`; D-020..D-026 recorded. |
 | 2026-07-26 | Claude Code | Phase 3 flagship E2E (spec §11.2) | Proved pre-consent network silence with real vendored `gtag.js`; fixed the fixture's non-Date `gtag("js", …)` that had suppressed every tag and would have made the assertions vacuous. |
 | 2026-07-26 | Codex | PR #5 review follow-up | Made omitted standalone Consent Mode enablement side-effect-free and recorded D-019 for CM-4's Phase 2 documentation versus Phase 3 BLK delivery boundary. |

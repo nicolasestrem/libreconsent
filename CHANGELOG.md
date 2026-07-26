@@ -58,6 +58,15 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- A gated script queued under a grant no longer executes if consent is withdrawn
+  while the queue is parked on a slower gate. Each gate's consent is re-read
+  immediately before it runs, and a skipped gate stays eligible for a later
+  grant.
+- An inline `data-cmp-type="module"` gate is now awaited, so a following classic
+  gate can no longer run ahead of it. Module evaluation is deferred even inline.
+- A generic `data-cmp-placeholder` gate keeps its own `src`. It was previously
+  stripped on block but restored only for iframes, permanently breaking a gated
+  `img` or `video` once consent arrived.
 - An omitted `enabled` value in the standalone Consent Mode head configuration
   now remains side-effect-free, matching the public configuration default.
 - Traceability verification evidence must reference a configured

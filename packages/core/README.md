@@ -244,10 +244,16 @@ afterwards is:
 | `data-cmp-service` | every gate | Optional. The gate then opens on that service's consent instead of its category's. |
 | `data-cmp-type` | script gates | Optional. Becomes the re-created script's `type`, for example `module`. A classic script is the default. |
 | `data-cmp-src` | iframe gates | Required for an embed. Copied to `src` on consent. |
-| `data-cmp-placeholder` | any element | Marks a non-iframe element as blocked content. |
+| `data-cmp-placeholder` | any element | Marks a non-iframe element as blocked content. Hides and reveals it; does not suppress requests. |
 
 Author an embed with `data-cmp-src` and no `src`: the browser begins fetching a
 real `src` while parsing the document, long before any consent code can run.
+
+For the same reason `data-cmp-placeholder` alone is presentational. The parser
+has already fetched any `src` on the element by the time consent code runs, so
+the gate hides the element rather than silencing it, and the element's own `src`
+is left untouched so revealing it cannot break it. Anything that must not reach
+the network before a decision needs a script gate or `data-cmp-src`.
 
 ### Options
 
@@ -266,7 +272,9 @@ they never been gated. On consent a gate is replaced in place by a real
 `<script>` element carrying every original attribute except `type`, `nonce`, and
 each `data-cmp-*` attribute.
 
-- An inline script runs synchronously the moment it is inserted.
+- An inline classic script runs synchronously the moment it is inserted.
+- An inline `data-cmp-type="module"` script is awaited. Module evaluation is
+  deferred even inline, so a following classic gate would otherwise run first.
 - A `src` script without `async` is awaited: its `load` or `error` has to fire
   before the next gated script is inserted. Script-inserted scripts are async by
   default, so that default is explicitly cleared to hold the order.
@@ -275,6 +283,11 @@ each `data-cmp-*` attribute.
 
 A failed fetch never stalls the queue — an `error` settles the wait the same way
 a `load` does — and a gate removed from the DOM before consent is skipped.
+
+Every gate's consent is re-read immediately before it executes, not when its
+round was queued. Withdrawing consent while the queue is parked on a slow script
+therefore stops the gates behind it, and those gates stay eligible if consent is
+granted again later.
 
 ### Content Security Policy
 
@@ -403,6 +416,10 @@ the consent `default` already ahead of it.
 Withdrawing or narrowing consent re-blocks embeds: `src` is removed, the element
 is hidden again, and its placeholder returns. Consent state, persisted storage,
 and Consent Mode signals update immediately in every case.
+
+A script that was granted but has not executed yet — one still waiting behind a
+slow gate in the queue — is stopped rather than run, and becomes eligible again
+only if consent returns.
 
 A script that has already executed cannot be un-executed. Nothing in this
 library can retract code the browser has already run, and whatever globals,

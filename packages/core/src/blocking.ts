@@ -233,6 +233,14 @@ export class BlockingController {
 
   private async run(pending: GatedEntry[]): Promise<void> {
     for (const entry of pending) {
+      // Consent can be withdrawn while an earlier gate in this round is still
+      // loading, so the grant is re-read immediately before each execution
+      // rather than trusted from when the round was queued. Clearing the flag
+      // keeps a skipped gate eligible if consent is granted again later.
+      if (!this.granted(entry)) {
+        entry.executed = false;
+        continue;
+      }
       await this.execute(entry.element as HTMLScriptElement);
     }
   }
@@ -243,10 +251,15 @@ export class BlockingController {
     }
     const script = recreate(original, this.config.blocking.nonce);
     const source = original.getAttribute("src");
-
-    if (source === null) {
-      // Inline scripts run synchronously on insertion, so nothing to await.
+    const inline = source === null;
+    if (inline) {
       script.textContent = original.textContent;
+    }
+
+    // An inline module is the one inline gate that does not run on insertion:
+    // evaluation is deferred, and `load` fires once it completes. Treating it
+    // as synchronous would let a following classic gate run ahead of it.
+    if (inline && script.type !== "module") {
       original.replaceWith(script);
       return Promise.resolve();
     }
@@ -255,10 +268,12 @@ export class BlockingController {
       original.replaceWith(script);
       return Promise.resolve();
     }
+    if (!inline) {
+      // Script-inserted scripts are async by default. Clearing that and
+      // awaiting the fetch is what keeps a src/inline mix in document order.
+      script.async = false;
+    }
 
-    // Script-inserted scripts are async by default. Clearing that and awaiting
-    // the fetch is what keeps a src/inline mix in document order.
-    script.async = false;
     const settled = new Promise<void>((resolve) => {
       const finish = (): void => {
         resolve();
@@ -286,7 +301,13 @@ export class BlockingController {
 
   private block(entry: GatedEntry): void {
     entry.revealed = false;
-    entry.element.removeAttribute("src");
+    if (entry.kind === "iframe") {
+      // Only an iframe gate has a `data-cmp-src` to restore from, so only an
+      // iframe's `src` may be removed. A generic gate's own `src` is left
+      // alone: stripping it could not prevent a fetch that the parser already
+      // started, and would permanently break the element on reveal.
+      entry.element.removeAttribute("src");
+    }
     entry.previousDisplay = entry.element.style.display;
     entry.element.hidden = true;
     // `hidden` alone loses to a site stylesheet; inline display cannot.
