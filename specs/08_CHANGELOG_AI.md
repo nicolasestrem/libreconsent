@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-26 | Codex | Phase 1 review follow-up (CORE-3..5) | Queued reentrant decisions for FIFO event delivery, clamped timestamps across wall-clock rollback, and added focused regressions without replying to or resolving PR threads. |
 | 2026-07-26 | Codex | Phase 1 CI/review follow-up (TOOL-4, CORE-3, CORE-10) | Fixed Node 24 CI with the canonical Web Storage guard; kept post-withdrawal decisions on `change`; isolated throwing replay callbacks; added focused regressions. |
 | 2026-07-26 | Codex | Phase 1 core (CFG-1..7, CFG-9, CORE-1..11) | Implemented and documented the core configuration, consent lifecycle, events, region resolution, and cookie/localStorage contracts. Local verification passes; PR #2 opened for review. |
 | 2026-07-26 | Codex | Phase 0 scaffold | Added pnpm workspace tooling, four typed stubs, static fixtures, CI gates, size budgets, NO_TCF, and traceability header. Local `pnpm check` and GitHub Actions are green. |

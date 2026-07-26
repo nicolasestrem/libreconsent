@@ -104,6 +104,8 @@ export class ConsentLifecycle implements ConsentApi {
 
   private initialized = false;
 
+  private applyingDecision = false;
+
   private invalidated = false;
 
   private queue: QueuedDecision[] = [];
@@ -268,11 +270,24 @@ export class ConsentLifecycle implements ConsentApi {
     if (this.invalidated) {
       return;
     }
-    if (!this.initialized) {
-      this.queue.push(decision);
+    this.queue.push(decision);
+    if (!this.initialized || this.applyingDecision) {
       return;
     }
-    this.applyDecision(decision);
+
+    this.applyingDecision = true;
+    try {
+      let next = this.queue.shift();
+      while (next) {
+        this.applyDecision(next);
+        if (this.invalidated) {
+          return;
+        }
+        next = this.queue.shift();
+      }
+    } finally {
+      this.applyingDecision = false;
+    }
   }
 
   private validateSelection(selection: ConsentSelection): void {
@@ -364,7 +379,13 @@ export class ConsentLifecycle implements ConsentApi {
       this.applySelection(base, decision.selection);
     }
 
-    base.updatedAt = now();
+    base.updatedAt = new Date(
+      Math.max(
+        Date.now(),
+        Date.parse(base.createdAt),
+        Date.parse(base.updatedAt),
+      ),
+    ).toISOString();
     this.active = base;
     persistState(this.config.storage, base);
 

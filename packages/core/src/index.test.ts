@@ -1056,6 +1056,30 @@ describe("events and queued decisions (CORE-3)", () => {
     expect(api.getConsent()?.categories.analytics).toBe(false);
   });
 
+  test("delivers reentrant decisions to every listener in FIFO order", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const observed: string[] = [];
+
+    api.on("consent", () => api.rejectAll());
+    api.on("consent", (state) =>
+      observed.push(`consent:${String(state.categories.analytics)}`),
+    );
+    api.on("change", (state) => {
+      if (!state.categories.analytics) {
+        api.acceptAll();
+      }
+    });
+    api.on("change", (state) =>
+      observed.push(`change:${String(state.categories.analytics)}`),
+    );
+
+    api.acceptAll();
+
+    expect(observed).toEqual(["consent:true", "change:false", "change:true"]);
+    expect(api.getConsent()?.categories.analytics).toBe(true);
+  });
+
   test("queues pre-initialization decisions in call order", async () => {
     let resolveRegion: ((region: string | null) => void) | undefined;
     const pendingRegion = new Promise<string | null>((resolve) => {
@@ -1371,6 +1395,36 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
 
     expect(ready.reason).toBe("restored");
     expect(api.getConsent()?.consentId).toBe(active.consentId);
+  });
+
+  test("keeps decision timestamps valid when the wall clock moves backward", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-26T12:00:00.000Z"));
+    const config = baseConfig();
+    const api = start(config);
+    await waitForReady(api);
+    api.acceptAll();
+
+    vi.setSystemTime(new Date("2026-07-26T10:00:00.000Z"));
+    api.rejectAll();
+    const decision = api.getConsent();
+    const encoded = window.localStorage.getItem("libreconsent");
+
+    expect(decision?.createdAt).toBe("2026-07-26T12:00:00.000Z");
+    expect(decision?.updatedAt).toBe("2026-07-26T12:00:00.000Z");
+    expect(encoded).not.toBeNull();
+
+    api.reset();
+    window.localStorage.setItem("libreconsent", encoded ?? "");
+    const restored = start(config);
+    const ready = await waitForReady(restored);
+
+    expect(ready.reason).toBe("restored");
+    expect(restored.getConsent()).toMatchObject({
+      createdAt: "2026-07-26T12:00:00.000Z",
+      updatedAt: "2026-07-26T12:00:00.000Z",
+      categories: expect.objectContaining({ analytics: false }),
+    });
   });
 
   test("makes lower-revision consent inactive and exposes sanitized prefill", async () => {

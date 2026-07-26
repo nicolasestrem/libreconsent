@@ -16,6 +16,8 @@ All notable changes to this project are documented in this file.
 - Cross-platform Vitest startup that disables Node's built-in experimental Web
   Storage with the canonical Node 24/26 flag, plus repository-wide LF
   normalization for deterministic Biome checks.
-- Event hardening for throwing replay callbacks and for post-withdrawal
-  decisions, which remain on the `change` channel.
+- Event hardening for throwing replay callbacks, FIFO delivery of reentrant
+  decisions, and post-withdrawal decisions that remain on the `change` channel.
+- Monotonic decision timestamps that remain valid when the wall clock moves
+  backward.
 - Phase 0 pnpm monorepo scaffold with typed package stubs, CI gates, examples, and test tooling.
