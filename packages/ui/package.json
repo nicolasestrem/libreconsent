@@ -1,0 +1,23 @@
+{
+  "name": "@libreconsent/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Consent UI primitives for libreconsent.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --environment jsdom src/index.test.ts"
+  }
+}
