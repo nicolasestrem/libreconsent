@@ -1,6 +1,6 @@
 # Traceability
 
-Latest completed phase: 1
+Latest completed phase: 2
 
 Advance this marker only after the phase definition of done and its tests pass.
 `pnpm traceability` requires exactly one passing, non-empty row for every
@@ -33,3 +33,9 @@ a configured Vitest/Playwright test file or a supported named CI check.
 | CORE-9 | `packages/core/src/lifecycle.ts`; `packages/core/src/storage.ts` | `packages/core/src/index.test.ts` — `expires decisions from updatedAt and leaves them inactive`<br>`does not expire a recently updated decision based on an old createdAt` | Passing |
 | CORE-10 | `packages/core/src/lifecycle.ts`; `packages/core/src/storage.ts`; `packages/core/src/types.ts` | `packages/core/src/index.test.ts` — `preserves consent ID and createdAt across changes and withdrawal`<br>`persists withdrawal and emits change immediately`<br>`withdraw before active consent emits change rather than consent`<br>`keeps decisions after an initial withdrawal on the change channel` | Passing |
 | CORE-11 | `packages/core/src/lifecycle.ts`; `packages/core/src/storage.ts`; `packages/core/src/types.ts` | `packages/core/src/index.test.ts` — `makes lower-revision consent inactive and exposes sanitized prefill`<br>`retains service-less category prefill when revision renewal uses an empty selection`<br>`gives each ready listener and late replay a defensive prefill copy` | Passing |
+| CM-1 | `packages/core/src/head-bootstrap.ts`; `packages/core/src/head-snippet.ts`; `scripts/serve-examples.mjs`; `examples/basic-site/index.html`; `examples/gtm-site/index.html` | `packages/core/src/head-bootstrap.test.ts`; `tests/fixtures.e2e.spec.ts` — `basic-site queues the compiled consent default before js and config`<br>`gtm-site queues every default before its Consent Initialization marker` | Passing |
+| CM-2 | `packages/core/src/consent-mode.ts`; `packages/core/src/lifecycle.ts` | `packages/core/src/index.test.ts` — `maps all four signals for first, changed, rejected, and withdrawn consent`<br>`signals restored and queued decisions with custom category mappings` | Passing |
+| CM-3 | `packages/core/src/head-bootstrap.ts` | `packages/core/src/head-bootstrap.test.ts` — `queues regional denial, global grant, and configured settings in order` | Passing |
+| CM-4 | `packages/core/README.md` | `.github/workflows/ci.yml` — `Build`; `tests/fixtures.e2e.spec.ts` — `basic-site queues the compiled consent default before js and config` | Passing |
+| CM-5 | `packages/core/README.md`; `examples/gtm-site/index.html` | `tests/fixtures.e2e.spec.ts` — `gtm-site queues every default before its Consent Initialization marker` | Passing |
+| CM-6 | `packages/core/README.md`; `specs/05_BUILD_REVIEW.md` | `.github/workflows/ci.yml` — `All gates`; `packages/core/src/index.test.ts` — `requires a positive waitForUpdate ($s)` | Passing |

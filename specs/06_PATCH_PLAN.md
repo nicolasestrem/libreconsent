@@ -15,6 +15,7 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-007 | Phase 1 phase-gate audit | TOOL-1..5 | Enforce the completed-phase marker and exactly one passing, non-empty, file-backed traceability row for every requirement through that phase. | blocker | done | This PR |
 | P-008 | Phase 1 documentation audit | TOOL-5 | Replace the root README's obsolete Phase 0 stub status with the completed Phase 1 scope and next milestone. | minor | done | This PR |
 | P-009 | PR #3 review | TOOL-4 | Require verification evidence to identify a configured runnable test or supported named CI check, not merely an existing file. | P1 | done | This PR |
+| P-010 | Phase 2 implementation | CM-1..6 | Implement Google Consent Mode defaults/updates, compiled inline fixtures, current Google-doc alignment, and operator deployment guidance. | major | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.

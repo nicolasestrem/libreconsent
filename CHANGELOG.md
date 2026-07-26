@@ -32,6 +32,11 @@ All notable changes to this project are documented in this file.
 - Updated the root project status from the obsolete Phase 0 stub description
   to the completed Phase 1 core scope and next Phase 2 milestone.
 
+### Added
+
+- Google Consent Mode v2 head defaults, lifecycle-driven four-signal updates,
+  regional defaults, and compiled-fixture ordering coverage.
+
 ### Fixed
 
 - Traceability verification evidence must reference a configured

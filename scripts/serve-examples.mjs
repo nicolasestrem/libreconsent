@@ -1,9 +1,14 @@
 import { createReadStream } from "node:fs";
-import { access, stat } from "node:fs/promises";
+import { access, readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, relative, resolve } from "node:path";
 
 const examplesRoot = resolve(process.cwd(), "examples");
+const headSnippetPath = resolve(
+  process.cwd(),
+  "packages/core/dist/head-snippet.global.js",
+);
+const headSnippetMarker = "<!-- LIBRECONSENT_HEAD_SNIPPET -->";
 const port = Number(process.env.PORT ?? "4173");
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -71,10 +76,32 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  response.writeHead(200, {
-    "content-type": mimeTypes[extname(filePath)] ?? "application/octet-stream",
-  });
-  createReadStream(filePath).pipe(response);
+  const contentType =
+    mimeTypes[extname(filePath)] ?? "application/octet-stream";
+  if (contentType !== "text/html; charset=utf-8") {
+    response.writeHead(200, { "content-type": contentType });
+    createReadStream(filePath).pipe(response);
+    return;
+  }
+
+  const html = await readFile(filePath, "utf8");
+  if (!html.includes(headSnippetMarker)) {
+    response.writeHead(200, { "content-type": contentType });
+    response.end(html);
+    return;
+  }
+
+  const headSnippet = (await readFile(headSnippetPath, "utf8")).replace(
+    /\n?\/\/# sourceMappingURL=.*$/m,
+    "",
+  );
+  response.writeHead(200, { "content-type": contentType });
+  response.end(
+    html.replace(
+      headSnippetMarker,
+      `<script data-libreconsent-head-artifact>${headSnippet}</script>`,
+    ),
+  );
 });
 
 server.listen(port, "127.0.0.1", () => {
