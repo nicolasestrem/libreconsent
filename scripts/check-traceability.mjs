@@ -32,6 +32,20 @@ const FILE_REFERENCE_PATTERN =
   /^(?:\.github|examples|packages|scripts|specs|tests)\//;
 const ROOT_FILE_PATTERN =
   /^[A-Za-z0-9_.-]+\.(?:c?js|css|html|json|md|mjs|mts|ts|tsx|ya?ml)$/;
+const VITEST_TEST_FILE_PATTERN =
+  /^(?:packages\/[^/]+\/src\/.+\.test\.ts|scripts\/.+\.test\.mjs)$/;
+const PLAYWRIGHT_TEST_FILE_PATTERN = /^tests\/.+\.(?:e2e|a11y)\.spec\.ts$/;
+const SUPPORTED_CI_CHECKS = new Set([
+  "Traceability",
+  "Typecheck",
+  "Lint",
+  "Unit tests",
+  "Build",
+  "Size budgets",
+  "E2E tests",
+  "Accessibility tests",
+  "All gates",
+]);
 
 function splitTableRow(line) {
   const trimmed = line.trim();
@@ -85,6 +99,50 @@ function validateFileReferences(
         `Line ${lineNumber}: ${label} references a nonexistent file: ${reference}.`,
       );
     }
+  }
+}
+
+function isRunnableTestFile(reference) {
+  return (
+    VITEST_TEST_FILE_PATTERN.test(reference) ||
+    PLAYWRIGHT_TEST_FILE_PATTERN.test(reference)
+  );
+}
+
+function ciCheckNames(cell) {
+  const ciReference = cell.match(
+    /`\.github\/workflows\/ci\.yml`\s*—\s*((?:`[^`]+`(?:,\s*)?)+)/,
+  );
+
+  return [...(ciReference?.[1].matchAll(/`([^`]+)`/g) ?? [])].map(
+    (match) => match[1],
+  );
+}
+
+function validateVerificationReferences(cell, lineNumber, errors) {
+  const references = fileReferences(cell);
+  const unsupportedReferences = references.filter(
+    (reference) =>
+      !isRunnableTestFile(reference) &&
+      reference !== ".github/workflows/ci.yml",
+  );
+  const supportedCiChecks = ciCheckNames(cell).filter((checkName) =>
+    SUPPORTED_CI_CHECKS.has(checkName),
+  );
+
+  if (unsupportedReferences.length > 0) {
+    errors.push(
+      `Line ${lineNumber}: test file(s) contains evidence that is not a configured Vitest/Playwright test file: ${unsupportedReferences.join(", ")}.`,
+    );
+  }
+
+  if (
+    references.includes(".github/workflows/ci.yml") &&
+    supportedCiChecks.length === 0
+  ) {
+    errors.push(
+      `Line ${lineNumber}: .github/workflows/ci.yml verification evidence must name a supported CI check.`,
+    );
   }
 }
 
@@ -198,6 +256,7 @@ export function validateTraceability(markdown, rootDirectory) {
           rootDirectory,
           errors,
         );
+        validateVerificationReferences(verification, lineNumber, errors);
       }
 
       if (status === "") {

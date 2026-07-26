@@ -3,8 +3,9 @@
 Latest completed phase: 1
 
 Advance this marker only after the phase definition of done and its tests pass.
-`pnpm traceability` requires exactly one passing, non-empty, file-backed row for
-every requirement owned by each completed phase.
+`pnpm traceability` requires exactly one passing, non-empty row for every
+requirement owned by each completed phase. Its verification evidence must name
+a configured Vitest/Playwright test file or a supported named CI check.
 
 | Requirement ID | Implementation file(s) | Test file(s) | Status |
 |---|---|---|---|

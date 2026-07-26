@@ -31,3 +31,8 @@ All notable changes to this project are documented in this file.
 
 - Updated the root project status from the obsolete Phase 0 stub description
   to the completed Phase 1 core scope and next Phase 2 milestone.
+
+### Fixed
+
+- Traceability verification evidence must reference a configured
+  unit/E2E/accessibility test or a supported named CI gate.
