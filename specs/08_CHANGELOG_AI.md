@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-26 | Codex | PR #5 review follow-up | Completed the Phase 2 gate record and made fixture artifact-read failure return a clear HTTP 500 response. |
 | 2026-07-26 | Codex | Phase 2 Consent Mode (CM-1..6) | Added head defaults, lifecycle updates, redaction/URL settings, regional/GTM fixtures, current Google-source records, and Phase 2 traceability. |
 | 2026-07-26 | Codex | Phase 1 phase-gate prerequisite (TOOL-1..5) | Added completed-phase traceability enforcement with valid/broken fixtures and CI integration; corrected stale root status documentation. |
 | 2026-07-26 | Codex | PR #3 review follow-up | Restricted traceability verification evidence to configured test files or supported named CI checks; added the non-test-file regression. |

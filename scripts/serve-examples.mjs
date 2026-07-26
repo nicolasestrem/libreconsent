@@ -6,7 +6,8 @@ import { extname, relative, resolve } from "node:path";
 const examplesRoot = resolve(process.cwd(), "examples");
 const headSnippetPath = resolve(
   process.cwd(),
-  "packages/core/dist/head-snippet.global.js",
+  process.env.LIBRECONSENT_HEAD_SNIPPET_PATH ??
+    "packages/core/dist/head-snippet.global.js",
 );
 const headSnippetMarker = "<!-- LIBRECONSENT_HEAD_SNIPPET -->";
 const port = Number(process.env.PORT ?? "4173");
@@ -91,10 +92,20 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  const headSnippet = (await readFile(headSnippetPath, "utf8")).replace(
-    /\n?\/\/# sourceMappingURL=.*$/m,
-    "",
-  );
+  let headSnippet;
+  try {
+    headSnippet = (await readFile(headSnippetPath, "utf8")).replace(
+      /\n?\/\/# sourceMappingURL=.*$/m,
+      "",
+    );
+  } catch {
+    sendText(
+      response,
+      500,
+      "Consent Mode head artifact is unavailable. Run pnpm build first.",
+    );
+    return;
+  }
   response.writeHead(200, { "content-type": contentType });
   response.end(
     html.replace(

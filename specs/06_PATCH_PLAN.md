@@ -16,6 +16,7 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-008 | Phase 1 documentation audit | TOOL-5 | Replace the root README's obsolete Phase 0 stub status with the completed Phase 1 scope and next milestone. | minor | done | This PR |
 | P-009 | PR #3 review | TOOL-4 | Require verification evidence to identify a configured runnable test or supported named CI check, not merely an existing file. | P1 | done | This PR |
 | P-010 | Phase 2 implementation | CM-1..6 | Implement Google Consent Mode defaults/updates, compiled inline fixtures, current Google-doc alignment, and operator deployment guidance. | major | done | This PR |
+| P-011 | PR #5 review | TOOL-3, CM-1..6 | Complete the Phase 2 gate record and fail fixture-server requests fast when the compiled head artifact is unavailable. | minor | done | [#5](https://github.com/nicolasestrem/libreconsent/pull/5) |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
