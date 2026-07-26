@@ -825,6 +825,58 @@ describe("withdrawal after execution (BLK-5)", () => {
     expect(reload).not.toHaveBeenCalled();
   });
 
+  test("does not reload for a queued gate that never ran", async () => {
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-category="analytics" id="slow" src="/slow.js"></script>
+      <script type="text/plain" data-cmp-category="marketing" id="queued">window.queuedRan = true;</script>
+    `;
+    const reload = vi.fn();
+    const parked = harness({ blocking: { reloadOnWithdraw: true } });
+    controllerFor(parked, reload);
+
+    parked.emit(
+      decision({ necessary: true, analytics: true, marketing: true }),
+    );
+    await flushChain();
+    // #slow is in the document and running; #queued is still behind it.
+    expect(stillGated("slow")).toBe(false);
+    expect(stillGated("queued")).toBe(true);
+
+    // Only #queued's category is revoked, so #slow — which really did execute —
+    // cannot account for a reload. #queued never entered the document, so there
+    // is nothing for a reload to undo.
+    parked.emit(
+      decision({ necessary: true, analytics: true, marketing: false }),
+    );
+    expect(reload).not.toHaveBeenCalled();
+
+    script("slow").dispatchEvent(new Event("load"));
+    await flushChain();
+
+    expect(stillGated("queued")).toBe(true);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  test("does not reload for a gate detached before the chain reached it", async () => {
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-category="analytics" id="doomed">window.doomedRan = true;</script>
+    `;
+    const reload = vi.fn();
+    const detached = harness({ blocking: { reloadOnWithdraw: true } });
+    const gate = byId("doomed");
+    controllerFor(detached, reload);
+
+    gate.remove();
+    detached.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+    expect(gate.parentElement).toBeNull();
+
+    // Nothing was ever inserted, so there are no effects a reload could undo.
+    detached.emit(decision({ necessary: true, analytics: false }));
+
+    expect(reload).not.toHaveBeenCalled();
+  });
+
   test("does not reload with the default reloadOnWithdraw", async () => {
     document.body.innerHTML = `
       <script type="text/plain" data-cmp-category="analytics" id="tag">window.tagRan = true;</script>

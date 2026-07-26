@@ -25,7 +25,15 @@ interface GatedEntry {
   element: HTMLElement;
   category: string;
   service: string | null;
-  /** Scripts only. Never reverts: execution cannot be undone (BLK-5). */
+  /**
+   * Scripts only. Queued into an unblock round but not yet reached. Cleared if
+   * that round skips the gate, so a later grant can queue it again.
+   */
+  scheduled: boolean;
+  /**
+   * Scripts only. Set when the replacement actually enters the document, which
+   * is the only point after which execution cannot be undone (BLK-5).
+   */
   executed: boolean;
   /** Embeds only. Guards repeated grant events from reloading the embed. */
   revealed: boolean;
@@ -161,6 +169,7 @@ export class BlockingController {
         category: category.trim(),
         service:
           service !== null && service.trim() !== "" ? service.trim() : null,
+        scheduled: false,
         executed: false,
         revealed: false,
         placeholder: null,
@@ -189,10 +198,12 @@ export class BlockingController {
     for (const entry of this.entries) {
       const granted = this.granted(entry);
       if (entry.kind === "script") {
-        if (granted && !entry.executed) {
+        if (granted && !entry.scheduled) {
           // Marked before the asynchronous chain runs so a decision arriving
-          // mid-chain cannot schedule the same script twice.
-          entry.executed = true;
+          // mid-chain cannot schedule the same script twice. This records only
+          // the queueing: `executed` is what withdrawal reads, and it is set
+          // where the replacement actually enters the document.
+          entry.scheduled = true;
           pending.push(entry);
         }
       } else if (granted && !entry.revealed) {
@@ -238,14 +249,15 @@ export class BlockingController {
       // rather than trusted from when the round was queued. Clearing the flag
       // keeps a skipped gate eligible if consent is granted again later.
       if (!this.granted(entry)) {
-        entry.executed = false;
+        entry.scheduled = false;
         continue;
       }
-      await this.execute(entry.element as HTMLScriptElement);
+      await this.execute(entry);
     }
   }
 
-  private execute(original: HTMLScriptElement): Promise<void> {
+  private execute(entry: GatedEntry): Promise<void> {
+    const original = entry.element as HTMLScriptElement;
     if (original.parentNode === null) {
       return Promise.resolve();
     }
@@ -256,16 +268,25 @@ export class BlockingController {
       script.textContent = original.textContent;
     }
 
+    // Execution is recorded here rather than at queue time, so a gate that was
+    // detached, skipped, or failed to be re-created never counts as executed —
+    // and therefore never triggers a `reloadOnWithdraw` reload that has nothing
+    // to undo.
+    const insert = (): void => {
+      original.replaceWith(script);
+      entry.executed = true;
+    };
+
     // An inline module is the one inline gate that does not run on insertion:
     // evaluation is deferred, and `load` fires once it completes. Treating it
     // as synchronous would let a following classic gate run ahead of it.
     if (inline && script.type !== "module") {
-      original.replaceWith(script);
+      insert();
       return Promise.resolve();
     }
     if (original.hasAttribute("async")) {
       // Running out of order is exactly what `async` asks for; preserve it.
-      original.replaceWith(script);
+      insert();
       return Promise.resolve();
     }
     if (!inline) {
@@ -281,7 +302,7 @@ export class BlockingController {
       script.addEventListener("load", finish, { once: true });
       script.addEventListener("error", finish, { once: true });
     });
-    original.replaceWith(script);
+    insert();
     return settled;
   }
 

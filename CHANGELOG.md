@@ -62,6 +62,9 @@ All notable changes to this project are documented in this file.
   while the queue is parked on a slower gate. Each gate's consent is re-read
   immediately before it runs, and a skipped gate stays eligible for a later
   grant.
+- `blocking.reloadOnWithdraw: true` no longer reloads the page for a gate that
+  never ran — one still queued behind a slower gate, detached before its turn, or
+  that failed to be re-created. A reload is reserved for effects that exist.
 - An inline `data-cmp-type="module"` gate is now awaited, so a following classic
   gate can no longer run ahead of it. Module evaluation is deferred even inline.
 - A generic `data-cmp-placeholder` gate keeps its own `src`. It was previously

@@ -431,8 +431,11 @@ effects: when consent is revoked for a gate that ran during this page view, the
 page reloads, and after the reload the gate simply never opens. The cost is
 plain — the visitor loses scroll position, form input, and any unsaved
 client-side state at the moment they change their mind — so it stays off by
-default. Only gates that executed during the current page view can trigger it,
-so a page loaded with that consent already denied never reloads.
+default. Only gates whose replacement actually entered the document during the
+current page view can trigger it, so a page loaded with that consent already
+denied never reloads, and neither does a gate that was queued but stopped, was
+removed from the DOM before its turn, or failed to be re-created. A reload is
+reserved for effects that really exist.
 
 ### Gates fail closed
 
