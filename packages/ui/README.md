@@ -13,15 +13,16 @@ storage before the visitor decides.
 `1.0.0` is a release candidate and is not yet available from npm. After
 publication, install with
 `pnpm add @libreconsent/core @libreconsent/ui`. Import ESM and types only from
-the two package roots. For a self-hosted browser build, copy
-`dist/index.global.js` and use the `LibreConsentUi` global after
+the two package roots. Core `^1.0.0` is a required peer dependency of the UI,
+so package managers can enforce that compatible pair. For a self-hosted browser
+build, copy `dist/index.global.js` and use the `LibreConsentUi` global after
 `LibreConsentCore`.
 
-The package is MIT-licensed, has zero runtime dependencies, external assets,
-telemetry, or network requests. It supports the last two evergreen
-Chrome/Edge/Firefox releases and Safari 15.4+. Focused WebKit automation is not
-exact Safari 15.4 hardware validation. Default EN/FR strings are starting
-points, not legal advice.
+The package is MIT-licensed, has zero third-party runtime dependencies,
+external assets, telemetry, or network requests. It supports the last two
+evergreen Chrome/Edge/Firefox releases and Safari 15.4+. Focused WebKit
+automation is not exact Safari 15.4 hardware validation. Default EN/FR strings
+are starting points, not legal advice.
 
 ## Quickstart
 

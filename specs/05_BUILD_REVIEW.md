@@ -224,14 +224,16 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
      requiring account credentials. P-061.
 
 ### Phase 9 — Release
-- **Date / PR:** 2026-07-28 · Phase 9 PR pending · **TRACEABILITY audit: PASS — 62/62 requirements**
-- **Scope:** NFR-5, NFR-6; `1.0.0` release candidate only — no npm publication, tag, merge, or deployment.
-- **Verdict:** pass locally — `pnpm check`, Firefox/WebKit compatibility smoke,
+- **Date / PR:** 2026-07-28 · Phase 9 PR pending · **TRACEABILITY audit: PASS — 60/60 requirements through completed Phase 8**
+- **Scope:** NFR-5, NFR-6; `1.0.0` release candidate only — no npm publication, tag, merge, or deployment. The Phase 9 completion marker remains open until the required `v1.0.0` tag exists.
+- **Verdict:** release-candidate gates pass locally; Phase 9 remains incomplete
+  until tagging. `pnpm check`, Firefox/WebKit compatibility smoke,
   `git diff --check`, strict tarball inspection, temporary-consumer
   ESM/TypeScript/IIFE checks, and parsed npm publication dry-runs are green.
 - **Verification:** final `pnpm check` passed on 2026-07-28 — traceability
-  through Phase 9 (62 requirements), strict TypeScript and Biome over 109
-  files, 373 repository unit tests plus 22 Worker runtime/D1 tests, all package
+  through completed Phase 8 (60 requirements), with the two Phase 9 rows also
+  present and passing; strict TypeScript and Biome over 109
+  files, 374 repository unit tests plus 22 Worker runtime/D1 tests, all package
   builds and four size ceilings, four strict tarballs and publication
   dry-runs, 66 Chromium E2E tests, 20 accessibility tests, and 10 focused
   Firefox/WebKit compatibility tests.
@@ -245,11 +247,14 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   unavailable, so this branch did not redeploy or rerun the external account
   round trip.
 - **Review checklist:**
-  1. NFR-5 and NFR-6 each have exactly one passing traceability row; the
-     repository regression asserts Phase 9 and 62 covered requirements.
+  1. NFR-5 and NFR-6 each have exactly one passing traceability row. The
+     repository regression keeps Phase 8 and its 60 requirements as the latest
+     completed set until the Phase 9 release tag exists.
   2. All four public packages align at `1.0.0`, carry MIT metadata and LICENSE
      files, expose package roots only, preserve generated JavaScript license
-     banners, and have no runtime dependency.
+     banners, and have no third-party runtime dependency. The UI declares core
+     `^1.0.0` as its required peer, and the release audit enforces that exact
+     contract.
   3. Strict `npm pack` manifests contain only the declared bundles, types,
      documentation/license files, and the Worker's migration/example config;
      tests, specs, secrets, account configuration, and unrelated artifacts are
@@ -268,12 +273,15 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   7. Firefox and Playwright WebKit smoke all five release pages. This is not
      claimed as exact Safari 15.4 hardware coverage.
   8. Guardrails G-1..G-6 were rechecked by the authoritative gate: the bridge
-     remains read-only, core/UI/bridge have no runtime dependencies, size
-     ceilings are unchanged, and declarative network-silence coverage remains
-     intact.
-- **Launch limitations:** the bridge remains fixture-tested but unvalidated on
+     remains read-only, core/UI/bridge have no third-party runtime dependencies,
+     UI's exact core peer is the sole first-party relationship, size ceilings
+     are unchanged, and declarative network-silence coverage remains intact.
+- **Launch limitations:** Phase 9 remains incomplete until `v1.0.0` is tagged.
+  The bridge remains fixture-tested but unvalidated on
   a real AdSense domain using Google Privacy & messaging; exact Safari 15.4
   validation remains unproven; npm publication is deferred, so this work is a
   verified release candidate rather than registry availability.
-- **Findings:** Phase 8 prerequisite P-061 and Phase 9 P-062..P-070 are fixed
-  and regression-tested. No blocker or major finding remains open.
+- **Findings:** Phase 8 prerequisite P-061 and Phase 9 P-062..P-072 are fixed
+  and regression-tested. No implementation blocker or major finding remains
+  open; the required `v1.0.0` tag is the sole outstanding Phase 9
+  definition-of-done item.

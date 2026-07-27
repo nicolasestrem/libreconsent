@@ -30,6 +30,9 @@ export const releasePackages = [
   {
     directory: "packages/ui",
     name: "@libreconsent/ui",
+    peerDependencies: {
+      "@libreconsent/core": "^1.0.0",
+    },
     files: [
       ...commonFiles,
       "dist/index.d.ts",

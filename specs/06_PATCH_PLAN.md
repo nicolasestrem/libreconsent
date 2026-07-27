@@ -81,6 +81,8 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-068 | Phase 9 Worker packaging review | NFR-6 | The packaged Worker example and deployment instructions still depended on repository-relative paths and did not give an installed consumer a coherent copy-and-deploy layout. Make the example self-contained and document copying its bundle, migration, and config together before applying the `DB` migration. | major | done | This PR |
 | P-069 | Phase 9 documentation and metadata review | NFR-5, NFR-6 | Package docs retained stale phase-era wording/relative repository links, package manifests omitted discovery keywords, and the GTM replacement marker was ambiguous. Refresh current v1 guidance, use stable release links, require meaningful keywords, and name the exact gated GTM loader URL. | minor | done | This PR |
 | P-070 | PR #14 review follow-up | LOG-1 | The exported remote-gate maximum-retention constant had no TSDoc despite the repository convention requiring documentation on every export. Document the boundary at its declaration. | minor | done | This PR |
+| P-071 | PR #14 review follow-up | TOOL-4, NFR-6 | The traceability completion marker advanced through Phase 9 before its definition-of-done release tag existed, allowing the phase-aware gate to report a completed release prematurely. Keep the marker at Phase 8 until `v1.0.0` is tagged, while retaining the release-candidate evidence. | blocker | done | This PR |
+| P-072 | PR #14 review follow-up | G-2, NFR-3, NFR-6 | The UI's public declarations import core types, but its manifest listed core only as a development dependency. Declare core `^1.0.0` as a required peer, clarify G-2's third-party dependency boundary, and make both the guardrail and release audit enforce the exact first-party peer contract. | major | done | D-059 |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -93,4 +95,4 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-061..P-070 were fixed and regression-tested._
+_None. P-061..P-072 were fixed and regression-tested._

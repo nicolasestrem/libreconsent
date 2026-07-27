@@ -4,8 +4,6 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-07-28
-
 ### Added
 
 - MIT/SPDX licensing and publish-ready metadata for all four public packages,
@@ -104,6 +102,8 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- `@libreconsent/ui` now declares `@libreconsent/core ^1.0.0` as its required
+  peer dependency, while retaining the workspace link used for development.
 - `getConfig()` now always reports a `usPrivacy` object, defaulting to
   `{ enabled: false, regions: ["US"], respectGPC: true }`. Existing
   configurations are unaffected: with `enabled` false nothing about their

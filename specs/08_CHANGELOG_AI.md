@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-28 | Codex | PR #14 review follow-up (G-2, NFR-3, NFR-6) | Kept the completed-phase marker at Phase 8 until the required `v1.0.0` tag exists, declared core as the UI's sole first-party peer, clarified the third-party dependency guardrail, and made both audits enforce that contract. D-059; P-071/P-072. |
 | 2026-07-28 | Codex | PR #14 review follow-up (LOG-1) | Added the missing TSDoc contract for the exported remote-gate maximum-retention boundary. P-070. |
 | 2026-07-28 | Codex | Phase 8 post-merge review follow-up (LOG-1) | Made the dedicated-account purge gate advance beyond the maximum valid retention window instead of assuming the default, with a pure boundary regression. P-061. |
 | 2026-07-28 | Codex | Phase 9 v1.0.0 release preparation (NFR-5..6) | Prepared four MIT-licensed public package candidates, strict tarball and parsed publication dry-run gates, four current-doc quickstarts, a local-only demo, and focused Firefox/WebKit coverage. Integrated the merged Phase 8 prerequisite and fixed Phase 9 review findings; npm publication, tagging, merge, and deployment remain deferred. D-056..D-058; P-062..P-069. |

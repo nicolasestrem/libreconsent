@@ -12,7 +12,9 @@
 ## 2. Global guardrails
 
 - **G-1 — No TCF.** Never emit a TC string, never provide `__tcfapi`, never claim a CMP ID. Read-only `__tcfapi` *consumption* in `packages/bridge` is the sole exception. Create `specs/NO_TCF.md` in Phase 0 documenting the rationale for contributors (certified-CMP economics, 01 §1).
-- **G-2 —** Zero runtime dependencies in core/ui/bridge.
+- **G-2 —** Zero third-party runtime dependencies in core/ui/bridge. The UI's
+  required peer on a compatible `@libreconsent/core` is the sole first-party
+  package relationship.
 - **G-3 —** Size budgets (03 NFR-1) are hard CI failures.
 - **G-4 —** Nothing stored client-side before a user decision (CORE-8).
 - **G-5 —** Every user-facing string comes from the i18n layer.
@@ -29,7 +31,8 @@ Work one phase at a time (spec §12). Current phase: see specs/08_CHANGELOG_AI.m
 ## Hard rules
 - NEVER add TCF support: no TC string emission, no __tcfapi provider, no CMP ID.
   Read-only __tcfapi consumption in packages/bridge is the only exception. (G-1)
-- Zero runtime dependencies in core/ui/bridge. (G-2)
+- Zero third-party runtime dependencies in core/ui/bridge; UI may require core
+  as its sole first-party peer. (G-2)
 - Size budgets are hard CI failures — run `pnpm size` before committing. (G-3)
 - Nothing is stored client-side before a user decision. (CORE-8)
 - No eval / new Function / innerHTML with config strings. (G-6)

@@ -45,6 +45,9 @@
     "prepack": "pnpm run build",
     "test": "node ../../scripts/run-vitest.mjs run --root ../.. packages/ui/src"
   },
+  "peerDependencies": {
+    "@libreconsent/core": "^1.0.0"
+  },
   "devDependencies": {
     "@libreconsent/core": "workspace:*"
   }

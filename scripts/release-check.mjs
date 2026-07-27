@@ -115,6 +115,13 @@ export function validateManifest(manifest, releasePackage) {
   if (manifest.dependencies && Object.keys(manifest.dependencies).length > 0) {
     errors.push("runtime dependencies are not allowed in the v1 packages");
   }
+  const actualPeers = Object.entries(manifest.peerDependencies ?? {}).sort();
+  const expectedPeers = Object.entries(
+    releasePackage.peerDependencies ?? {},
+  ).sort();
+  if (JSON.stringify(actualPeers) !== JSON.stringify(expectedPeers)) {
+    errors.push("peerDependencies must match the release contract exactly");
+  }
   return errors;
 }
 

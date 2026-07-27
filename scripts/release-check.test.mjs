@@ -61,6 +61,50 @@ describe("release package audit", () => {
     expect(validateManifest(validManifest(), releasePackage)).toEqual([]);
   });
 
+  test("requires the declared peer dependency contract exactly", () => {
+    const uiPackage = {
+      ...releasePackage,
+      name: "@libreconsent/ui",
+      peerDependencies: {
+        "@libreconsent/core": "^1.0.0",
+      },
+    };
+
+    expect(
+      validateManifest(
+        {
+          ...validManifest(),
+          name: uiPackage.name,
+        },
+        uiPackage,
+      ),
+    ).toContain("peerDependencies must match the release contract exactly");
+    expect(
+      validateManifest(
+        {
+          ...validManifest(),
+          name: uiPackage.name,
+          peerDependencies: {
+            "@libreconsent/core": "^2.0.0",
+          },
+        },
+        uiPackage,
+      ),
+    ).toContain("peerDependencies must match the release contract exactly");
+    expect(
+      validateManifest(
+        {
+          ...validManifest(),
+          name: uiPackage.name,
+          peerDependencies: {
+            "@libreconsent/core": "^1.0.0",
+          },
+        },
+        uiPackage,
+      ),
+    ).toEqual([]);
+  });
+
   test("rejects private, deep-exported, dependency-bearing packages", () => {
     const manifest = {
       ...validManifest(),
