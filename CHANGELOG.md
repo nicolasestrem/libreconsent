@@ -29,6 +29,12 @@ All notable changes to this project are documented in this file.
 - The `blocking` configuration object now always reports a `blocklist` array
   from `getConfig()`, defaulting to `[]`. Existing configurations are
   unaffected; an empty blocklist installs nothing at all.
+- The published size ceilings were re-baselined once, from measurement rather
+  than the pre-code estimate: core **12 kB** gzipped (was 8 kB) and core+ui
+  **19 kB** (was 15 kB); the bridge (4 kB) and head snippet (1.5 kB) are
+  unchanged. Today's build is well inside them — core 7.96 kB, core+ui
+  14.62 kB — and they remain hard CI failures. Nothing about the shipped code
+  grew as a result of this change.
 
 ### Known limitations
 
