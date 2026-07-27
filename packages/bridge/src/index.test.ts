@@ -366,6 +366,55 @@ describe("TCF observation", () => {
     expect(api.getConsent()).toBeNull();
   });
 
+  test("removes a queued CMP listener whose first callback arrives after reset", () => {
+    let callback: TcfApiCallback | undefined;
+    const external = vi.fn<TcfApi>(
+      (command, _version, registered, listenerId) => {
+        if (command === "addEventListener") {
+          callback = registered;
+        } else {
+          expect(listenerId).toBe(92);
+        }
+      },
+    );
+    setTcfApi(external);
+    const api = start();
+    const ready = vi.fn();
+    const consent = vi.fn();
+    const change = vi.fn();
+    api.on("ready", ready);
+    api.on("consent", consent);
+    api.on("change", change);
+    expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
+
+    api.reset();
+    invokeTcfCallback(
+      callback as TcfApiCallback,
+      tcfData(
+        {
+          1: true,
+          2: true,
+          3: true,
+          4: true,
+          7: true,
+          8: true,
+          9: true,
+          10: true,
+        },
+        { listenerId: 92 },
+      ),
+    );
+
+    expect(external.mock.calls.map(([command]) => command)).toEqual([
+      "addEventListener",
+      "removeEventListener",
+    ]);
+    expect(ready).toHaveBeenCalledOnce();
+    expect(consent).not.toHaveBeenCalled();
+    expect(change).not.toHaveBeenCalled();
+    expect(api.getConsent()).toBeNull();
+  });
+
   test("does not treat initial cmpuishown false values as a decision", () => {
     let callback: TcfApiCallback | undefined;
     setTcfApi((command, _version, registered) => {

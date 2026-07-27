@@ -197,6 +197,9 @@ bridge.reset();
 It cancels discovery timers, removes the CMP listener when a `listenerId` was
 provided, unsubscribes fallback event forwarding, clears the bridge's replay
 memory, and releases the singleton so `initBridge()` can be called again.
+If a queued CMP supplies its first numeric listener ID only after reset, the
+invalidated registration wrapper uses that late ID solely to remove the
+external listener. It does not restore bridge state, replay memory, or events.
 
 It deliberately does **not** call the fallback core's destructive `reset()`.
 The host owns the fallback API and UI mount handle and must tear those down

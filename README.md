@@ -39,8 +39,9 @@ exposes familiar `ready` / `consent` / `change` events without providing
 Google signals. If no CMP appears before the configured deadline, it can either
 report `source: "none"` or hand off once to an injected full libreconsent
 fallback. The bridge unit/browser suites, 4 kB size gate, and permanent
-no-provider guardrail are green after review follow-up. TCF and GPP provider
-support are intentionally excluded; the bridge does not consume GPP either.
+no-provider guardrail are green after the queued-CMP teardown follow-up. TCF and
+GPP provider support are intentionally excluded; the bridge does not consume
+GPP either.
 
 Dynamically injected scripts are covered by an opt-in **best-effort** safety net
 that marks a matching script inert before it can be fetched. It is explicitly not

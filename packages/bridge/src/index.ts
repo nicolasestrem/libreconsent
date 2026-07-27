@@ -457,7 +457,22 @@ class BridgeLifecycle implements BridgeApi {
     if (candidate) {
       this.tcfApi = candidate;
       try {
-        candidate("addEventListener", 2, this.handleTcf);
+        candidate("addEventListener", 2, (data, success) => {
+          if (this.invalidated) {
+            if (success === true && data && typeof data === "object") {
+              try {
+                const lateListenerId = data.listenerId;
+                if (typeof lateListenerId === "number") {
+                  candidate("removeEventListener", 2, () => {}, lateListenerId);
+                }
+              } catch {
+                // A late CMP callback may only attempt to remove its own listener.
+              }
+            }
+            return;
+          }
+          this.handleTcf(data, success);
+        });
         this.emitReady("tcf", this.active);
         return;
       } catch {

@@ -56,6 +56,7 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-043 | Phase 7 review | BR-1 | The `__tcfapi` identity proof compared only the function value and would miss a provider replacement performed with `Object.defineProperty` when the replacement reused the same function. Pin the own-property descriptor as well as the callable identity so assignment and descriptor replacement are both detected. | major | done | This PR |
 | P-044 | Phase 7 review | BR-2, BR-4 | The browser timeout assertion accepted a 225 ms lower bound for a 250 ms contract, so it could miss a future handoff up to 25 ms early. No early implementation behavior was observed. Tighten the evidence so readiness cannot pass before the configured deadline while retaining a bounded upper tolerance for browser scheduling. | minor | done | This PR |
 | P-045 | Phase 7 documentation review | BR-1 | The no-TCF boundary documented TC strings, vendor consent and cross-frame behavior but omitted GPP, leaving readers unsure whether `__gpp` consumption or provider behavior was supported. State explicitly that GPP detection, parsing, emission, and `__gpp` provision are outside Phase 7. | minor | done | This PR |
+| P-046 | Phase 7 teardown audit | BR-1, BR-2 | A queued CMP could accept `addEventListener`, let the bridge emit `ready` with `source: "tcf"` and null consent, then supply its first listener ID only after a consumer reset. Reset had no ID to remove and cleared the API reference; the later callback was ignored, leaking the external listener. Wrap each registration so a numeric listener ID arriving after invalidation is used solely for `removeEventListener`, without restoring state or events. | major | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -68,5 +69,6 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-040..P-045 were fixed and regression-tested within the Phase 7 review
-follow-up; the full workspace verification passed and the phase gate is closed._
+_None. P-040..P-046 were fixed and regression-tested within the Phase 7 review
+follow-ups; the final full workspace verification passed and the phase gate is
+closed._
