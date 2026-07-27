@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Claude Code | PR #8 review follow-up (BLK-4) | Fixed a script whose URL arrives a task after its insertion being silenced but never registered, so no grant could replay it. The report's own same-task case was not a defect (observer callbacks are microtasks) and is now pinned by a test. P-028. |
 | 2026-07-27 | Claude Code | Phase 5 self-review (BLK-1, BLK-4) | Fixed four defects found by adversarial review, three blockers: a blocklist inverted BLK-1's document order, the net failed open on non-string URLs (Trusted Types), `type` reset resurrected a gated script, and a gated module was replayed as a classic script. P-024..P-027, D-040, D-041. |
 | 2026-07-27 | Claude Code | Phase 5 hardening (BLK-4, NFR-1..4) | Added the opt-in `blocking.blocklist` net, which diverts a matching script's URL so it has nothing to fetch; the planned detach-and-veto technique was proven ineffective in Chromium and replaced (P-023, D-037). Added a permanent guardrail scan and a layout-shift gate. D-036..D-039. |
 | 2026-07-27 | Claude Code | Phase 5 audits (§10, §11.3) | Turned the per-phase manual G-1/G-2/G-6 greps into `scripts/guardrails.test.mjs`, added `specs/SECURITY_CHECKLIST.md`, and recorded that core now has 0.16 kB of its 8 kB budget left — Phase 6 needs a size decision first. |

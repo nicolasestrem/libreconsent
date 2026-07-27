@@ -1084,6 +1084,47 @@ describe("dynamic injection safety net (BLK-4)", () => {
     expect(stillGated("vendor")).toBe(false);
   });
 
+  test("executes a script whose URL is assigned after it is connected", async () => {
+    const built = netFor();
+    const injected = document.createElement("script");
+    injected.id = "vendor";
+    document.body.appendChild(injected);
+    injected.src = "/vendor.js";
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(true);
+
+    built.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+
+    // The insertion and the assignment share a task, so the observer callback —
+    // a microtask — runs after both and matches the element in its gated state.
+    expect(stillGated("vendor")).toBe(false);
+    expect(script("vendor").getAttribute("src")).toBe("/vendor.js");
+  });
+
+  test("executes a script whose URL is assigned a task after it is connected", async () => {
+    const built = netFor();
+    const injected = document.createElement("script");
+    injected.id = "vendor";
+    document.body.appendChild(injected);
+    // A task later, so the insertion's mutation record was already delivered
+    // while the element was still an ordinary empty script. Diversion is an
+    // attribute-only change the observer never sees, so `gate()` has to
+    // register the element itself or the grant below can never replay it.
+    await flushChain();
+    injected.src = "/vendor.js";
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(true);
+
+    built.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(false);
+    expect(script("vendor").getAttribute("src")).toBe("/vendor.js");
+  });
+
   test("keeps a pattern naming an unknown category closed forever", async () => {
     const built = harness({
       blocking: { blocklist: [{ pattern: "vendor.js", category: "ghost" }] },

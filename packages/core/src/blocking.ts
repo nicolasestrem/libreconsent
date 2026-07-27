@@ -241,6 +241,14 @@ export class BlockingController {
       if (service !== null) {
         nativeSetAttribute.call(script, "data-cmp-service", service);
       }
+      // Only insertions are observable, and a connected element's record was
+      // delivered before the diversion above — which is attribute-only, so the
+      // observer will never see it. Registering here is the only way a later
+      // grant can replay it. A detached element is left to the observer, whose
+      // callback runs after this task and so sees it already gated.
+      if (this.scanned && script.isConnected) {
+        this.track(script);
+      }
       return true;
     };
 

@@ -244,6 +244,40 @@ test("granting consent executes a neutered dynamic script (BLK-4)", async ({
   await expect.poll(() => page.evaluate(executedScripts)).toContain("vendor");
 });
 
+test("granting consent executes a script whose URL arrived after insertion (BLK-4)", async ({
+  page,
+}) => {
+  const requested: string[] = [];
+  page.on("request", (request) => {
+    requested.push(request.url());
+  });
+
+  await openDynamicFixture(page);
+  await page.evaluate(
+    async () =>
+      await (
+        window as typeof window & { __injectDeferred: () => Promise<void> }
+      ).__injectDeferred(),
+  );
+
+  expect(requested.filter((url) => url.endsWith("/vendor.js"))).toEqual([]);
+
+  await page.evaluate(acceptAll);
+
+  // Two gates replay: the one injected at load and the deferred one. Counting
+  // both is what makes this non-vacuous — a gate that was diverted but never
+  // registered stays silently inert forever, leaving exactly one behind.
+  await expect
+    .poll(() =>
+      page
+        .evaluate(executedScripts)
+        .then(
+          (executed) => executed.filter((name) => name === "vendor").length,
+        ),
+    )
+    .toBe(2);
+});
+
 test("a blocklisted script inside an injected container is neutered (BLK-4)", async ({
   page,
 }) => {

@@ -67,6 +67,19 @@
         document.body.appendChild(script);
         script.src = "/dynamic-site/vendor.js";
       };
+      // Appended in one task, URL assigned in the next. The insertion has been
+      // observed by then and diversion only touches attributes, so this is the
+      // ordering that proves interception also registers the gate for replay.
+      window.__injectDeferred = () => {
+        var script = document.createElement("script");
+        document.body.appendChild(script);
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            script.src = "/dynamic-site/vendor.js";
+            resolve();
+          }, 0);
+        });
+      };
       // Resetting the type after the URL was diverted must not resurrect it.
       window.__injectThenRetype = () => {
         var script = document.createElement("script");
