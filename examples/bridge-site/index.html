@@ -298,7 +298,8 @@
         };
         window.__bridgeDomBefore = before;
 
-        const timeoutMs = scenario === "fallback" ? 250 : 80;
+        const timeoutMs =
+          scenario === "fallback" ? 250 : scenario === "delayed" ? 500 : 80;
         const config = { timeoutMs };
         if (scenario === "fallback") {
           config.fallback = () => {

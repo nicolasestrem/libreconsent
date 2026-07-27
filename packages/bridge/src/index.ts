@@ -66,7 +66,11 @@ export interface BridgeFallbackApi {
  * Public bridge initialization configuration.
  */
 export interface BridgeConfig {
-  /** Positive integer CMP discovery deadline in milliseconds. Defaults to 3000. */
+  /**
+   * Positive integer deadline for successful listener confirmation.
+   *
+   * The deadline is absolute from initialization and defaults to 3000 ms.
+   */
   timeoutMs?: number;
   /**
    * Complete replacement for `DEFAULT_PURPOSE_MAPPING`.
@@ -439,6 +443,13 @@ class BridgeLifecycle implements BridgeApi {
     if (this.invalidated) {
       return;
     }
+    const elapsed = Date.now() - this.startedAt;
+    const remaining = this.config.timeoutMs - elapsed;
+    if (remaining <= 0) {
+      this.tcfApi = null;
+      this.activateFallback();
+      return;
+    }
     let candidate: TcfApi | undefined;
     try {
       const externalApi =
@@ -450,10 +461,16 @@ class BridgeLifecycle implements BridgeApi {
       candidate = undefined;
     }
 
+    if (candidate && candidate === this.tcfApi) {
+      this.schedulePoll();
+      return;
+    }
+
     if (candidate) {
       this.tcfApi = candidate;
       try {
         let registrationReturned = false;
+        let registrationConfirmed = false;
         let synchronousRegistrationFailed = false;
         candidate("addEventListener", 2, (data, success) => {
           if (!registrationReturned && success === false) {
@@ -476,11 +493,62 @@ class BridgeLifecycle implements BridgeApi {
             }
             return;
           }
+          if (this.tcfApi !== candidate) {
+            if (success === true && data && typeof data === "object") {
+              const staleListenerId = data.listenerId;
+              if (typeof staleListenerId === "number") {
+                this.removeTcfListener(staleListenerId, candidate);
+              }
+            }
+            return;
+          }
+          if (Date.now() - this.startedAt >= this.config.timeoutMs) {
+            if (success === true && data && typeof data === "object") {
+              const lateListenerId = data.listenerId;
+              if (typeof lateListenerId === "number") {
+                this.removeTcfListener(lateListenerId, candidate);
+              }
+            }
+            this.tcfApi = null;
+            if (this.timer !== null) {
+              clearTimeout(this.timer);
+              this.timer = null;
+            }
+            this.activateFallback();
+            return;
+          }
+          if (success === false) {
+            if (registrationConfirmed) {
+              return;
+            }
+            this.tcfApi = null;
+            if (this.timer !== null) {
+              clearTimeout(this.timer);
+              this.timer = null;
+            }
+            this.schedulePoll();
+            return;
+          }
+          registrationConfirmed = true;
           this.handleTcf(data, success);
+          if (success === true) {
+            this.emitReady("tcf", this.active);
+            if (this.timer !== null) {
+              clearTimeout(this.timer);
+              this.timer = null;
+            }
+          }
         });
         registrationReturned = true;
-        if (!synchronousRegistrationFailed) {
-          this.emitReady("tcf", this.active);
+        if (this.readyPayload) {
+          return;
+        }
+        if (synchronousRegistrationFailed) {
+          if (this.tcfApi === candidate) {
+            this.tcfApi = null;
+          }
+        } else {
+          this.schedulePoll();
           return;
         }
         if (this.tcfApi === candidate) {
@@ -497,6 +565,13 @@ class BridgeLifecycle implements BridgeApi {
       return;
     }
 
+    this.schedulePoll();
+  }
+
+  private schedulePoll(): void {
+    if (this.invalidated || this.readyPayload || this.timer !== null) {
+      return;
+    }
     const elapsed = Date.now() - this.startedAt;
     const remaining = this.config.timeoutMs - elapsed;
     if (remaining <= 0) {

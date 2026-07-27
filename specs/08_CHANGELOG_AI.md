@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Codex | PR #11 review follow-up (BR-2..4) | Required callback-confirmed TCF registration before one-shot readiness, kept discovery live after asynchronous rejection, removed late confirmations, and enforced the absolute deadline before CMP acceptance. D-050; P-050/P-051; final gate green with 352 unit, 55 E2E, and 15 a11y tests; bridge 2.99 kB. |
 | 2026-07-27 | Codex | PR #11 review follow-up (BR-2..4) | Kept discovery alive after synchronous TCF registration rejection and made fallback readiness atomic with successful subscription setup. P-048/P-049; final gate green with 346 unit, 55 E2E, and 15 a11y tests; bridge 2.87 kB. |
 | 2026-07-27 | Codex | PR #11 review follow-up (BR-1, BR-2) | Fixed queued-stub handoff teardown so reset and late callbacks remove listeners through the active replacement CMP rather than the obsolete registration provider. P-047; final gate green with 342 unit, 55 E2E, and 15 a11y tests; bridge 2.77 kB. |
 | 2026-07-27 | Codex | Phase 7 review follow-up (BR-1..4) | Fixed CMP/fallback teardown races, startup side-effect/provider-identity proofs, timeout evidence, GPP exclusions, and late queued-CMP listener cleanup. P-040..P-046; final gate green with 341 unit, 54 E2E, and 15 a11y tests; bridge 2.74 kB. |

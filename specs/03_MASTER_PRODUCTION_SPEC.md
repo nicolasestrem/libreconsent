@@ -92,9 +92,9 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 ## 8. BR — bridge mode (`@libreconsent/bridge`)
 
 - **BR-1:** `initBridge(config)`: UI-less, read-only — never renders, never writes consent storage, never emits consent signals.
-- **BR-2:** Detects `window.__tcfapi` (poll with backoff, configurable timeout), subscribes via `addEventListener`, derives category booleans from TCF purposes via **configurable mapping shipped as data** with documented defaults.
+- **BR-2:** Detects `window.__tcfapi` (poll with backoff, configurable timeout), subscribes via `addEventListener`, and treats only a `success === true` listener callback received before the absolute deadline as successful registration (D-050); derives category booleans from TCF purposes via **configurable mapping shipped as data** with documented defaults.
 - **BR-3:** Exposes the same `ready`/`consent`/`change` + `getConsent()` API as core.
-- **BR-4:** No external CMP within timeout → `ready` with `source: 'none'`; configurable fallback to full libreconsent behavior (covers mixed-audience domains with one snippet).
+- **BR-4:** No successfully registered external CMP before the absolute timeout → `ready` with `source: 'none'`; configurable fallback to full libreconsent behavior (covers mixed-audience domains with one snippet).
 
 ## 9. LOG — consent receipts (`@libreconsent/worker-log`, optional)
 

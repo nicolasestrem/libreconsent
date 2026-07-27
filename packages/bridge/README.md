@@ -52,7 +52,7 @@ interface BridgeConfig {
 
 | Option | Default | Behavior |
 |---|---|---|
-| `timeoutMs` | `3000` | Positive integer deadline, in milliseconds, for discovering and successfully invoking `window.__tcfapi`. |
+| `timeoutMs` | `3000` | Positive integer absolute deadline, in milliseconds, for discovering `window.__tcfapi` and receiving successful listener-registration confirmation. |
 | `purposeMapping` | `DEFAULT_PURPOSE_MAPPING` | Complete replacement mapping from category IDs to TCF purposes. It is not merged with the defaults. |
 | `fallback` | none | Factory invoked only after the discovery deadline. It returns a structural read/events API compatible with the core `ConsentApi`. |
 
@@ -134,9 +134,12 @@ precedes `consent`. For applicable GDPR traffic, `tcloaded` and
 treated as a decision. Unsuccessful, malformed, and duplicate snapshots are
 ignored.
 
-A queued CMP stub can accept `addEventListener` before it has usable consent.
-Successful invocation therefore establishes `source: "tcf"` and may produce
-`ready` with null consent before the first usable callback arrives.
+A queued CMP stub does not establish `source: "tcf"` merely by returning from
+`addEventListener`. Its first callback must report `success === true` before the
+absolute deadline. That callback may carry `cmpuishown`, which produces `ready`
+with null consent without treating its transient false values as a decision.
+Synchronous or asynchronous `success === false` leaves discovery active, and a
+silent stub remains pending only until the deadline.
 
 ## No CMP
 

@@ -352,16 +352,19 @@ describe("TCF observation", () => {
     });
   });
 
-  test("establishes TCF ready for a queued stub before usable data", () => {
+  test("does not accept a silent queued stub without callback confirmation", () => {
+    vi.useFakeTimers();
     const ready = vi.fn();
     const consent = vi.fn();
     setTcfApi(() => {});
 
-    const api = start();
+    const api = start({ timeoutMs: 10 });
     api.on("ready", ready);
     api.on("consent", consent);
 
-    expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
+    expect(ready).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(10);
+    expect(ready).toHaveBeenCalledWith({ source: "none", consent: null });
     expect(consent).not.toHaveBeenCalled();
     expect(api.getConsent()).toBeNull();
   });
@@ -385,7 +388,7 @@ describe("TCF observation", () => {
     api.on("ready", ready);
     api.on("consent", consent);
     api.on("change", change);
-    expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
+    expect(ready).not.toHaveBeenCalled();
 
     api.reset();
     setTcfApi(cmp);
@@ -410,7 +413,7 @@ describe("TCF observation", () => {
       "addEventListener",
     ]);
     expect(cmp).toHaveBeenCalledOnce();
-    expect(ready).toHaveBeenCalledOnce();
+    expect(ready).not.toHaveBeenCalled();
     expect(consent).not.toHaveBeenCalled();
     expect(change).not.toHaveBeenCalled();
     expect(api.getConsent()).toBeNull();
@@ -712,7 +715,15 @@ describe("discovery and teardown", () => {
     api.on("ready", ready);
 
     vi.advanceTimersByTime(9);
-    setTcfApi(() => {});
+    setTcfApi((command, _version, callback) => {
+      if (command === "addEventListener") {
+        invokeTcfCallback(callback, {
+          eventStatus: "cmpuishown",
+          gdprApplies: true,
+          listenerId: 40,
+        });
+      }
+    });
     vi.advanceTimersByTime(1);
 
     expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
@@ -775,10 +786,28 @@ describe("discovery and teardown", () => {
     expect(replay).toHaveBeenCalledOnce();
   });
 
+  test("does not accept a CMP discovered after a delayed polling deadline", () => {
+    vi.useFakeTimers();
+    const startedAt = new Date("2026-07-27T00:00:00.000Z");
+    vi.setSystemTime(startedAt);
+    const ready = vi.fn();
+    const api = start({ timeoutMs: 10 });
+    api.on("ready", ready);
+
+    vi.setSystemTime(new Date(startedAt.getTime() + 11));
+    const late = vi.fn<TcfApi>();
+    setTcfApi(late);
+    vi.runOnlyPendingTimers();
+
+    expect(late).not.toHaveBeenCalled();
+    expect(ready).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledWith({ source: "none", consent: null });
+  });
+
   test("retries a throwing CMP API until it becomes callable", () => {
     vi.useFakeTimers();
     let throws = true;
-    const external = vi.fn(() => {
+    const external = vi.fn<TcfApi>(() => {
       if (throws) {
         throw new Error("loading");
       }
@@ -790,6 +819,13 @@ describe("discovery and teardown", () => {
     expect(ready).not.toHaveBeenCalled();
 
     throws = false;
+    external.mockImplementation((_command, _version, callback) => {
+      invokeTcfCallback(callback, {
+        eventStatus: "cmpuishown",
+        gdprApplies: true,
+        listenerId: 42,
+      });
+    });
     vi.advanceTimersByTime(10);
     expect(external).toHaveBeenCalledTimes(2);
     expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
@@ -809,7 +845,15 @@ describe("discovery and teardown", () => {
 
     expect(ready).not.toHaveBeenCalled();
 
-    const replacement = vi.fn<TcfApi>();
+    const replacement = vi.fn<TcfApi>((command, _version, callback) => {
+      if (command === "addEventListener") {
+        invokeTcfCallback(callback, {
+          eventStatus: "cmpuishown",
+          gdprApplies: true,
+          listenerId: 43,
+        });
+      }
+    });
     setTcfApi(replacement);
     vi.advanceTimersByTime(10);
 
@@ -844,9 +888,161 @@ describe("discovery and teardown", () => {
 
     fallback.emitReady(null);
 
-    expect(failing).toHaveBeenCalledTimes(2);
+    expect(failing).toHaveBeenCalledOnce();
     expect(ready).toHaveBeenCalledOnce();
     expect(ready).toHaveBeenCalledWith({ source: "fallback", consent: null });
+  });
+
+  test("keeps polling when CMP listener registration fails asynchronously", () => {
+    vi.useFakeTimers();
+    let rejectRegistration: (() => void) | undefined;
+    const failing = vi.fn<TcfApi>((command, _version, callback) => {
+      if (command === "addEventListener") {
+        rejectRegistration = () => invokeTcfCallback(callback, {}, false);
+      }
+    });
+    setTcfApi(failing);
+    const ready = vi.fn();
+    const api = start({ timeoutMs: 50 });
+    api.on("ready", ready);
+
+    rejectRegistration?.();
+    expect(ready).not.toHaveBeenCalled();
+
+    const replacement = vi.fn<TcfApi>((command, _version, callback) => {
+      if (command === "addEventListener") {
+        invokeTcfCallback(callback, {
+          eventStatus: "cmpuishown",
+          gdprApplies: true,
+          listenerId: 44,
+        });
+      }
+    });
+    setTcfApi(replacement);
+    vi.advanceTimersByTime(20);
+
+    expect(replacement).toHaveBeenCalledWith(
+      "addEventListener",
+      2,
+      expect.any(Function),
+    );
+    expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
+  });
+
+  test("ignores unsuccessful callbacks after listener registration succeeds", () => {
+    vi.useFakeTimers();
+    let callback: TcfApiCallback | undefined;
+    const external = vi.fn<TcfApi>((command, _version, registered) => {
+      if (command === "addEventListener") {
+        callback = registered;
+        invokeTcfCallback(registered, {
+          eventStatus: "cmpuishown",
+          gdprApplies: true,
+          listenerId: 47,
+        });
+      }
+    });
+    setTcfApi(external);
+    const ready = vi.fn();
+    const api = start({ timeoutMs: 50 });
+    api.on("ready", ready);
+
+    invokeTcfCallback(callback as TcfApiCallback, {}, false);
+    vi.advanceTimersByTime(50);
+
+    expect(external).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
+  });
+
+  test("discovers a replacement without registering a silent stub twice", () => {
+    vi.useFakeTimers();
+    const silent = vi.fn<TcfApi>();
+    setTcfApi(silent);
+    const ready = vi.fn();
+    const api = start({ timeoutMs: 100 });
+    api.on("ready", ready);
+
+    vi.advanceTimersByTime(10);
+    expect(silent).toHaveBeenCalledOnce();
+    expect(ready).not.toHaveBeenCalled();
+
+    const replacement = vi.fn<TcfApi>((command, _version, callback) => {
+      if (command === "addEventListener") {
+        invokeTcfCallback(callback, {
+          eventStatus: "cmpuishown",
+          gdprApplies: true,
+          listenerId: 46,
+        });
+      }
+    });
+    setTcfApi(replacement);
+    vi.advanceTimersByTime(20);
+
+    expect(silent).toHaveBeenCalledOnce();
+    expect(replacement).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
+  });
+
+  test("activates fallback after asynchronous registration rejection", () => {
+    vi.useFakeTimers();
+    let rejectRegistration: (() => void) | undefined;
+    const failing = vi.fn<TcfApi>((command, _version, callback) => {
+      if (command === "addEventListener") {
+        rejectRegistration = () => invokeTcfCallback(callback, {}, false);
+      }
+    });
+    setTcfApi(failing);
+    const fallback = new FallbackStub();
+    const factory = vi.fn(() => fallback);
+    const ready = vi.fn();
+    const api = start({ timeoutMs: 10, fallback: factory });
+    api.on("ready", ready);
+
+    rejectRegistration?.();
+    vi.advanceTimersByTime(10);
+
+    expect(factory).toHaveBeenCalledOnce();
+    expect(ready).not.toHaveBeenCalled();
+    fallback.emitReady(null);
+    expect(ready).toHaveBeenCalledWith({ source: "fallback", consent: null });
+  });
+
+  test("rejects and removes listener confirmation delivered after the deadline", () => {
+    vi.useFakeTimers();
+    const startedAt = new Date("2026-07-27T00:00:00.000Z");
+    vi.setSystemTime(startedAt);
+    let callback: TcfApiCallback | undefined;
+    const external = vi.fn<TcfApi>(
+      (command, _version, registered, listenerId) => {
+        if (command === "addEventListener") {
+          callback = registered;
+        } else {
+          expect(command).toBe("removeEventListener");
+          expect(listenerId).toBe(45);
+        }
+      },
+    );
+    setTcfApi(external);
+    const ready = vi.fn();
+    const consent = vi.fn();
+    const api = start({ timeoutMs: 10 });
+    api.on("ready", ready);
+    api.on("consent", consent);
+
+    vi.setSystemTime(new Date(startedAt.getTime() + 11));
+    invokeTcfCallback(callback as TcfApiCallback, {
+      eventStatus: "cmpuishown",
+      gdprApplies: true,
+      listenerId: 45,
+    });
+
+    expect(external.mock.calls.map(([command]) => command)).toEqual([
+      "addEventListener",
+      "removeEventListener",
+    ]);
+    expect(ready).toHaveBeenCalledWith({ source: "none", consent: null });
+    expect(consent).not.toHaveBeenCalled();
   });
 
   test("removes the exact CMP listener during teardown", () => {

@@ -36,12 +36,12 @@ read-only adapter for domains where an external CMP owns consent. It observes a
 same-window TCF v2 API, maps purpose consent to libreconsent categories, and
 exposes familiar `ready` / `consent` / `change` events without providing
 `__tcfapi`, exposing TC strings, rendering UI, persisting data, or emitting
-Google signals. If no CMP appears before the configured deadline, it can either
-report `source: "none"` or hand off once to an injected full libreconsent
-fallback. The bridge unit/browser suites, 4 kB size gate, and permanent
-no-provider guardrail are green after the queued-CMP teardown follow-up. TCF and
-GPP provider support are intentionally excluded; the bridge does not consume
-GPP either.
+Google signals. If no CMP successfully registers before the configured
+deadline, it can either report `source: "none"` or hand off once to an injected
+full libreconsent fallback. The bridge unit/browser suites, 4 kB size gate, and
+permanent no-provider guardrail are green after the callback-confirmation and
+absolute-deadline follow-up. TCF and GPP provider support are intentionally
+excluded; the bridge does not consume GPP either.
 
 Dynamically injected scripts are covered by an opt-in **best-effort** safety net
 that marks a matching script inert before it can be fetched. It is explicitly not

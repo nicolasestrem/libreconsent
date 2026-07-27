@@ -60,6 +60,8 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-047 | PR #11 bot review | BR-1, BR-2 | P-046 still removed through the provider captured at registration. Under the standard queued-stub handoff, the real CMP can replace `window.__tcfapi` before returning the listener ID, so both normal reset and late post-reset removal called an obsolete stub and leaked the listener held by the replacement CMP. Resolve the active same-window provider at removal time, falling back to the registration provider only when live lookup is unavailable; cover both teardown paths with stub-replacement unit and browser regressions. | major | done | This PR |
 | P-048 | PR #11 bot review | BR-2, BR-4 | A CMP could synchronously reject `addEventListener` with `success === false`, but the bridge still emitted `ready` with `source: "tcf"` and stopped polling. No listener existed, and the discovery timeout could no longer activate the configured fallback. Treat a synchronous unsuccessful callback as a failed registration, publish no TCF readiness, and continue bounded discovery through replacement-provider success or timeout handoff. | major | done | This PR |
 | P-049 | PR #11 bot review | BR-3, BR-4 | A fallback could synchronously replay `ready` or `consent` during subscription setup and then fail a later subscription. The bridge published the replay before setup completed, so cleanup could not replace its one-shot fallback readiness with the required fail-closed `source: "none"` outcome. Stage synchronous observations until all three subscriptions are removable, then forward them in order; discard the staged events and clean every established subscription if setup fails. | major | done | This PR |
+| P-050 | PR #11 bot review | BR-2, BR-3, BR-4 | P-048 recognized rejection only while the provider call remained on the stack. A queued or proxied CMP could return first and later report `success === false`; the bridge had already published one-shot `source: "tcf"` readiness, so discovery and fallback were permanently suppressed despite no listener. Per D-050, require `success === true` callback confirmation before TCF readiness, keep polling for a replacement without registering the same pending provider twice, resume bounded discovery after asynchronous rejection, and remove rather than accept listener confirmation arriving after handoff or deadline. | major | done | This PR |
+| P-051 | PR #11 bot review | BR-2, BR-4 | A delayed polling timer looked up and accepted `window.__tcfapi` before checking elapsed time. If a long task installed the provider only after `timeoutMs` and then yielded, that late CMP suppressed the required `none` / fallback handoff. Enforce the absolute deadline before candidate lookup on every poll. | major | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -72,6 +74,5 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-040..P-049 were fixed and regression-tested within the Phase 7 review
-follow-ups; the final full workspace verification passed and the phase gate is
-closed._
+_None. P-040..P-051 were fixed and regression-tested within the Phase 7 review
+follow-ups._

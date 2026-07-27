@@ -224,6 +224,14 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- TCF readiness now requires a successful `addEventListener` callback before
+  the absolute discovery deadline. A silent queued stub no longer publishes
+  irreversible `source: "tcf"` readiness, asynchronous registration rejection
+  resumes bounded discovery, and a late success confirmation is removed rather
+  than displacing the configured `none` / fallback handoff.
+- A delayed polling task now checks the absolute discovery deadline before
+  accepting a newly visible CMP, so a provider installed only after timeout
+  cannot suppress the required `none` / fallback result.
 - A CMP that synchronously rejects TCF listener registration no longer leaves
   the bridge permanently ready with `source: "tcf"` and no listener. Discovery
   keeps polling until another provider accepts registration or the configured
