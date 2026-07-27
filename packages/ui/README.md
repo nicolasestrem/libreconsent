@@ -118,15 +118,34 @@ Keys this package adds beyond the core's `ui.acceptAll` / `ui.rejectAll` /
 `ui.preferences.title`, `ui.preferences.description`, `ui.close`,
 `ui.settings`, `ui.alwaysOn`, `ui.cookies.show`, `ui.cookies.hide`,
 `ui.cookies.name`, `ui.cookies.purpose`, `ui.cookies.provider`,
-`ui.cookies.duration`, `ui.cookies.type`.
+`ui.cookies.duration`, `ui.cookies.type`, `ui.optOut.title`,
+`ui.optOut.description`, `ui.optOut.confirm`, `ui.optOut.done`.
+
+## Do Not Sell or Share dialog
+
+When the core is configured with `usPrivacy.doNotSellSelector`, clicks on a
+matching element open a third, deliberately minimal surface: one sentence and
+one action, not the consent banner. US state privacy is an opt-out regime, so
+the dialog asks nothing — it records a decision to deny the categories the
+Google ad signals map to and leaves everything else as it was. When the opt-out
+is already in force it says so instead of offering the action again.
+
+Clicks are delegated from the document, so links rendered after mount work
+without re-mounting. A malformed selector is contained: it can never throw out
+of the page's click handling. `handle.showOptOut()` and the core's
+`api.showOptOut()` open the same dialog programmatically.
+
+Where the opt-out model applies, no banner is shown at all — the visitor is
+consenting until they say otherwise — so the persistent settings button and the
+Do Not Sell link are the entry points.
 
 ## Accessibility
 
-WCAG 2.1 AA is a release gate: axe-core runs in CI against both layers in light
-and dark themes, and `specs/A11Y_CHECKLIST.md` covers the manual passes. Both
-layers are dialogs with labelled controls; preferences traps focus, closes on
-Escape and restores focus to whatever opened it. Transitions are suppressed
-under `prefers-reduced-motion`.
+WCAG 2.1 AA is a release gate: axe-core runs in CI against all three surfaces in
+light and dark themes, and `specs/A11Y_CHECKLIST.md` covers the manual passes.
+Each is a dialog with labelled controls; preferences and the opt-out dialog trap
+focus, close on Escape and restore focus to whatever opened it. Transitions are
+suppressed under `prefers-reduced-motion`.
 
 Layout uses logical properties throughout, so a right-to-left document mirrors
 structurally without a second stylesheet.

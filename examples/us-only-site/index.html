@@ -4,6 +4,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>libreconsent US-only fixture</title>
+    <script>
+      window.libreconsentConsentMode = {
+        enabled: true,
+        defaults: "denied-everywhere",
+        waitForUpdate: 500,
+      };
+    </script>
+    <!-- LIBRECONSENT_HEAD_SNIPPET -->
+    <script type="text/plain" data-cmp-category="analytics" src="/us-only-site/analytics.js"></script>
+    <script type="text/plain" data-cmp-category="marketing" src="/us-only-site/ads.js"></script>
   </head>
   <body>
     <header>
@@ -11,7 +21,51 @@
     </header>
     <main>
       <h1>US-only-site fixture</h1>
-      <p data-fixture="us-only-site">Phase 0 static fixture.</p>
+      <p data-fixture="us-only-site">US state privacy opt-out fixture.</p>
+      <p><button type="button" data-cmp-open>Cookie preferences</button></p>
     </main>
+    <footer>
+      <p><a id="do-not-sell" href="#do-not-sell">Do Not Sell or Share My Personal Information</a></p>
+    </footer>
+    <script src="/dist/core.global.js"></script>
+    <script src="/dist/ui.global.js"></script>
+    <script>
+      window.__lcApi = LibreConsentCore.init({
+        categories: [
+          {
+            id: "analytics",
+            label: "category.analytics.label",
+            description: "category.analytics.description",
+          },
+          {
+            id: "marketing",
+            label: "category.marketing.label",
+            description: "category.marketing.description",
+          },
+        ],
+        consentMode: window.libreconsentConsentMode,
+        // A real deployment resolves this from a same-origin endpoint reading
+        // `CF-IPCountry`; the fixture pins it so the opt-out path is exercised
+        // without a network request (CFG-9, NFR-3).
+        resolveRegion: () => Promise.resolve("US-CA"),
+        usPrivacy: {
+          enabled: true,
+          doNotSellSelector: "#do-not-sell",
+        },
+        i18n: {
+          translations: {
+            en: {
+              "category.analytics.label": "Analytics",
+              "category.analytics.description":
+                "Measures how visitors use this site.",
+              "category.marketing.label": "Marketing",
+              "category.marketing.description":
+                "Personalizes advertising across sites.",
+            },
+          },
+        },
+      });
+      window.__lcUi = LibreConsentUi.mount(window.__lcApi);
+    </script>
   </body>
 </html>

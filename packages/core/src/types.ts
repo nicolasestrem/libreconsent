@@ -142,6 +142,39 @@ export interface BlockingConfig {
 }
 
 /**
+ * US state privacy configuration (CFG-8).
+ *
+ * US state laws follow an opt-out model rather than the EEA opt-in model, so
+ * enabling this block changes what an *undecided* visitor in a configured
+ * region experiences: optional categories behave as granted until the visitor
+ * opts out, and no consent banner is shown. EEA opt-in behavior is unaffected
+ * outside those regions, so one configuration serves both audiences (US-3).
+ */
+export interface UsPrivacyConfig {
+  /** Whether the US opt-out model applies in the configured regions. */
+  enabled?: boolean;
+  /**
+   * Regions where the opt-out model applies. Defaults to `["US"]`.
+   *
+   * Matching is prefix-aware on the `-` separator, so `US` also covers
+   * `US-CA`. An empty array is rejected: it would silently disable the module.
+   */
+  regions?: string[];
+  /**
+   * CSS selector for the site's "Do Not Sell or Share" link (US-2).
+   *
+   * Clicks on a matching element open the opt-out dialog. The selector is
+   * bound by `@libreconsent/ui`; the core never touches the DOM.
+   */
+  doNotSellSelector?: string;
+  /**
+   * Whether a `navigator.globalPrivacyControl` signal auto-applies the opt-out
+   * for visitors in the configured regions. Defaults to `true` (US-1).
+   */
+  respectGPC?: boolean;
+}
+
+/**
  * First-party consent storage configuration.
  */
 export interface StorageConfig {
@@ -184,6 +217,8 @@ export interface CmpConfig {
   storage?: StorageConfig;
   /** Declarative script and embed blocking settings. */
   blocking?: BlockingConfig;
+  /** US state privacy opt-out settings. */
+  usPrivacy?: UsPrivacyConfig;
   /** Schema revision. A higher value invalidates older active decisions. */
   revision?: number;
   /** Translation dictionaries and locale behavior. */
@@ -237,6 +272,20 @@ export interface NormalizedBlockingConfig {
 }
 
 /**
+ * Fully defaulted and deeply frozen US privacy configuration.
+ */
+export interface NormalizedUsPrivacyConfig {
+  /** Whether the US opt-out model applies in the configured regions. */
+  enabled: boolean;
+  /** Uppercase regions where the opt-out model applies. Defaults to `["US"]`. */
+  regions: string[];
+  /** Selector for the site's "Do Not Sell or Share" link, when configured. */
+  doNotSellSelector?: string;
+  /** Whether Global Privacy Control auto-applies the opt-out. */
+  respectGPC: boolean;
+}
+
+/**
  * Fully normalized category configuration.
  */
 export interface NormalizedCategoryConfig {
@@ -280,6 +329,8 @@ export interface NormalizedCmpConfig {
   storage: NormalizedStorageConfig;
   /** Fully defaulted blocking settings. */
   blocking: NormalizedBlockingConfig;
+  /** Fully defaulted US privacy settings. */
+  usPrivacy: NormalizedUsPrivacyConfig;
   /** Positive schema revision. */
   revision: number;
   /** Fully merged locale dictionaries. */
@@ -313,8 +364,24 @@ export interface ConsentState {
   services: Record<string, boolean>;
   /** Resolved uppercase region, when available. */
   region?: string;
-  /** Whether a future US module applied Global Privacy Control. */
+  /**
+   * Whether Global Privacy Control produced this state (US-1).
+   *
+   * **Never persisted.** The signal is re-read on every page load, so storing
+   * it would turn a browser signal into a stored "decision" the visitor never
+   * made, and would keep applying after the visitor disabled the signal.
+   * An explicit decision taken afterwards clears the flag.
+   */
   gpcApplied?: boolean;
+  /**
+   * Whether the US opt-out model synthesized this state rather than a visitor
+   * deciding (US-3).
+   *
+   * **Never persisted**, because nothing may be stored before a decision
+   * (CORE-8). It marks a state that is active — gated scripts run and Consent
+   * Mode is signaled — while the visitor still has an opt-out outstanding.
+   */
+  implied?: boolean;
 }
 
 /**
@@ -348,7 +415,15 @@ export type InitializationReason = "new" | "restored" | "expired" | "revision";
 export interface ReadyEvent {
   /** Why initialization requires or does not require a new decision. */
   reason: InitializationReason;
-  /** Active restored consent, or null while undecided. */
+  /**
+   * Active consent, or null while undecided.
+   *
+   * Non-null for a restored decision and for the state the US opt-out model
+   * implies (`consent.implied === true`), which can pair with any `reason`
+   * because `reason` describes what was found in storage, not what is active.
+   * A renderer showing a banner should branch on this field, not on `reason`:
+   * a non-null value means no decision is being asked for.
+   */
   consent: ConsentState | null;
   /**
    * Resolved uppercase region, or null when unresolved or unconfigured.
@@ -368,7 +443,10 @@ export interface ReadyEvent {
 export interface ConsentEvents {
   /** Emitted once after asynchronous initialization finishes. */
   ready: ReadyEvent;
-  /** Emitted for a restored state or the first active user decision. */
+  /**
+   * Emitted for the first active state: a restored decision, a state implied
+   * by the US opt-out model, or the first active user decision.
+   */
   consent: ConsentState;
   /** Emitted for later decisions, including withdrawal. */
   change: ConsentState;
@@ -385,6 +463,13 @@ export interface ConsentRenderer {
   showPreferences(): void;
   /** Hides any visible consent surface. */
   hide(): void;
+  /**
+   * Opens the "Do Not Sell or Share" opt-out dialog (US-2).
+   *
+   * Optional so renderers written before the US module still satisfy the
+   * interface; the intent stays inert when a renderer does not implement it.
+   */
+  showOptOut?(): void;
 }
 
 /**
@@ -405,6 +490,13 @@ export interface ConsentApi {
   showPreferences(): void;
   /** Forwards a hide intent to the registered renderer, if any. */
   hide(): void;
+  /**
+   * Forwards a "Do Not Sell or Share" intent to the registered renderer, if
+   * any. Site links are usually bound through `usPrivacy.doNotSellSelector`;
+   * this is the programmatic equivalent for applications that route their own
+   * clicks.
+   */
+  showOptOut(): void;
   /**
    * Registers the renderer that fulfils `showPreferences()` / `hide()` and
    * returns an unregister function. A later registration replaces the previous

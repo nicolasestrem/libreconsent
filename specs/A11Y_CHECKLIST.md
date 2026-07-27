@@ -1,14 +1,14 @@
 # A11Y — manual accessibility checklist
 
 Required by **UI-3** (03 §6): axe-core runs in CI, and this checklist covers what
-automated scanning cannot judge. Run it against `examples/basic-site` whenever
-`packages/ui` changes materially, and record the date and result in
-`specs/05_BUILD_REVIEW.md`.
+automated scanning cannot judge. Run it against `examples/basic-site`, and the
+opt-out rows against `examples/us-only-site`, whenever `packages/ui` changes
+materially, and record the date and result in `specs/05_BUILD_REVIEW.md`.
 
 Automated coverage already enforced in CI (`pnpm a11y`, gate "Accessibility tests"):
 zero critical/serious axe violations on the banner, the preferences modal (with a
-cookie table disclosed), and the persistent settings button, in both light and
-dark themes.
+cookie table disclosed), the opt-out dialog, and the persistent settings button,
+in both light and dark themes.
 
 ## Keyboard
 
@@ -23,6 +23,10 @@ dark themes.
       never left with no way to consent.
 - [ ] Cookie disclosure buttons toggle with the keyboard and move focus nowhere
       unexpected.
+- [ ] The "Do Not Sell or Share" link opens the opt-out dialog with Enter, and
+      the dialog is fully operable from the keyboard (US-2).
+- [ ] Escape closes the opt-out dialog and returns focus to the link that opened
+      it; Tab wraps within the dialog as it does in preferences.
 
 ## Screen readers
 
@@ -37,6 +41,9 @@ Test with at least one of NVDA + Firefox, VoiceOver + Safari, or Narrator + Edge
 - [ ] Cookie tables announce column headers when navigating cells.
 - [ ] The disclosure button announces its expanded/collapsed state.
 - [ ] The page language is announced correctly for the mounted locale.
+- [ ] The opt-out dialog is announced as a modal dialog with its title and its
+      explanation, and its state message is announced when the opt-out is
+      already in force.
 
 ## Visual
 

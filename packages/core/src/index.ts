@@ -58,7 +58,9 @@ export type {
   NormalizedConsentModeConfig,
   NormalizedServiceConfig,
   NormalizedStorageConfig,
+  NormalizedUsPrivacyConfig,
   ReadyEvent,
   ServiceConfig,
   StorageConfig,
+  UsPrivacyConfig,
 } from "./types";

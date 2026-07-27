@@ -1863,6 +1863,511 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
   });
 });
 
+describe("US state privacy configuration (CFG-8)", () => {
+  test("defaults to a disabled module that respects GPC across US regions", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    expect(api.getConfig().usPrivacy).toEqual({
+      enabled: false,
+      regions: ["US"],
+      respectGPC: true,
+    });
+  });
+
+  test("normalizes regions and trims the Do Not Sell selector", async () => {
+    const api = start(
+      baseConfig({
+        usPrivacy: {
+          enabled: true,
+          regions: [" us-ca ", "us-va"],
+          doNotSellSelector: " #do-not-sell ",
+          respectGPC: false,
+        },
+      }),
+    );
+    await waitForReady(api);
+
+    expect(api.getConfig().usPrivacy).toEqual({
+      enabled: true,
+      regions: ["US-CA", "US-VA"],
+      doNotSellSelector: "#do-not-sell",
+      respectGPC: false,
+    });
+  });
+
+  test("accepts a compound selector, so the check is not merely permissive", async () => {
+    // Guards the selector validation against being tightened into something
+    // that only accepts simple selectors.
+    const selector = 'footer a[href^="#"]:not(.external), [data-optout] > span';
+    const api = start(
+      baseConfig({ usPrivacy: { enabled: true, doNotSellSelector: selector } }),
+    );
+    await waitForReady(api);
+
+    expect(api.getConfig().usPrivacy.doNotSellSelector).toBe(selector);
+  });
+
+  test.each([
+    { name: "block", usPrivacy: [] as unknown, path: "usPrivacy" },
+    {
+      name: "enabled",
+      usPrivacy: { enabled: "yes" },
+      path: "usPrivacy.enabled",
+    },
+    {
+      name: "respectGPC",
+      usPrivacy: { respectGPC: 1 },
+      path: "usPrivacy.respectGPC",
+    },
+    {
+      name: "doNotSellSelector",
+      usPrivacy: { doNotSellSelector: "  " },
+      path: "usPrivacy.doNotSellSelector",
+    },
+    {
+      // Swallowed by the UI's click guard if it reaches the browser, which
+      // leaves the US-2 entry point dead and says nothing (CFG-6).
+      name: "unparseable doNotSellSelector",
+      usPrivacy: { doNotSellSelector: "[" },
+      path: "usPrivacy.doNotSellSelector",
+    },
+    {
+      name: "regions type",
+      usPrivacy: { regions: "US" },
+      path: "usPrivacy.regions",
+    },
+    {
+      name: "duplicate regions",
+      usPrivacy: { regions: ["US", "us"] },
+      path: "usPrivacy.regions[1]",
+    },
+  ])("rejects an invalid $name", ({ usPrivacy, path }) => {
+    expectConsentError(
+      () =>
+        start(
+          baseConfig({
+            usPrivacy: usPrivacy as NonNullable<CmpConfig["usPrivacy"]>,
+          }),
+        ),
+      "INVALID_CONFIG",
+      path,
+    );
+  });
+
+  test("rejects an empty region list rather than silently disabling itself", () => {
+    expectConsentError(
+      () => start(baseConfig({ usPrivacy: { enabled: true, regions: [] } })),
+      "INVALID_CONFIG",
+      "usPrivacy.regions",
+    );
+  });
+
+  test("validates the signal mapping the opt-out reads even when Consent Mode is off", () => {
+    expectConsentError(
+      () =>
+        start({
+          categories: [
+            {
+              id: "analytics",
+              label: "category.analytics.label",
+              description: "category.analytics.description",
+            },
+          ],
+          i18n: { default: "en", translations: { en: dictionary } },
+          usPrivacy: { enabled: true },
+        }),
+      "INVALID_CONFIG",
+      "consentMode.mapping.ad_storage",
+    );
+  });
+
+  test("accepts a US-only configuration with no analytics category", async () => {
+    // The US module reads only the three ad signals, so the unused default
+    // `analytics_storage` target must not make a valid configuration throw.
+    const api = start({
+      categories: [
+        {
+          id: "marketing",
+          label: "category.marketing.label",
+          description: "category.marketing.description",
+        },
+      ],
+      i18n: { default: "en", translations: { en: dictionary } },
+      usPrivacy: { enabled: true },
+    });
+
+    await waitForReady(api);
+
+    expect(api.getConfig().categories.map(({ id }) => id)).toEqual([
+      "necessary",
+      "marketing",
+    ]);
+  });
+
+  test("still validates all four signals when Consent Mode is enabled", () => {
+    expectConsentError(
+      () =>
+        start({
+          categories: [
+            {
+              id: "marketing",
+              label: "category.marketing.label",
+              description: "category.marketing.description",
+            },
+          ],
+          i18n: { default: "en", translations: { en: dictionary } },
+          consentMode: { enabled: true },
+          usPrivacy: { enabled: true },
+        }),
+      "INVALID_CONFIG",
+      "consentMode.mapping.analytics_storage",
+    );
+  });
+
+  test("rejects an ad signal mapped to a permanently granted category", () => {
+    expectConsentError(
+      () =>
+        start(
+          baseConfig({
+            usPrivacy: { enabled: true },
+            consentMode: { mapping: { ad_storage: "necessary" } },
+          }),
+        ),
+      "INVALID_CONFIG",
+      "consentMode.mapping.ad_storage",
+    );
+  });
+});
+
+describe("US opt-out model and Global Privacy Control (US-1, US-3)", () => {
+  function usConfig(overrides: Partial<CmpConfig> = {}): CmpConfig {
+    return baseConfig({
+      resolveRegion: async () => "US",
+      usPrivacy: { enabled: true },
+      ...overrides,
+    });
+  }
+
+  function stubGpc(value: boolean): void {
+    Object.defineProperty(navigator, "globalPrivacyControl", {
+      configurable: true,
+      get: () => value,
+    });
+  }
+
+  function expectNothingStored(): void {
+    expect(document.cookie).not.toContain("libreconsent=");
+    expect(window.localStorage.getItem("libreconsent")).toBeNull();
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, "globalPrivacyControl");
+  });
+
+  test("treats an undecided US visitor as consenting without prompting or storing (US-3)", async () => {
+    const consent = vi.fn();
+    const api = start(usConfig());
+    api.on("consent", consent);
+
+    const ready = await waitForReady(api);
+
+    expect(ready.reason).toBe("new");
+    expect(ready.consent).toMatchObject({
+      implied: true,
+      categories: { necessary: true, analytics: true, marketing: true },
+      services: { ga: true, amp: true, ads: true },
+      region: "US",
+    });
+    expect(ready.consent?.gpcApplied).toBeUndefined();
+    expect(consent).toHaveBeenCalledTimes(1);
+    expectNothingStored();
+  });
+
+  test("denies the mapped ad categories when Global Privacy Control is set (US-1)", async () => {
+    stubGpc(true);
+    const api = start(usConfig());
+
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toMatchObject({
+      implied: true,
+      gpcApplied: true,
+      categories: { analytics: true, marketing: false },
+      services: { ga: true, amp: true, ads: false },
+    });
+    expectNothingStored();
+  });
+
+  test("follows the configured mapping when choosing what an opt-out denies", async () => {
+    stubGpc(true);
+    const config = usConfig({
+      consentMode: {
+        mapping: {
+          ad_storage: "functional",
+          ad_user_data: "functional",
+          ad_personalization: "functional",
+        },
+      },
+    });
+    config.categories.push({
+      id: "functional",
+      label: "category.functional.label",
+      description: "category.functional.description",
+    });
+    const api = start(config);
+
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toMatchObject({
+      categories: { analytics: true, marketing: true, functional: false },
+    });
+  });
+
+  test("signals the opt-out to Consent Mode without a decision (US-1, CM-2)", async () => {
+    stubGpc(true);
+    const gtag = vi.fn();
+    (window as typeof window & { gtag: typeof gtag }).gtag = gtag;
+    const api = start(usConfig({ consentMode: { enabled: true } }));
+
+    await waitForReady(api);
+
+    expect(gtag.mock.calls).toEqual([
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "granted",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ],
+    ]);
+  });
+
+  test("leaves the signal unread when respectGPC is disabled", async () => {
+    stubGpc(true);
+    const api = start(
+      usConfig({ usPrivacy: { enabled: true, respectGPC: false } }),
+    );
+
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toMatchObject({
+      implied: true,
+      categories: { marketing: true },
+    });
+    expect(ready.consent?.gpcApplied).toBeUndefined();
+  });
+
+  test.each([
+    { name: "a non-US region", region: "DE" },
+    { name: "an unresolved region", region: null },
+    { name: "a region that merely shares a prefix", region: "USA" },
+    { name: "a country when a state is configured", region: "US" },
+  ])("asks an opt-in decision for $name", async ({ region }) => {
+    stubGpc(true);
+    const api = start(
+      usConfig({
+        resolveRegion: async () => region,
+        usPrivacy: {
+          enabled: true,
+          ...(region === "US" ? { regions: ["US-CA"] } : {}),
+        },
+      }),
+    );
+
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toBeNull();
+    expectNothingStored();
+  });
+
+  test("matches a state-level region against a configured country", async () => {
+    const api = start(usConfig({ resolveRegion: async () => "us-ca" }));
+
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toMatchObject({ implied: true, region: "US-CA" });
+  });
+
+  test("keeps region-restricted services denied under the implied grant", async () => {
+    const config = usConfig();
+    config.categories[0]?.services?.push({
+      id: "regional",
+      label: "service.regional.label",
+      onlyRegions: ["FR"],
+    });
+    const api = start(config);
+
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toMatchObject({
+      services: { ga: true, regional: false },
+    });
+  });
+
+  test("lets a stored decision outrank the signal (US-1)", async () => {
+    stubGpc(true);
+    const restored = storedState({
+      categories: { necessary: true, analytics: false, marketing: true },
+      services: { ga: false, amp: false, ads: true },
+    });
+    setDocumentCookie(`libreconsent=${encodeState(restored)}; Path=/`);
+    const api = start(usConfig());
+
+    const ready = await waitForReady(api);
+
+    expect(ready.reason).toBe("restored");
+    expect(ready.consent).toMatchObject({
+      consentId: restored.consentId,
+      categories: { analytics: false, marketing: true },
+    });
+    expect(ready.consent?.implied).toBeUndefined();
+    expect(ready.consent?.gpcApplied).toBeUndefined();
+  });
+
+  test.each([
+    { name: "expiry", reason: "expired", revision: 1, expiresDays: 30 },
+    {
+      name: "a revision bump",
+      reason: "revision",
+      revision: 2,
+      expiresDays: 365,
+    },
+  ])(
+    "seeds the implied state from choices invalidated by $name",
+    async ({ reason, revision, expiresDays }) => {
+      const timestamp = new Date(Date.now() - 60 * DAY).toISOString();
+      const lapsed = storedState({
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        categories: { necessary: true, analytics: true, marketing: false },
+        services: { ga: true, amp: false, ads: false },
+      });
+      setDocumentCookie(`libreconsent=${encodeState(lapsed)}; Path=/`);
+      const api = start(usConfig({ revision, storage: { expiresDays } }));
+
+      const ready = await waitForReady(api);
+
+      expect(ready.reason).toBe(reason);
+      expect(ready.prefill).toBeUndefined();
+      expect(ready.consent).toMatchObject({
+        implied: true,
+        categories: { analytics: true, marketing: false },
+        services: { ga: true, amp: false, ads: false },
+      });
+      expect(ready.consent?.consentId).not.toBe(lapsed.consentId);
+      expect(document.cookie).not.toContain("implied");
+    },
+  );
+
+  test("never lets a restored decision claim Global Privacy Control produced it", async () => {
+    // The flag is never written, so one in storage came from tampering or
+    // another writer. Copying it would misreport the decision's origin.
+    const tampered = storedState({ gpcApplied: true });
+    setDocumentCookie(`libreconsent=${encodeState(tampered)}; Path=/`);
+    const api = start(usConfig());
+
+    const ready = await waitForReady(api);
+
+    expect(ready.reason).toBe("restored");
+    expect(ready.consent?.gpcApplied).toBeUndefined();
+    expect(api.getConsent()?.gpcApplied).toBeUndefined();
+  });
+
+  test("seeds the implied state from a decision written by a newer revision", async () => {
+    // A rollback leaves a cookie ahead of the configured revision. It matches
+    // no classification branch, so the visitor is undecided — but their
+    // recorded choices are still theirs and must not widen to a full grant.
+    const ahead = storedState({
+      revision: 5,
+      categories: { necessary: true, analytics: true, marketing: false },
+      services: { ga: true, amp: false, ads: false },
+    });
+    setDocumentCookie(`libreconsent=${encodeState(ahead)}; Path=/`);
+    const api = start(usConfig());
+
+    const ready = await waitForReady(api);
+
+    expect(ready.reason).toBe("new");
+    expect(ready.consent).toMatchObject({
+      implied: true,
+      categories: { analytics: true, marketing: false },
+      services: { ga: true, amp: false, ads: false },
+    });
+    expect(document.cookie).not.toContain("implied");
+  });
+
+  test("persists an explicit decision without the implied markers (US-2)", async () => {
+    stubGpc(true);
+    const api = start(usConfig());
+    await waitForReady(api);
+    const change = vi.fn();
+    api.on("change", change);
+
+    api.setConsent({ categories: { marketing: false } });
+
+    const state = api.getConsent();
+    expect(state).toMatchObject({
+      categories: { analytics: true, marketing: false },
+    });
+    expect(state?.implied).toBeUndefined();
+    expect(state?.gpcApplied).toBeUndefined();
+    expect(change).toHaveBeenCalledTimes(1);
+    const stored = window.localStorage.getItem("libreconsent");
+    expect(stored).not.toBeNull();
+    expect(stored).not.toContain("implied");
+    expect(stored).not.toContain("gpcApplied");
+  });
+
+  test("withdraws from an implied state into a persisted all-denied decision", async () => {
+    const api = start(usConfig());
+    await waitForReady(api);
+
+    api.withdraw();
+
+    expect(api.getConsent()).toMatchObject({
+      categories: { necessary: true, analytics: false, marketing: false },
+    });
+    expect(api.getConsent()?.implied).toBeUndefined();
+    expect(window.localStorage.getItem("libreconsent")).not.toBeNull();
+  });
+
+  test("stays inert when the module is disabled", async () => {
+    stubGpc(true);
+    const api = start(baseConfig({ resolveRegion: async () => "US" }));
+
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toBeNull();
+    expectNothingStored();
+  });
+
+  test("forwards the opt-out intent only to renderers that implement it (US-2)", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const showOptOut = vi.fn();
+    const base = { showPreferences: () => undefined, hide: () => undefined };
+
+    api.registerRenderer({ ...base, showOptOut });
+    api.showOptOut();
+    expect(showOptOut).toHaveBeenCalledTimes(1);
+
+    api.registerRenderer(base);
+    expect(() => api.showOptOut()).not.toThrow();
+
+    api.registerRenderer({
+      ...base,
+      showOptOut: () => {
+        throw new Error("renderer failure");
+      },
+    });
+    expect(() => api.showOptOut()).not.toThrow();
+  });
+});
+
 describe("reset (CORE-2)", () => {
   test("clears active state, listeners, and stored data and releases the singleton", async () => {
     const api = start(baseConfig());

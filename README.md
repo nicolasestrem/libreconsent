@@ -2,7 +2,7 @@
 
 Consent-mode-first, self-hosted consent infrastructure.
 
-## Phase 5 status
+## Phase 6 status
 
 `@libreconsent/core` implements validated configuration, consent state and
 lifecycle events, region resolution, first-party cookie/localStorage
@@ -18,6 +18,18 @@ Accept and reject are equally prominent by construction, nothing optional is
 pre-checked, and both layers pass axe-core with zero critical or serious
 violations in light and dark themes. Keyboard-only accept and reject journeys
 are enforced in CI.
+
+The US state-privacy module lets one configuration serve both regimes. Where
+`usPrivacy` applies, an undecided visitor sees no banner and optional categories
+behave as granted until they opt out, which is what US state law asks for and
+the opposite of the EEA default; the resolved region decides which regime a
+visitor gets. A `navigator.globalPrivacyControl` signal automatically denies the
+categories the Google ad signals map to, and a "Do Not Sell or Share" link opens
+a minimal opt-out dialog. Neither the implied grant nor the GPC opt-out is ever
+written to storage: the signal is re-read on every page load, so nothing of ours
+reaches the browser before an actual decision. Details and the researched Google
+sources are in [`packages/core/README.md`](packages/core/README.md#us-state-privacy)
+and [`specs/US_NOTES.md`](specs/US_NOTES.md).
 
 The bridge and the optional Worker receipt service remain later phases. TCF
 support is intentionally and permanently excluded.
@@ -36,8 +48,8 @@ layout-shift check proving the banner displaces no content. Completed
 requirements and their verification evidence are tracked in
 [`specs/TRACEABILITY.md`](specs/TRACEABILITY.md) and enforced in CI.
 
-The next product phase is Phase 6 — the US state-privacy module (GPC
-auto-opt-out and the Do-Not-Sell dialog).
+The next product phase is Phase 7 — bridge mode, a read-only listener that
+exposes the same API on domains where an external CMP owns consent.
 
 ## Development
 

@@ -4,6 +4,8 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Claude Code | Phase 6 US module (CFG-8, US-1..4) | Added the `usPrivacy` block, the in-memory implied grant for undecided US visitors, GPC auto-opt-out re-derived per load, and the Do-Not-Sell dialog in `@libreconsent/ui`. Nothing US-related is ever persisted, so CORE-8 holds. D-043..D-046. |
+| 2026-07-27 | Claude Code | Phase 6 research (US-4) | Fetched the live Google RDP, Consent Mode and GPC sources and wrote `specs/US_NOTES.md`. Verdict: RDP is account/tag-level and documentation-only for a consent library. The spec's start URL had 404'd; live replacements cited with dates. |
 | 2026-07-27 | Claude Code | NFR-1 re-baseline (§10, G-3) | Re-baselined the size budgets once from measurement at the maintainer's request: core 8 → 12 KB, core+ui 15 → 19 KB, moved together because the UI's ~6.7 KB made the combined cap the real gate. Projection and ratchet rule recorded in D-042. |
 | 2026-07-27 | Claude Code | PR #8 review follow-up (BLK-4) | Fixed a script whose URL arrives a task after its insertion being silenced but never registered, so no grant could replay it. The report's own same-task case was not a defect (observer callbacks are microtasks) and is now pinned by a test. P-028. |
 | 2026-07-27 | Claude Code | Phase 5 self-review (BLK-1, BLK-4) | Fixed four defects found by adversarial review, three blockers: a blocklist inverted BLK-1's document order, the net failed open on non-string URLs (Trusted Types), `type` reset resurrected a gated script, and a gated module was replayed as a classic script. P-024..P-027, D-040, D-041. |

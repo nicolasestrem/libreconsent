@@ -170,6 +170,7 @@ export const styles = `
   flex-direction: column;
   overflow: hidden;
 }
+.lc-modal--narrow { max-inline-size: 28rem; }
 .lc-modal-head {
   display: flex;
   gap: var(--lc-space);
