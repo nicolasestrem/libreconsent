@@ -316,6 +316,14 @@ export interface ReadyEvent {
   reason: InitializationReason;
   /** Active restored consent, or null while undecided. */
   consent: ConsentState | null;
+  /**
+   * Resolved uppercase region, or null when unresolved or unconfigured.
+   *
+   * Renderers need this before a decision exists to hide services whose
+   * `onlyRegions` exclude the visitor: the core forces such services to denied,
+   * so offering a toggle for them would misrepresent the outcome.
+   */
+  region: string | null;
   /** Sanitized prior choices available only for a revision re-prompt. */
   prefill?: ConsentPrefill;
 }
@@ -333,6 +341,19 @@ export interface ConsentEvents {
 }
 
 /**
+ * A DOM renderer that fulfils the core's preferences intents.
+ *
+ * `@libreconsent/ui` registers one at mount time. The core never renders and
+ * never requires a renderer: without one the intents stay inert no-ops.
+ */
+export interface ConsentRenderer {
+  /** Opens the preferences layer. */
+  showPreferences(): void;
+  /** Hides any visible consent surface. */
+  hide(): void;
+}
+
+/**
  * Public core lifecycle API.
  */
 export interface ConsentApi {
@@ -346,10 +367,16 @@ export interface ConsentApi {
   setConsent(selection: ConsentSelection): void;
   /** Persists an all-denied optional state and emits `change` for active consent. */
   withdraw(): void;
-  /** Emits a DOM-safe preferences intent reserved for the UI package. */
+  /** Forwards a preferences intent to the registered renderer, if any. */
   showPreferences(): void;
-  /** Emits a DOM-safe hide intent reserved for the UI package. */
+  /** Forwards a hide intent to the registered renderer, if any. */
   hide(): void;
+  /**
+   * Registers the renderer that fulfils `showPreferences()` / `hide()` and
+   * returns an unregister function. A later registration replaces the previous
+   * renderer; `reset()` clears it.
+   */
+  registerRenderer(renderer: ConsentRenderer): () => void;
   /** Subscribes to an event and returns an unsubscribe function. */
   on<K extends keyof ConsentEvents>(
     event: K,

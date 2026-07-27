@@ -9,13 +9,34 @@ const headSnippetPath = resolve(
   process.env.LIBRECONSENT_HEAD_SNIPPET_PATH ??
     "packages/core/dist/head-snippet.global.js",
 );
-const coreArtifactPath = resolve(
-  process.cwd(),
-  process.env.LIBRECONSENT_CORE_ARTIFACT_PATH ??
-    "packages/core/dist/index.global.js",
-);
 const headSnippetMarker = "<!-- LIBRECONSENT_HEAD_SNIPPET -->";
-const coreArtifactRoute = "/dist/core.global.js";
+// Fixtures load the built IIFE bundles the same way a host page would.
+const artifactRoutes = new Map([
+  [
+    "/dist/core.global.js",
+    {
+      path: resolve(
+        process.cwd(),
+        process.env.LIBRECONSENT_CORE_ARTIFACT_PATH ??
+          "packages/core/dist/index.global.js",
+      ),
+      missingMessage:
+        "Core browser artifact is unavailable. Run pnpm build first.",
+    },
+  ],
+  [
+    "/dist/ui.global.js",
+    {
+      path: resolve(
+        process.cwd(),
+        process.env.LIBRECONSENT_UI_ARTIFACT_PATH ??
+          "packages/ui/dist/index.global.js",
+      ),
+      missingMessage:
+        "UI browser artifact is unavailable. Run pnpm build first.",
+    },
+  ],
+]);
 // Fixtures are served outside dist/, so a sourcemap comment would only 404.
 const sourceMappingComment = /\n?\/\/# sourceMappingURL=.*$/m;
 const port = Number(process.env.PORT ?? "4173");
@@ -68,23 +89,20 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (pathname === coreArtifactRoute) {
-    let coreArtifact;
+  const artifact = artifactRoutes.get(pathname);
+  if (artifact) {
+    let source;
     try {
-      coreArtifact = (await readFile(coreArtifactPath, "utf8")).replace(
+      source = (await readFile(artifact.path, "utf8")).replace(
         sourceMappingComment,
         "",
       );
     } catch {
-      sendText(
-        response,
-        500,
-        "Core browser artifact is unavailable. Run pnpm build first.",
-      );
+      sendText(response, 500, artifact.missingMessage);
       return;
     }
     response.writeHead(200, { "content-type": mimeTypes[".js"] });
-    response.end(coreArtifact);
+    response.end(source);
     return;
   }
 

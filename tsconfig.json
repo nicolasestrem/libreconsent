@@ -9,7 +9,14 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    // Workspace packages resolve to source. Their `dist/` is gitignored and CI
+    // typechecks and tests before it builds, so resolving through the package
+    // `types` entry would fail on a clean checkout.
+    "paths": {
+      "@libreconsent/core": ["packages/core/src/index.ts"]
+    }
   },
   "include": ["packages/*/src/**/*.ts", "tests/**/*.ts", "*.ts"]
 }

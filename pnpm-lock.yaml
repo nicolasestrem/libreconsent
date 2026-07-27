@@ -43,7 +43,11 @@ importers:
 
   packages/core: {}
 
-  packages/ui: {}
+  packages/ui:
+    devDependencies:
+      '@libreconsent/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/worker-log: {}
 

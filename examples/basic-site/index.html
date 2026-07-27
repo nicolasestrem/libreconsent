@@ -28,8 +28,10 @@
     <main>
       <h1>Basic-site fixture</h1>
       <p data-fixture="basic-site">Consent Mode basic fixture.</p>
+      <p><button type="button" data-cmp-open>Cookie preferences</button></p>
     </main>
     <script src="/dist/core.global.js"></script>
+    <script src="/dist/ui.global.js"></script>
     <script>
       window.__lcApi = LibreConsentCore.init({
         categories: [
@@ -37,11 +39,48 @@
             id: "analytics",
             label: "category.analytics.label",
             description: "category.analytics.description",
+            services: [
+              {
+                id: "ga4",
+                label: "service.ga4.label",
+                cookies: [
+                  {
+                    name: "_ga",
+                    purpose: "cookie.ga.purpose",
+                    provider: "cookie.google.provider",
+                    duration: "cookie.twoYears.duration",
+                    type: "cookie.http.type",
+                  },
+                  {
+                    name: "_ga_G-BASIC",
+                    purpose: "cookie.gaId.purpose",
+                    provider: "cookie.google.provider",
+                    duration: "cookie.twoYears.duration",
+                    type: "cookie.http.type",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "marketing",
             label: "category.marketing.label",
             description: "category.marketing.description",
+            services: [
+              {
+                id: "google-ads",
+                label: "service.googleAds.label",
+                cookies: [
+                  {
+                    name: "_gcl_au",
+                    purpose: "cookie.gclAu.purpose",
+                    provider: "cookie.google.provider",
+                    duration: "cookie.threeMonths.duration",
+                    type: "cookie.http.type",
+                  },
+                ],
+              },
+            ],
           },
         ],
         consentMode: window.libreconsentConsentMode,
@@ -54,10 +93,20 @@
               "category.marketing.label": "Marketing",
               "category.marketing.description":
                 "Personalizes advertising across sites.",
+              "service.ga4.label": "Google Analytics 4",
+              "service.googleAds.label": "Google Ads",
+              "cookie.ga.purpose": "Distinguishes visitors.",
+              "cookie.gaId.purpose": "Persists session state per property.",
+              "cookie.gclAu.purpose": "Attributes ad conversions.",
+              "cookie.google.provider": "Google",
+              "cookie.twoYears.duration": "2 years",
+              "cookie.threeMonths.duration": "3 months",
+              "cookie.http.type": "HTTP cookie",
             },
           },
         },
       });
+      window.__lcUi = LibreConsentUi.mount(window.__lcApi);
     </script>
   </body>
 </html>

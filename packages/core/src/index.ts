@@ -44,6 +44,7 @@ export type {
   ConsentModeConfig,
   ConsentModeDefaults,
   ConsentPrefill,
+  ConsentRenderer,
   ConsentSelection,
   ConsentState,
   CookieTableRow,
