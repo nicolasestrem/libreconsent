@@ -195,6 +195,99 @@ const consent = init({
 Keep the resolver function in a stable variable if `init()` can be called more
 than once; function identity is part of singleton configuration equality.
 
+## US state privacy
+
+US state laws follow an opt-out model rather than the EEA's opt-in model. Enable
+`usPrivacy` and both models coexist in one configuration: the region your
+`resolveRegion` reports decides which one a visitor gets (US-3).
+
+```ts
+const consent = init({
+  categories,
+  consentMode: { enabled: true },
+  resolveRegion: async () => "US-CA",
+  usPrivacy: {
+    enabled: true,
+    doNotSellSelector: "#do-not-sell",
+  },
+});
+```
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | Whether the opt-out model applies at all. |
+| `regions` | `["US"]` | Where it applies. Prefix-aware on `-`, so `US` covers `US-CA` while `US-CA` matches only California. An empty array is rejected. |
+| `doNotSellSelector` | — | CSS selector for your "Do Not Sell or Share" link. Bound by `@libreconsent/ui`. |
+| `respectGPC` | `true` | Whether `navigator.globalPrivacyControl` auto-applies the opt-out. |
+
+Note the asymmetry with a service's `onlyRegions`, which is matched exactly:
+that list is vendor targeting you choose per service, while `usPrivacy.regions`
+is jurisdiction membership, and a country-level resolver (`CF-IPCountry` returns
+`US`) must satisfy the same configuration as a state-level one (D-045).
+
+### What an undecided US visitor sees
+
+No banner. Optional categories behave as granted, so gated tags run and Consent
+Mode is signaled `granted`, until the visitor opts out. That state is
+`implied: true` and **is never stored** — nothing of ours reaches the browser
+before a decision (CORE-8). Third-party tags the grant releases will of course
+set their own cookies; that is the opt-out regime working as intended, and it is
+the difference between this model and the EEA one.
+
+An unresolved region is never treated as US. With no resolver, or one that
+returns `null` or rejects, the visitor gets the opt-in banner (CFG-9).
+
+### Global Privacy Control
+
+With `respectGPC` (the default) and a visitor in a configured region,
+`navigator.globalPrivacyControl === true` denies the categories your
+`consentMode.mapping` points the three ad signals at, sets `gpcApplied: true`,
+and emits `consent` — so Consent Mode receives the denial without any banner.
+`analytics_storage` is left granted: GPC is a do-not-sell-or-share signal, not a
+blanket opt-out. Map `analytics_storage` to a denied category if you take a
+stricter view.
+
+The signal is re-read on **every page load** and the resulting state is never
+persisted, so turning GPC off takes effect immediately. An active stored
+decision takes precedence over the signal: a visitor who explicitly chose on
+your site keeps that choice until it expires or is withdrawn, at which point GPC
+is honored again. The regulatory reasoning, and a conflict-notification nuance
+worth reviewing with counsel if you have substantial California traffic, are in
+[`specs/US_NOTES.md`](../../specs/US_NOTES.md).
+
+### Do Not Sell or Share
+
+Point `doNotSellSelector` at your own link; `@libreconsent/ui` opens a minimal
+opt-out dialog from it, separate from the consent banner. Clicks are delegated
+from the document, so links added after mount work too.
+
+```html
+<a id="do-not-sell" href="#do-not-sell">Do Not Sell or Share My Personal Information</a>
+```
+
+Opting out denies the ad-mapped categories and keeps everything else, and is
+persisted like any other decision. `api.showOptOut()` is the programmatic
+equivalent for applications that route their own clicks.
+
+### Restricted data processing
+
+libreconsent does not set Google's restricted data processing (RDP) flags. RDP
+is an account- and tag-level setting, and Google receives GPC directly and
+activates RDP for those ad requests itself in applicable states. Denying the
+three ad signals is the library's part. If you also want RDP on your own tags,
+set it from a `change` listener:
+
+```ts
+consent.on("change", (state) => {
+  gtag("config", "AW-CONVERSION_ID", {
+    restricted_data_processing: state.categories.marketing !== true,
+  });
+});
+```
+
+The sources behind this are recorded with retrieval dates in
+[`specs/US_NOTES.md`](../../specs/US_NOTES.md).
+
 ## Blocking
 
 Blocking is opted into by markup, never by configuration: a page with no
@@ -619,6 +712,16 @@ Accessed 2026-07-26:
 - [Set up consent mode on websites](https://developers.google.com/tag-platform/security/guides/consent), updated 2026-05-06.
 - [Google tag API reference](https://developers.google.com/tag-platform/gtagjs/reference), updated 2026-04-17.
 - [GTM consent-template APIs](https://developers.google.com/tag-platform/tag-manager/templates/consent-apis), updated 2026-03-05.
+
+Consulted for the US module (US-4) on 2026-07-27. The spec's original start URL,
+`support.google.com/adsense/answer/9561024`, returns HTTP 404; these are the
+live replacements. Full notes in [`specs/US_NOTES.md`](../../specs/US_NOTES.md).
+
+- [Helping advertisers comply with the U.S. states' privacy laws in Google Ads](https://support.google.com/google-ads/answer/9614122).
+- [Disable the collection of personalized advertising data](https://support.google.com/google-ads/answer/9606827).
+- [Helping publishers comply with U.S. states privacy laws](https://support.google.com/admanager/answer/9561023).
+- [Restricted data processing settings in Google's publisher ad tags](https://support.google.com/adsense/answer/9598414).
+- [Global Privacy Control](https://w3c.github.io/gpc/), W3C Editor's Draft, 11 June 2026.
 
 ## Public API
 

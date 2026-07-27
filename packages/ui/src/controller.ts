@@ -10,12 +10,27 @@ import { el, whenBodyReady } from "./dom";
 import { activeElement, focusFirst, trapFocus } from "./focus";
 import { buildDictionary, resolveLocale, translate } from "./i18n";
 import { type Choices, createPreferences, type Preferences } from "./modal";
+import { createOptOut, type OptOut } from "./opt-out";
 import type { NormalizedUiOptions } from "./options";
 import { styles } from "./styles";
 
 let instances = 0;
 
 const EMPTY_CHOICES: Choices = { categories: {}, services: {} };
+
+/**
+ * Whether `target` or an ancestor matches a host-supplied selector.
+ *
+ * `closest()` throws on a malformed selector and this runs on every click in
+ * the document, so one bad configuration value must not break the whole page.
+ */
+function matchesSelector(target: Element, selector: string): boolean {
+  try {
+    return target.closest(selector) !== null;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Applies the stylesheet to `root`.
@@ -71,12 +86,16 @@ export class UiController {
 
   private preferences: Preferences | null = null;
 
-  // One field per surface: the two layers can be trapped at the same time (a
-  // modal-layout banner sits behind an open preferences dialog), so a single
-  // field would lose the first release function and leak its listener.
+  private optOut: OptOut | null = null;
+
+  // One field per surface: several layers can be trapped at the same time (a
+  // modal-layout banner sits behind an open dialog), so a single field would
+  // lose the first release function and leak its listener.
   private bannerTrap: (() => void) | null = null;
 
   private preferencesTrap: (() => void) | null = null;
+
+  private optOutTrap: (() => void) | null = null;
 
   private fab: HTMLElement | null = null;
 
@@ -138,17 +157,35 @@ export class UiController {
       this.decided = true;
       this.closeBanner();
       this.closePreferences(false);
+      this.closeOptOut(false);
       this.renderFab();
     };
     this.teardown.push(this.api.on("consent", onDecision));
     this.teardown.push(this.api.on("change", onDecision));
     this.teardown.push(this.api.registerRenderer(this));
 
+    // Only when the module is switched on: the selector belongs to `usPrivacy`,
+    // so leaving it live under `enabled: false` would let a configuration that
+    // opted out of the US model still record decisions through its dialog.
+    const doNotSellSelector = this.config.usPrivacy.enabled
+      ? this.config.usPrivacy.doNotSellSelector
+      : undefined;
     const onDocumentClick = (event: MouseEvent): void => {
       const target = event.target;
-      if (target instanceof Element && target.closest("[data-cmp-open]")) {
+      if (!(target instanceof Element)) {
+        return;
+      }
+      if (target.closest("[data-cmp-open]")) {
         event.preventDefault();
         this.showPreferences();
+        return;
+      }
+      if (
+        doNotSellSelector !== undefined &&
+        matchesSelector(target, doNotSellSelector)
+      ) {
+        event.preventDefault();
+        this.showOptOut();
       }
     };
     document.addEventListener("click", onDocumentClick);
@@ -188,8 +225,37 @@ export class UiController {
     focusFirst(preferences.dialog);
   }
 
+  /**
+   * Opens the "Do Not Sell or Share" dialog, creating it on first use (US-2).
+   *
+   * A separate, smaller surface than the banner: US state privacy is an opt-out
+   * regime, so this asks nothing and offers one action.
+   */
+  showOptOut(): void {
+    if (this.disposed || this.optOut) {
+      return;
+    }
+    const restoreTo = activeElement();
+    const optOut = createOptOut(this.context, this.optedOut(), {
+      confirm: () => this.api.setConsent({ categories: this.deniedAds() }),
+      close: () => this.closeOptOut(true),
+    });
+    this.optOut = optOut;
+    // Hidden rather than removed, for the same reason as the preferences layer:
+    // focus restore needs its target still connected to the document.
+    this.setBannerHidden(true);
+    this.root.append(optOut.root);
+    this.optOutTrap = trapFocus(
+      optOut.dialog,
+      () => this.closeOptOut(true),
+      restoreTo,
+    );
+    focusFirst(optOut.dialog);
+  }
+
   /** Removes every visible surface without changing consent state. */
   hide(): void {
+    this.closeOptOut(false);
     this.closePreferences(false);
     this.closeBanner();
   }
@@ -200,6 +266,8 @@ export class UiController {
       return;
     }
     this.disposed = true;
+    this.optOutTrap?.();
+    this.optOutTrap = null;
     this.preferencesTrap?.();
     this.preferencesTrap = null;
     this.bannerTrap?.();
@@ -221,6 +289,38 @@ export class UiController {
       return { categories: consent.categories, services: consent.services };
     }
     return this.prefill ?? EMPTY_CHOICES;
+  }
+
+  /**
+   * Non-readonly categories the three Google ad signals map to (US-1, US-2).
+   *
+   * Filtered against the configured categories so a mapping the core never
+   * reads — possible when both Consent Mode and the US module are off — cannot
+   * turn a link click into a rejected selection.
+   */
+  private adCategoryIds(): string[] {
+    const { mapping } = this.config.consentMode;
+    const mapped = new Set([
+      mapping.ad_storage,
+      mapping.ad_user_data,
+      mapping.ad_personalization,
+    ]);
+    return this.config.categories
+      .filter((category) => mapped.has(category.id) && !category.readonly)
+      .map((category) => category.id);
+  }
+
+  private deniedAds(): Record<string, boolean> {
+    return Object.fromEntries(this.adCategoryIds().map((id) => [id, false]));
+  }
+
+  /** Whether an active state already denies every ad category. */
+  private optedOut(): boolean {
+    const consent = this.api.getConsent();
+    return (
+      consent !== null &&
+      this.adCategoryIds().every((id) => consent.categories[id] !== true)
+    );
   }
 
   private openBanner(): void {
@@ -283,6 +383,31 @@ export class UiController {
     }
     this.preferencesTrap?.();
     this.preferencesTrap = null;
+  }
+
+  /**
+   * Closes the opt-out dialog. `reopenBanner` restores a first layer that was
+   * hidden to show it, so an undecided EEA visitor who follows a Do Not Sell
+   * link is never stranded without a way to consent.
+   */
+  private closeOptOut(reopenBanner: boolean): void {
+    if (!this.optOut) {
+      return;
+    }
+    this.optOut.root.remove();
+    this.optOut = null;
+    // Not while preferences are still open: that layer hid the banner for its
+    // own focus-restore reasons (D-031), and revealing it here would leave the
+    // first layer visible behind an open dialog.
+    if (reopenBanner && !this.decided && !this.preferences) {
+      if (this.banner) {
+        this.setBannerHidden(false);
+      } else {
+        this.openBanner();
+      }
+    }
+    this.optOutTrap?.();
+    this.optOutTrap = null;
   }
 
   private renderFab(): void {

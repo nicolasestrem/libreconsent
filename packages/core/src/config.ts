@@ -12,10 +12,21 @@ import type {
   NormalizedCategoryConfig,
   NormalizedCmpConfig,
   NormalizedServiceConfig,
+  NormalizedUsPrivacyConfig,
 } from "./types";
 
 const SIGNALS: GoogleSignal[] = [
   "analytics_storage",
+  "ad_storage",
+  "ad_user_data",
+  "ad_personalization",
+];
+
+/**
+ * The signals a US sale/share opt-out denies (US-1). `analytics_storage` is
+ * excluded: analytics is not a sale or share of personal information.
+ */
+export const AD_SIGNALS: GoogleSignal[] = [
   "ad_storage",
   "ad_user_data",
   "ad_personalization",
@@ -341,6 +352,41 @@ function normalizeBlocking(
   };
 }
 
+function normalizeUsPrivacy(
+  config: CmpConfig["usPrivacy"],
+): NormalizedUsPrivacyConfig {
+  if (config !== undefined) {
+    requireRecord(config, "usPrivacy");
+  }
+  optionalBoolean(config?.enabled, "usPrivacy.enabled");
+  optionalBoolean(config?.respectGPC, "usPrivacy.respectGPC");
+  if (config?.doNotSellSelector !== undefined) {
+    requireNonEmptyString(
+      config.doNotSellSelector,
+      "usPrivacy.doNotSellSelector",
+    );
+  }
+
+  const regions =
+    config?.regions === undefined
+      ? ["US"]
+      : normalizeRegions(config.regions, "usPrivacy.regions");
+  if (regions.length === 0) {
+    // An empty list would disable the module without saying so. Omitting the
+    // key is the way to accept the default; providing `[]` is always a mistake.
+    invalid("usPrivacy.regions", "must not be empty");
+  }
+
+  return {
+    enabled: config?.enabled ?? false,
+    regions,
+    ...(config?.doNotSellSelector === undefined
+      ? {}
+      : { doNotSellSelector: config.doNotSellSelector.trim() }),
+    respectGPC: config?.respectGPC ?? true,
+  };
+}
+
 function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
     for (const nested of Object.values(value)) {
@@ -431,13 +477,32 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
       }
     }
   }
-  if (config.consentMode?.enabled === true) {
+  const usPrivacy = normalizeUsPrivacy(config.usPrivacy);
+
+  // The default mapping is always populated, so its targets only have to exist
+  // once something reads them. Consent Mode reads all four signals; the US
+  // module reads the three ad signals to build its opt-out (US-1).
+  if (config.consentMode?.enabled === true || usPrivacy.enabled) {
     for (const signal of SIGNALS) {
       const mapped = mapping[signal];
       if (!categories.some((category) => category.id === mapped)) {
         invalid(
           `consentMode.mapping.${signal}`,
           `references unknown category "${mapped}"`,
+        );
+      }
+    }
+  }
+  if (usPrivacy.enabled) {
+    for (const signal of AD_SIGNALS) {
+      const mapped = mapping[signal];
+      const category = categories.find((entry) => entry.id === mapped);
+      if (category?.readonly && category.enabled) {
+        // An opt-out cannot deny a permanently granted category, so the module
+        // would silently fail to do the one thing it exists for.
+        invalid(
+          `consentMode.mapping.${signal}`,
+          `references readonly category "${mapped}", which a US opt-out cannot deny`,
         );
       }
     }
@@ -467,6 +532,7 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
     },
     storage,
     blocking: normalizeBlocking(config.blocking),
+    usPrivacy,
     revision,
     i18n: normalizeI18n(config.i18n, referencedKeys),
     ...(config.resolveRegion === undefined

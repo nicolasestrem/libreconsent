@@ -17,6 +17,12 @@ export const uiEn: Readonly<Dictionary> = Object.freeze({
   "ui.close": "Close",
   "ui.settings": "Cookie settings",
   "ui.alwaysOn": "Always on",
+  "ui.optOut.title": "Do Not Sell or Share My Personal Information",
+  "ui.optOut.description":
+    "You can direct us not to sell or share your personal information with advertising partners. Necessary site functions and measurement are unaffected.",
+  "ui.optOut.confirm": "Opt out",
+  "ui.optOut.done":
+    "You have opted out of the sale or sharing of your personal information on this site.",
   "ui.cookies.show": "Show cookies",
   "ui.cookies.hide": "Hide cookies",
   "ui.cookies.name": "Name",
@@ -39,6 +45,12 @@ export const uiFr: Readonly<Dictionary> = Object.freeze({
   "ui.close": "Fermer",
   "ui.settings": "Réglages cookies",
   "ui.alwaysOn": "Toujours actif",
+  "ui.optOut.title": "Ne pas vendre ni partager mes informations personnelles",
+  "ui.optOut.description":
+    "Vous pouvez nous demander de ne pas vendre ni partager vos informations personnelles avec des partenaires publicitaires. Les fonctions nécessaires du site et la mesure d'audience ne sont pas concernées.",
+  "ui.optOut.confirm": "Refuser la vente ou le partage",
+  "ui.optOut.done":
+    "Vous avez refusé la vente ou le partage de vos informations personnelles sur ce site.",
   "ui.cookies.show": "Afficher les cookies",
   "ui.cookies.hide": "Masquer les cookies",
   "ui.cookies.name": "Nom",

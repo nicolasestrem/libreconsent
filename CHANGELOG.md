@@ -6,6 +6,33 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- Phase 6 US state privacy: the `usPrivacy` configuration block
+  (`{ enabled, regions, doNotSellSelector, respectGPC }`) makes one
+  configuration serve both regulatory models. Where it applies, an undecided
+  visitor gets the US opt-out model — no banner, optional categories behaving as
+  granted so gated tags run and Consent Mode reads granted — while visitors
+  outside those regions keep the EEA opt-in banner. Which one a visitor gets is
+  decided by the region your `resolveRegion` reports; an unresolved region is
+  never treated as US.
+- Global Privacy Control is honored automatically: with `respectGPC` (the
+  default) and a visitor in a configured region,
+  `navigator.globalPrivacyControl` denies the categories your Consent Mode
+  mapping points the three Google ad signals at, marks the state `gpcApplied`,
+  and signals Google — with no banner and nothing written to storage. The signal
+  is re-read on every page load, so switching it off takes effect immediately.
+  An active stored decision takes precedence: a visitor who chose explicitly on
+  your site keeps that choice until it expires or is withdrawn.
+- A "Do Not Sell or Share" dialog in `@libreconsent/ui`, opened from your own
+  link through `usPrivacy.doNotSellSelector` or programmatically through
+  `showOptOut()` on either the core API or the mount handle. It is deliberately
+  minimal and separate from the consent banner: one action that denies the
+  ad-mapped categories, leaves everything else as it was, and persists like any
+  other decision. Four new translation keys ship in English and French.
+- `specs/US_NOTES.md`: the US-4 research record, citing the live Google and
+  Global Privacy Control sources with retrieval dates, and explaining why
+  libreconsent does not set Google's restricted data processing flags for you
+  (they are account- and tag-level settings) with a documented pattern for
+  wiring them from a `change` listener if you want them.
 - Phase 5 hardening: `blocking.blocklist` installs an opt-in, **best-effort**
   safety net for scripts you cannot author as gates (tag managers, vendor
   scripts that load other scripts). Each entry is
@@ -26,6 +53,17 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- `getConfig()` now always reports a `usPrivacy` object, defaulting to
+  `{ enabled: false, regions: ["US"], respectGPC: true }`. Existing
+  configurations are unaffected: with `enabled` false nothing about their
+  behavior changes.
+- `ConsentState` gained two never-persisted markers, `implied` and `gpcApplied`,
+  and `ready.consent` can now be non-null alongside a `reason` of `new`,
+  `expired` or `revision` — `reason` describes what storage held, not what is
+  active. Renderers should branch on `ready.consent` rather than `reason` to
+  decide whether to ask for a decision.
+- `ConsentRenderer` gained an optional `showOptOut()` intent. Existing renderers
+  keep satisfying the interface, and the intent stays inert without one.
 - The `blocking` configuration object now always reports a `blocklist` array
   from `getConfig()`, defaulting to `[]`. Existing configurations are
   unaffected; an empty blocklist installs nothing at all.
@@ -38,6 +76,25 @@ All notable changes to this project are documented in this file.
 
 ### Known limitations
 
+- Under the US opt-out model, third-party tags released by the implied grant
+  will set their own cookies before the visitor has decided anything. Nothing of
+  libreconsent's reaches storage first, but that is the regime working as
+  designed, and it is the substantive difference from the EEA model.
+- `analytics_storage` is not denied by a Global Privacy Control opt-out. GPC is
+  a do-not-sell-or-share signal rather than a blanket opt-out; map
+  `analytics_storage` to a category the opt-out denies if you take a stricter
+  view.
+- Whether a stored explicit decision may outrank a later GPC signal is a
+  judgement call rather than settled law. The reasoning and a
+  conflict-notification nuance from CCPA § 7025(c)(3) worth reviewing with
+  counsel are documented in `specs/US_NOTES.md`.
+- No IAB GPP or US Privacy string is emitted. Google receives GPC directly and
+  applies restricted data processing itself in applicable states; a site that
+  needs Google Ad Manager to see the opt-out through a string needs something
+  else in front of its ad tags.
+- Real GPC-enabled browsers are not exercised in CI. Playwright has no native
+  GPC context option, so the end-to-end tests simulate the signal with a
+  `Sec-GPC` header and an injected `navigator.globalPrivacyControl`.
 - The BLK-4 net is explicitly **not** a guarantee, and the declarative markup
   remains the guaranteed path. Interception has to happen before a script
   enters the document — once a `<script src>` is inserted the browser has

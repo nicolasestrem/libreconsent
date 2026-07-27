@@ -10,6 +10,8 @@ const mounted = new WeakSet<ConsentApi>();
 export interface UiHandle {
   /** Opens the preferences layer. */
   showPreferences(): void;
+  /** Opens the "Do Not Sell or Share" opt-out dialog (US-2). */
+  showOptOut(): void;
   /** Hides every rendered surface without changing consent state. */
   hide(): void;
   /** Removes the UI and releases every listener it registered. */
@@ -38,6 +40,7 @@ export function mount(api: ConsentApi, options?: UiOptions): UiHandle {
   mounted.add(api);
   return {
     showPreferences: () => controller.showPreferences(),
+    showOptOut: () => controller.showOptOut(),
     hide: () => controller.hide(),
     unmount: () => {
       mounted.delete(api);

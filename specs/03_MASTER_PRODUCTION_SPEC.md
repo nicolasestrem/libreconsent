@@ -37,14 +37,14 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 - **CFG-5 Revision:** integer `revision = 1`; stored consent with lower revision → re-prompt (CORE-11).
 - **CFG-6 Validation:** synchronous, typed `ConsentError` with stable code and exact paths such as `categories[1].id`; never silent. Selection validation uses the same typed error with selection paths.
 - **CFG-7 i18n:** `{ default = 'en', autoDetect = false, translations: Record<locale, Dictionary> }`; EN built-in, FR shipped as second reference dictionary. All category/service/cookie translation keys referenced by the configuration must exist in the effective default dictionary; secondary locales may be partial and fall back to it.
-- **CFG-8 US module:** `usPrivacy: { enabled, regions?: string[], doNotSellSelector?: string, respectGPC = true }`.
+- **CFG-8 US module:** `usPrivacy: { enabled, regions?: string[], doNotSellSelector?: string, respectGPC = true }`. `regions` defaults to `["US"]` and matches prefix-aware on the `-` separator, so `US` covers `US-CA`; a supplied empty array is rejected rather than silently disabling the module (D-045).
 - **CFG-9 Region resolution:** pluggable `resolveRegion?: () => Promise<string|null>`; initialization awaits it before `ready`, uppercases a returned code, and treats rejection or `null` as unresolved. No built-in geo-IP (document a same-origin Cloudflare endpoint that reads `request.cf.country` / `CF-IPCountry`). Unresolved region → strictest configured behavior: region-restricted services stay denied.
 
 ## 3. CORE — state, storage, lifecycle (`@libreconsent/core`)
 
 - **CORE-1:** `init(config)` is callable pre-DOM-ready. Repeated calls with the same normalized configuration return the singleton API; a material mismatch, including different `resolveRegion` function identity, throws synchronously.
 - **CORE-2:** Package-root API: `init(config: CmpConfig): ConsentApi`; `getConsent()`, `acceptAll()`, `rejectAll()`, `setConsent({ categories?, services? })`, `withdraw()`, DOM-safe Phase 1 intents `showPreferences()` / `hide()`, `on/off(event, cb)`, `getConfig()`, and `reset()` (destructive test hook). Decision methods return `void`; decisions called before asynchronous initialization completes are queued and applied in order. `getConfig()` returns a deeply frozen normalized configuration.
-- **CORE-3:** Events: replayable `ready`, replayable `consent` (restored state or first active user decision), and non-replayable `change`. `on()` returns an unsubscribe function. Initialization emits `ready` before restored `consent`; subsequent decisions and withdrawal emit `change`. The `ready` payload contains `{ reason: 'new'|'restored'|'expired'|'revision', consent }` and optional sanitized revision `prefill`; prefill is never active consent.
+- **CORE-3:** Events: replayable `ready`, replayable `consent` (the first *active* state — a restored decision, a state implied by the US opt-out model per US-3, or the first active user decision), and non-replayable `change`. `on()` returns an unsubscribe function. Initialization emits `ready` before restored `consent`; subsequent decisions and withdrawal emit `change`. The `ready` payload contains `{ reason: 'new'|'restored'|'expired'|'revision', consent }` and optional sanitized revision `prefill`; prefill is never active consent.
 - **CORE-4:** State: `{ consentId: UUIDv4 (native `crypto.randomUUID`, secure `getRandomValues` v4 fallback), createdAt, updatedAt, revision, categories: Record<id, boolean>, services: Record<id, boolean>, region?, gpcApplied? }`; timestamps are ISO-8601 UTC. Normal changes and withdrawal preserve `consentId` and `createdAt`.
 - **CORE-5:** Encoded cookie is source of truth (`Path=/`, `Secure` only on HTTPS, configurable Domain/SameSite/expiry); localStorage is a mirror/fallback. A valid cookie wins; a valid mirror may recover an absent, inaccessible, or corrupt cookie. Invalid/unavailable storage never crashes. Reconciliation writes are allowed only after a valid prior decision is found.
 - **CORE-6:** `necessary` always true; no API or UI path can toggle it.
@@ -79,15 +79,15 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 - **UI-4:** Theming via CSS custom properties (`--libreconsent-*`) only; dark mode via `prefers-color-scheme` + manual override; **zero external assets/network**.
 - **UI-5:** Persistent re-entry: floating settings button (config-removable) and `data-cmp-open` binding / `showPreferences()`.
 - **UI-6:** Shadow DOM container by default (light-DOM fallback option) so site CSS can't break equal prominence.
-- **UI-7:** No dark patterns: no pre-checked optional categories, no degraded reject styling in shipped themes, re-prompt only on expiry/revision.
+- **UI-7:** No dark patterns: in opt-in flows no pre-checked optional categories, no degraded reject styling in shipped themes, re-prompt only on expiry/revision. The pre-checked rule is specific to opt-in: where the US opt-out model applies (US-3) the visitor is consenting until they opt out, so the preferences layer must show that state truthfully.
 - **UI-8:** i18n dictionary-driven; `lang` attribute set; logical CSS properties for structural RTL readiness.
 
 ## 7. US — US state privacy (`@libreconsent/core` + UI hooks)
 
-- **US-1:** With `respectGPC` and `navigator.globalPrivacyControl === true`: auto-apply opt-out of sale/share for configured US regions — deny at minimum `ad_storage`/`ad_user_data`/`ad_personalization`, set `gpcApplied: true`, fire events. No banner shown for this.
+- **US-1:** With `respectGPC` and `navigator.globalPrivacyControl === true`: auto-apply opt-out of sale/share for configured US regions — deny at minimum `ad_storage`/`ad_user_data`/`ad_personalization`, set `gpcApplied: true`, fire events. No banner shown for this. The signal is re-read on every page load and the resulting state is never persisted; an active stored decision takes precedence over it (D-044).
 - **US-2:** "Do Not Sell/Share" link component via `doNotSellSelector`; opens minimal opt-out dialog (not the EU banner); persists like any consent state.
-- **US-3:** US regions are opt-out (no blocking wall); EU opt-in and US opt-out must coexist in one config (CFG-9 resolution).
-- **US-4 (research-at-implementation):** Google restricted-data-processing integration per current docs (start: https://support.google.com/adsense/answer/9561024); findings → `specs/US_NOTES.md`.
+- **US-3:** US regions are opt-out (no blocking wall); EU opt-in and US opt-out must coexist in one config (CFG-9 resolution). An undecided visitor in a configured US region receives an in-memory *implied grant* — optional categories behave as granted so gated tags run and Consent Mode is signaled — which is never persisted (CORE-8) and is replaced by any explicit decision (D-043).
+- **US-4 (research-at-implementation):** Google restricted-data-processing integration per current docs; findings → `specs/US_NOTES.md`. The original start URL (`support.google.com/adsense/answer/9561024`) returned HTTP 404 on 2026-07-27; the current guidance is at `support.google.com/google-ads/answer/9614122` (advertisers) and `support.google.com/admanager/answer/9561023` (publishers), both recorded in US_NOTES with retrieval dates.
 
 ## 8. BR — bridge mode (`@libreconsent/bridge`)
 

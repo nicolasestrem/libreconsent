@@ -1,4 +1,5 @@
 import { BlockingController } from "./blocking";
+import { AD_SIGNALS } from "./config";
 import { ConsentModeAdapter } from "./consent-mode";
 import { ConsentError } from "./errors";
 import {
@@ -89,6 +90,23 @@ function now(): string {
   return new Date().toISOString();
 }
 
+/**
+ * Reads the Global Privacy Control browser signal (US-1).
+ *
+ * Read fresh on every initialization rather than stored: the visitor may turn
+ * the signal off, and a stored value would keep opting them out afterwards.
+ */
+function readGpc(): boolean {
+  try {
+    return (
+      (navigator as Navigator & { globalPrivacyControl?: unknown })
+        .globalPrivacyControl === true
+    );
+  } catch {
+    return false;
+  }
+}
+
 export class ConsentLifecycle implements ConsentApi {
   private readonly listeners: {
     [K in keyof ConsentEvents]: Set<(payload: ConsentEvents[K]) => void>;
@@ -171,6 +189,10 @@ export class ConsentLifecycle implements ConsentApi {
     this.callRenderer("hide");
   }
 
+  showOptOut(): void {
+    this.callRenderer("showOptOut");
+  }
+
   registerRenderer(renderer: ConsentRenderer): () => void {
     this.renderer = renderer;
     return () => {
@@ -182,13 +204,14 @@ export class ConsentLifecycle implements ConsentApi {
 
   private callRenderer(intent: keyof ConsentRenderer): void {
     const renderer = this.renderer;
-    if (!renderer) {
-      // Without a renderer the intents stay inert, so hosts may call them
-      // before `@libreconsent/ui` is mounted.
+    const handler = renderer?.[intent];
+    if (!renderer || !handler) {
+      // Without a renderer — or one predating an optional intent — the call
+      // stays inert, so hosts may use it before `@libreconsent/ui` is mounted.
       return;
     }
     try {
-      renderer[intent]();
+      handler.call(renderer);
     } catch {
       // A renderer failure must not propagate into host page code.
     }
@@ -274,6 +297,22 @@ export class ConsentLifecycle implements ConsentApi {
         reason = "restored";
         this.active = this.sanitizeStoredState(storedState);
       }
+    }
+
+    if (!this.active && this.usApplies()) {
+      // US regions are opt-out (US-3): with no decision on file the visitor is
+      // treated as consenting until they opt out, so tags run and Consent Mode
+      // is signaled. A decision that lapsed still seeds the implied state, so
+      // an earlier opt-out is not silently undone by expiry or a revision bump.
+      this.active = this.synthesizeUsState(
+        storedState
+          ? (prefill ?? this.sanitizeChoices(storedState))
+          : undefined,
+      );
+      // The prefill exists to pre-fill a re-prompt. There is no re-prompt here,
+      // and its choices are already carried by the implied state, so exposing
+      // both would contradict "prefill is never active consent".
+      prefill = undefined;
     }
 
     this.readyPayload =
@@ -410,6 +449,11 @@ export class ConsentLifecycle implements ConsentApi {
             ? this.readyPayload?.prefill
             : undefined,
         );
+
+    // A decision is the visitor's own, so it must not inherit the markers that
+    // said the previous state was not: what gets persisted is explicit consent.
+    delete base.implied;
+    delete base.gpcApplied;
 
     if (decision.kind === "accept") {
       this.applyAll(base, true);
@@ -571,9 +615,11 @@ export class ConsentLifecycle implements ConsentApi {
       categories: sanitized.categories,
       services: sanitized.services,
       ...(this.region ? { region: this.region } : {}),
-      ...(state.gpcApplied === undefined
-        ? {}
-        : { gpcApplied: state.gpcApplied }),
+      // `gpcApplied` is deliberately not carried over. It means "Global Privacy
+      // Control produced this state", and a restored state was produced by a
+      // stored decision. Since the flag is never written (D-044), one found in
+      // storage came from tampering or another writer, and copying it would let
+      // a restored decision claim an origin it does not have.
     };
   }
 
@@ -582,6 +628,61 @@ export class ConsentLifecycle implements ConsentApi {
       regions.length === 0 ||
       (this.region !== null && regions.includes(this.region))
     );
+  }
+
+  /**
+   * Whether the visitor falls under the US opt-out model (US-3).
+   *
+   * An unresolved region never qualifies: CFG-9 requires the strictest
+   * behavior when the region is unknown, which here is the opt-in banner.
+   */
+  private usApplies(): boolean {
+    const region = this.region;
+    if (!this.config.usPrivacy.enabled || region === null) {
+      return false;
+    }
+    // Prefix-aware on the `-` separator so a country-level resolver returning
+    // "US" and a state-level one returning "US-CA" both match `["US"]`, while
+    // a configured "US-CA" still matches only California.
+    return this.config.usPrivacy.regions.some(
+      (entry) => region === entry || region.startsWith(`${entry}-`),
+    );
+  }
+
+  /** Categories the three Google ad signals map to, deduplicated (US-1). */
+  private adCategoryIds(): string[] {
+    const mapping = this.config.consentMode.mapping;
+    return [...new Set(AD_SIGNALS.map((signal) => mapping[signal]))];
+  }
+
+  /**
+   * Builds the active state for an undecided US visitor.
+   *
+   * Nothing here is persisted: CORE-8 still forbids storage before a decision,
+   * and the Global Privacy Control signal is re-read on every load rather than
+   * frozen into a record the visitor never made.
+   */
+  private synthesizeUsState(seed?: ConsentPrefill): ConsentState {
+    const state = this.createBaseState();
+    if (seed) {
+      this.applySelection(state, {
+        categories: seed.categories,
+        services: seed.services,
+      });
+    } else {
+      this.applyAll(state, true);
+    }
+    state.implied = true;
+
+    if (this.config.usPrivacy.respectGPC && readGpc()) {
+      this.applySelection(state, {
+        categories: Object.fromEntries(
+          this.adCategoryIds().map((id) => [id, false]),
+        ),
+      });
+      state.gpcApplied = true;
+    }
+    return state;
   }
 
   private emit<K extends keyof ConsentEvents>(

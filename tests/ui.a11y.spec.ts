@@ -50,6 +50,19 @@ for (const scheme of ["light", "dark"] as const) {
 
     expect(await blockingViolations(page)).toEqual([]);
   });
+
+  test(`the opt-out dialog is accessible in the ${scheme} theme (UI-3, US-2)`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    // The US fixture, not basic-site: this dialog is only reachable where the
+    // opt-out model applies, and it shows no banner to wait for.
+    await page.goto("/us-only-site/");
+    await page.locator("#do-not-sell").click();
+    await expect(page.locator("[data-lc-optout]")).toBeVisible();
+
+    expect(await blockingViolations(page)).toEqual([]);
+  });
 }
 
 test("the persistent settings button is accessible (UI-3, UI-5)", async ({

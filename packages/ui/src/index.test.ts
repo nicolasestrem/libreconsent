@@ -940,6 +940,246 @@ describe("pre-decision storage silence (CORE-8)", () => {
   });
 });
 
+describe("US opt-out dialog (US-1, US-2, US-3)", () => {
+  function usConfig(overrides: Partial<CmpConfig> = {}): CmpConfig {
+    return baseConfig({
+      resolveRegion: async () => "US",
+      usPrivacy: { enabled: true, doNotSellSelector: "#do-not-sell" },
+      ...overrides,
+    });
+  }
+
+  /** A page-owned "Do Not Sell" link with a nested child to click through. */
+  function doNotSellLink(): HTMLAnchorElement {
+    const link = document.createElement("a");
+    link.href = "#";
+    link.id = "do-not-sell";
+    link.append(document.createElement("span"));
+    document.body.append(link);
+    return link;
+  }
+
+  function optOutDialog(): HTMLElement {
+    return find<HTMLElement>("[data-lc-optout]");
+  }
+
+  function optOutAction(action: string): HTMLButtonElement {
+    return find<HTMLButtonElement>(
+      `[data-lc-optout] [data-lc-action="${action}"]`,
+    );
+  }
+
+  function stored(): string | null {
+    return window.localStorage.getItem("libreconsent");
+  }
+
+  test("shows no banner and offers re-entry for an undecided US visitor (US-3)", async () => {
+    await render(usConfig());
+
+    expect(query("[data-lc-banner]")).toBeNull();
+    expect(query(".lc-fab")).not.toBeNull();
+    expect(stored()).toBeNull();
+  });
+
+  test("opens from a click inside the configured link (US-2)", async () => {
+    const link = doNotSellLink();
+    await render(usConfig());
+
+    link.querySelector("span")?.click();
+
+    const dialog = optOutDialog();
+    expect(dialog.getAttribute("role")).toBe("dialog");
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(find("[data-lc-optout] .lc-title").textContent).toBe(
+      "Do Not Sell or Share My Personal Information",
+    );
+    expect(stored()).toBeNull();
+  });
+
+  test("records the opt-out as an explicit decision that keeps other consent", async () => {
+    const link = doNotSellLink();
+    const { api } = await render(usConfig());
+    link.click();
+
+    optOutAction("opt-out").click();
+
+    expect(api.getConsent()).toMatchObject({
+      categories: { analytics: true, marketing: false, functional: true },
+    });
+    expect(api.getConsent()?.implied).toBeUndefined();
+    expect(stored()).not.toBeNull();
+    expect(query("[data-lc-optout]")).toBeNull();
+  });
+
+  test("reports an opt-out already in force instead of offering it again", async () => {
+    const link = doNotSellLink();
+    const { handle } = await render(usConfig());
+    link.click();
+    optOutAction("opt-out").click();
+
+    handle.showOptOut();
+
+    expect(find("[data-lc-optout] .lc-text").textContent).toContain(
+      "You have opted out",
+    );
+    expect(query('[data-lc-optout] [data-lc-action="opt-out"]')).toBeNull();
+  });
+
+  test("closes on Escape, restores focus, and stores nothing (UI-3, CORE-8)", async () => {
+    const link = doNotSellLink();
+    await render(usConfig());
+    link.focus();
+    link.click();
+    const dialog = optOutDialog();
+
+    expect(press(dialog, "Escape", false)).toBe(false);
+
+    expect(query("[data-lc-optout]")).toBeNull();
+    expect(activeElement()).toBe(link);
+    expect(stored()).toBeNull();
+  });
+
+  test("traps Tab inside the dialog (UI-3)", async () => {
+    const link = doNotSellLink();
+    await render(usConfig());
+    link.click();
+    const dialog = optOutDialog();
+    const targets = focusable(dialog);
+
+    targets[targets.length - 1]?.focus();
+    expect(press(dialog, "Tab", false)).toBe(false);
+
+    expect(activeElement()).toBe(targets[0]);
+  });
+
+  test("hides an open banner and restores it when dismissed undecided", async () => {
+    const link = doNotSellLink();
+    await render(
+      baseConfig({
+        usPrivacy: { enabled: true, doNotSellSelector: "#do-not-sell" },
+      }),
+    );
+    expect(query("[data-lc-banner]")).not.toBeNull();
+
+    link.click();
+    expect(bannerHidden()).toBe(true);
+
+    optOutAction("dismiss").click();
+
+    expect(bannerHidden()).toBe(false);
+    expect(stored()).toBeNull();
+  });
+
+  test("survives a malformed selector without breaking other clicks", async () => {
+    const opener = pageOpener();
+    // A listener exception does not propagate out of `click()`, so the damage a
+    // malformed selector does is an uncaught error on every click in the page.
+    const onError = vi.fn();
+    window.addEventListener("error", onError);
+    try {
+      await render(
+        usConfig({
+          usPrivacy: { enabled: true, doNotSellSelector: ":::not-a-selector" },
+        }),
+      );
+
+      document.body.click();
+
+      expect(onError).not.toHaveBeenCalled();
+      expect(query("[data-lc-optout]")).toBeNull();
+
+      opener.click();
+
+      expect(query("[data-lc-preferences]")).not.toBeNull();
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+  });
+
+  test("binds nothing when no selector is configured", async () => {
+    const link = doNotSellLink();
+    await render(usConfig({ usPrivacy: { enabled: true } }));
+
+    link.click();
+
+    expect(query("[data-lc-optout]")).toBeNull();
+  });
+
+  test("binds nothing while the module is disabled", async () => {
+    const link = doNotSellLink();
+    // The selector is part of `usPrivacy`, so a disabled module must not be
+    // able to record a decision through its dialog.
+    await render(
+      baseConfig({
+        usPrivacy: { enabled: false, doNotSellSelector: "#do-not-sell" },
+      }),
+    );
+
+    link.click();
+
+    expect(query("[data-lc-optout]")).toBeNull();
+    expect(query("[data-lc-banner]")).not.toBeNull();
+    expect(stored()).toBeNull();
+  });
+
+  test("leaves the banner hidden when dismissed over an open preferences layer", async () => {
+    const link = doNotSellLink();
+    const { api } = await render(
+      baseConfig({
+        usPrivacy: { enabled: true, doNotSellSelector: "#do-not-sell" },
+      }),
+    );
+    api.showPreferences();
+    expect(bannerHidden()).toBe(true);
+
+    link.click();
+    optOutAction("dismiss").click();
+
+    // Preferences is still open, so revealing the first layer would leave it
+    // visible behind a modal dialog.
+    expect(query("[data-lc-preferences]")).not.toBeNull();
+    expect(bannerHidden()).toBe(true);
+  });
+
+  test("opens through the core renderer intent and the mount handle (US-2)", async () => {
+    const { api, handle } = await render(usConfig());
+
+    api.showOptOut();
+    expect(query("[data-lc-optout]")).not.toBeNull();
+
+    handle.hide();
+    expect(query("[data-lc-optout]")).toBeNull();
+
+    handle.showOptOut();
+    expect(query("[data-lc-optout]")).not.toBeNull();
+  });
+
+  test("translates the dialog through the locale dictionaries", async () => {
+    const { handle } = await render(usConfig(), { locale: "fr" });
+
+    handle.showOptOut();
+
+    expect(find("[data-lc-optout] .lc-title").textContent).toBe(
+      "Ne pas vendre ni partager mes informations personnelles",
+    );
+    expect(optOutAction("opt-out").textContent).toBe(
+      "Refuser la vente ou le partage",
+    );
+  });
+
+  test("releases the dialog's focus trap on unmount", async () => {
+    const link = doNotSellLink();
+    const { handle } = await render(usConfig());
+    link.click();
+    const dialog = optOutDialog();
+
+    handle.unmount();
+    activeHandles.clear();
+
+    expect(press(dialog, "Escape", false)).toBe(true);
+  });
+});
+
 describe("markup safety (G-6)", () => {
   test("renders a markup-shaped translation as literal text", async () => {
     await render(
