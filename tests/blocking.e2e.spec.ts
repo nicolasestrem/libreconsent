@@ -147,3 +147,169 @@ test("re-created scripts carry a nonce and satisfy CSP (BLK-2)", async ({
     .toEqual(["config-nonce", "element-nonce"]);
   expect(await page.evaluate(cspViolations)).toEqual([]);
 });
+
+/**
+ * Opens the dynamic-injection fixture and waits for the un-blocklisted script
+ * to have run.
+ *
+ * Both scripts are injected in the same tick from the same local server, so
+ * `allowed` having executed is the deterministic proof that the blocklisted
+ * script has had at least as long to run — without it, asserting silence would
+ * only prove the test was faster than the network.
+ */
+async function openDynamicFixture(page: Page): Promise<void> {
+  await openFixture(page, "dynamic-site");
+  await expect.poll(() => page.evaluate(executedScripts)).toContain("allowed");
+}
+
+test("a dynamically injected blocklisted script is never fetched or executed (BLK-4)", async ({
+  page,
+}) => {
+  const requested: string[] = [];
+  page.on("request", (request) => {
+    requested.push(request.url());
+  });
+
+  await openDynamicFixture(page);
+
+  expect(await page.evaluate(executedScripts)).toEqual(["allowed"]);
+  // Not fetched at all, which is what makes the silence non-vacuous: the URL is
+  // diverted before it ever reaches the element's src, so there is nothing to
+  // prepare. The un-blocklisted sibling proves interception is selective.
+  expect(requested.filter((url) => url.endsWith("/vendor.js"))).toEqual([]);
+  expect(requested.filter((url) => url.endsWith("/allowed.js"))).toHaveLength(
+    1,
+  );
+  // The node stays in place as an ordinary gate, holding its URL for replay.
+  await expect(
+    page.locator('script[type="text/plain"][data-cmp-category="analytics"]'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator(
+      'script[src="/dynamic-site/vendor.js"]:not([type="text/plain"])',
+    ),
+  ).toHaveCount(0);
+});
+
+/**
+ * Injection variants that must each end in silence.
+ *
+ * Every one of these was a real bypass at some point in this phase's review, so
+ * they are asserted against the network rather than against DOM shape: the point
+ * is that the URL is never requested, not that the element looks gated.
+ */
+for (const variant of [
+  {
+    name: "the URL is assigned after the element is already connected",
+    inject: "__injectConnected",
+  },
+  {
+    name: "the type is reset to JavaScript after the URL is assigned",
+    inject: "__injectThenRetype",
+  },
+  {
+    name: "the URL is a URL object rather than a string",
+    inject: "__injectUrlObject",
+  },
+]) {
+  test(`a blocklisted script stays silent when ${variant.name} (BLK-4)`, async ({
+    page,
+  }) => {
+    const requested: string[] = [];
+    page.on("request", (request) => {
+      requested.push(request.url());
+    });
+
+    await openDynamicFixture(page);
+    const before = await page.evaluate(executedScripts);
+
+    await page.evaluate((name) => {
+      (window as unknown as Record<string, () => void>)[name]?.();
+    }, variant.inject);
+    // Round-trips through the server so a real fetch would have landed by now.
+    await page.evaluate(() => fetch("/dynamic-site/allowed.js"));
+
+    expect(requested.filter((url) => url.endsWith("/vendor.js"))).toEqual([]);
+    expect(await page.evaluate(executedScripts)).toEqual(before);
+  });
+}
+
+test("granting consent executes a neutered dynamic script (BLK-4)", async ({
+  page,
+}) => {
+  await openDynamicFixture(page);
+
+  await page.evaluate(acceptAll);
+
+  await expect.poll(() => page.evaluate(executedScripts)).toContain("vendor");
+});
+
+test("granting consent executes a script whose URL arrived after insertion (BLK-4)", async ({
+  page,
+}) => {
+  const requested: string[] = [];
+  page.on("request", (request) => {
+    requested.push(request.url());
+  });
+
+  await openDynamicFixture(page);
+  await page.evaluate(
+    async () =>
+      await (
+        window as typeof window & { __injectDeferred: () => Promise<void> }
+      ).__injectDeferred(),
+  );
+
+  expect(requested.filter((url) => url.endsWith("/vendor.js"))).toEqual([]);
+
+  await page.evaluate(acceptAll);
+
+  // Two gates replay: the one injected at load and the deferred one. Counting
+  // both is what makes this non-vacuous — a gate that was diverted but never
+  // registered stays silently inert forever, leaving exactly one behind.
+  await expect
+    .poll(() =>
+      page
+        .evaluate(executedScripts)
+        .then(
+          (executed) => executed.filter((name) => name === "vendor").length,
+        ),
+    )
+    .toBe(2);
+});
+
+test("a blocklisted script inside an injected container is neutered (BLK-4)", async ({
+  page,
+}) => {
+  await openDynamicFixture(page);
+
+  await page.evaluate(() => {
+    (window as typeof window & { __injectNested: () => void }).__injectNested();
+  });
+
+  await expect(
+    page.locator(
+      'div script[type="text/plain"][data-cmp-category="analytics"]',
+    ),
+  ).toHaveCount(1);
+  expect(await page.evaluate(executedScripts)).toEqual(["allowed"]);
+});
+
+test("blocklisted scripts injected after withdrawal stay blocked (BLK-4)", async ({
+  page,
+}) => {
+  await openDynamicFixture(page);
+  await page.evaluate(acceptAll);
+  await expect.poll(() => page.evaluate(executedScripts)).toContain("vendor");
+
+  await page.evaluate(withdraw);
+  const executedBefore = await page.evaluate(executedScripts);
+  await page.evaluate(() => {
+    (window as typeof window & { __injectVendor: () => void }).__injectVendor();
+  });
+
+  await expect(
+    page.locator('script[type="text/plain"][data-cmp-category="analytics"]'),
+  ).toHaveCount(1);
+  expect(await page.evaluate(executedScripts)).toEqual(executedBefore);
+});

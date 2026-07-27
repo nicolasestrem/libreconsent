@@ -5,6 +5,7 @@ const fixtures = [
   "basic-site",
   "blocking-site",
   "csp-site",
+  "dynamic-site",
   "gtm-site",
   "us-only-site",
 ] as const;

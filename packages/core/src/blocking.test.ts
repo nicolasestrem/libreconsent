@@ -264,6 +264,35 @@ describe("blocking configuration (BLK-1, BLK-2, BLK-5)", () => {
     },
     { name: "an array", blocking: [], path: "blocking" },
     { name: "a string", blocking: "on", path: "blocking" },
+    {
+      name: "a non-array blocklist",
+      blocking: { blocklist: {} },
+      path: "blocking.blocklist",
+    },
+    {
+      name: "a blocklist entry that is not a record",
+      blocking: { blocklist: ["vendor.js"] },
+      path: "blocking.blocklist[0]",
+    },
+    {
+      name: "a blocklist entry with an empty pattern",
+      blocking: { blocklist: [{ pattern: "  ", category: "analytics" }] },
+      path: "blocking.blocklist[0].pattern",
+    },
+    {
+      name: "a blocklist entry with no category",
+      blocking: { blocklist: [{ pattern: "vendor.js" }] },
+      path: "blocking.blocklist[0].category",
+    },
+    {
+      name: "a blocklist entry with an empty service",
+      blocking: {
+        blocklist: [
+          { pattern: "vendor.js", category: "analytics", service: "" },
+        ],
+      },
+      path: "blocking.blocklist[0].service",
+    },
   ])("throws a typed synchronous error for $name", ({ blocking, path }) => {
     expectConsentError(
       () =>
@@ -278,7 +307,7 @@ describe("blocking configuration (BLK-1, BLK-2, BLK-5)", () => {
     await waitForReady(api);
 
     const { blocking } = api.getConfig();
-    expect(blocking).toEqual({ reloadOnWithdraw: false });
+    expect(blocking).toEqual({ reloadOnWithdraw: false, blocklist: [] });
     expect("nonce" in blocking).toBe(false);
     expect(Object.isFrozen(blocking)).toBe(true);
     expect(() => {
@@ -896,6 +925,267 @@ describe("withdrawal after execution (BLK-5)", () => {
   });
 });
 
+describe("dynamic injection safety net (BLK-4)", () => {
+  const blocklist = [{ pattern: "vendor.js", category: "analytics" }];
+
+  /**
+   * Creates a script the way an injected third-party tag does.
+   *
+   * The URL is assigned after creation, which is the moment the net has to act:
+   * the element is marked inert before it can ever be prepared, so no separate
+   * insertion step is needed to observe the interception.
+   */
+  function inject(
+    source: string,
+    options: { attribute?: boolean; id?: string } = {},
+  ): HTMLScriptElement {
+    const element = document.createElement("script");
+    element.id = options.id ?? "injected";
+    if (options.attribute === true) {
+      element.setAttribute("src", source);
+    } else {
+      element.src = source;
+    }
+    return element;
+  }
+
+  function netFor(
+    overrides: Partial<CmpConfig> = {},
+  ): ReturnType<typeof harness> {
+    const built = harness({ blocking: { blocklist }, ...overrides });
+    controllerFor(built, vi.fn());
+    return built;
+  }
+
+  test("marks a matching script inert before it can be fetched", () => {
+    netFor();
+
+    const injected = inject("https://cdn.test/vendor.js?v=2");
+
+    expect(injected.getAttribute("type")).toBe("text/plain");
+    expect(injected.getAttribute("data-cmp-category")).toBe("analytics");
+    // The URL is diverted rather than assigned. The element therefore has no
+    // source at all, so nothing done to it later — resetting `type`, inserting
+    // it, cloning it — can make it fetch. It is preserved for the replay.
+    expect(injected.hasAttribute("src")).toBe(false);
+    expect(injected.getAttribute("data-cmp-src")).toBe(
+      "https://cdn.test/vendor.js?v=2",
+    );
+  });
+
+  test("keeps the URL diverted when the type is reset afterwards", () => {
+    netFor();
+
+    const injected = inject("/vendor.js");
+    injected.type = "text/javascript";
+    injected.setAttribute("type", "text/javascript");
+    document.body.appendChild(injected);
+
+    // The gate stops matching SCRIPT_GATE, so it will never be replayed — but
+    // it also has no source, which is the property that actually matters.
+    expect(injected.hasAttribute("src")).toBe(false);
+  });
+
+  test("preserves the original type so a module is not replayed as a classic script", () => {
+    netFor();
+
+    const injected = document.createElement("script");
+    injected.type = "module";
+    injected.src = "/vendor.js";
+
+    expect(injected.getAttribute("data-cmp-type")).toBe("module");
+  });
+
+  test("intercepts a URL assigned through setAttribute", () => {
+    netFor();
+
+    expect(inject("/vendor.js", { attribute: true }).getAttribute("type")).toBe(
+      "text/plain",
+    );
+  });
+
+  test("leaves a script whose URL matches no pattern alone", () => {
+    netFor();
+
+    const injected = inject("https://cdn.test/allowed.js");
+
+    expect(injected.hasAttribute("data-cmp-category")).toBe(false);
+    expect(injected.getAttribute("type")).toBeNull();
+  });
+
+  test("leaves a matching script alone while its category is granted", () => {
+    const built = netFor();
+    built.emit(decision({ necessary: true, analytics: true }));
+
+    expect(inject("/vendor.js").hasAttribute("data-cmp-category")).toBe(false);
+  });
+
+  test("intercepts again once consent is withdrawn", () => {
+    const built = netFor();
+    built.emit(decision({ necessary: true, analytics: true }));
+    built.emit(decision({ necessary: true, analytics: false }));
+
+    expect(inject("/vendor.js").getAttribute("type")).toBe("text/plain");
+  });
+
+  test("never sees a dynamically injected inline script", () => {
+    netFor();
+
+    const inline = document.createElement("script");
+    inline.textContent = "window.inlineRan = true;";
+    document.body.appendChild(inline);
+
+    // Documents the hard limitation: an inline script executes synchronously on
+    // insertion, so no interception point exists. BLK-1 is the guaranteed path.
+    expect(inline.hasAttribute("data-cmp-category")).toBe(false);
+  });
+
+  test("maps a pattern to a service when one is configured", () => {
+    const built = harness({
+      blocking: {
+        blocklist: [
+          { pattern: "vendor.js", category: "analytics", service: "ga" },
+        ],
+      },
+    });
+    controllerFor(built, vi.fn());
+
+    const injected = inject("/vendor.js");
+
+    expect(injected.getAttribute("data-cmp-service")).toBe("ga");
+  });
+
+  test("executes an intercepted script once its category is granted", async () => {
+    const built = netFor();
+    document.body.appendChild(inject("/vendor.js", { id: "vendor" }));
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(true);
+
+    built.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(false);
+    expect(script("vendor").getAttribute("src")).toBe("/vendor.js");
+  });
+
+  test("registers a gate injected inside a container element", async () => {
+    const built = netFor();
+    const container = document.createElement("div");
+    container.appendChild(inject("/vendor.js", { id: "vendor" }));
+    document.body.appendChild(container);
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(true);
+
+    built.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(false);
+  });
+
+  test("executes a script whose URL is assigned after it is connected", async () => {
+    const built = netFor();
+    const injected = document.createElement("script");
+    injected.id = "vendor";
+    document.body.appendChild(injected);
+    injected.src = "/vendor.js";
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(true);
+
+    built.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+
+    // The insertion and the assignment share a task, so the observer callback —
+    // a microtask — runs after both and matches the element in its gated state.
+    expect(stillGated("vendor")).toBe(false);
+    expect(script("vendor").getAttribute("src")).toBe("/vendor.js");
+  });
+
+  test("executes a script whose URL is assigned a task after it is connected", async () => {
+    const built = netFor();
+    const injected = document.createElement("script");
+    injected.id = "vendor";
+    document.body.appendChild(injected);
+    // A task later, so the insertion's mutation record was already delivered
+    // while the element was still an ordinary empty script. Diversion is an
+    // attribute-only change the observer never sees, so `gate()` has to
+    // register the element itself or the grant below can never replay it.
+    await flushChain();
+    injected.src = "/vendor.js";
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(true);
+
+    built.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(false);
+    expect(script("vendor").getAttribute("src")).toBe("/vendor.js");
+  });
+
+  test("keeps a pattern naming an unknown category closed forever", async () => {
+    const built = harness({
+      blocking: { blocklist: [{ pattern: "vendor.js", category: "ghost" }] },
+    });
+    controllerFor(built, vi.fn());
+    document.body.appendChild(inject("/vendor.js", { id: "vendor" }));
+    await flushChain();
+
+    built.emit(decision({ necessary: true, analytics: true, marketing: true }));
+    await flushChain();
+
+    expect(stillGated("vendor")).toBe(true);
+  });
+
+  test("leaves a script that already declares a category untouched", async () => {
+    const built = netFor();
+    const declared = document.createElement("script");
+    declared.id = "declared";
+    declared.type = "text/plain";
+    declared.setAttribute("data-cmp-category", "marketing");
+    declared.src = "/vendor.js";
+    document.body.appendChild(declared);
+    await flushChain();
+
+    // The blocklist must not re-map a gate the author already categorized.
+    expect(declared.getAttribute("data-cmp-category")).toBe("marketing");
+
+    built.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+
+    expect(stillGated("declared")).toBe(true);
+  });
+
+  test("installs nothing when no pattern is configured", () => {
+    const built = harness();
+    controllerFor(built, vi.fn());
+
+    const injected = inject("/vendor.js");
+
+    expect(injected.getAttribute("type")).toBeNull();
+    expect(injected.hasAttribute("data-cmp-category")).toBe(false);
+  });
+
+  test("restores the patched script prototype on dispose", () => {
+    const built = harness({ blocking: { blocklist } });
+    controllerFor(built, vi.fn()).dispose();
+
+    const injected = inject("/vendor.js");
+
+    expect(injected.getAttribute("type")).toBeNull();
+    // The patch left no own property behind: `setAttribute` is inherited from
+    // Element again, exactly as it was before the controller existed.
+    expect(
+      Reflect.getOwnPropertyDescriptor(
+        HTMLScriptElement.prototype,
+        "setAttribute",
+      ),
+    ).toBeUndefined();
+  });
+});
+
 describe("DOM readiness (BLK-1)", () => {
   test("defers the first scan until DOMContentLoaded while the document is loading", async () => {
     Object.defineProperty(document, "readyState", {
@@ -925,5 +1215,50 @@ describe("DOM readiness (BLK-1)", () => {
     expect(byId("video").getAttribute("src")).toBe(
       "https://example.test/embed",
     );
+  });
+
+  test("configuring a blocklist does not reorder gates parsed around init (BLK-1, BLK-4)", async () => {
+    // The observer sees parser-inserted gates too. If it registered them while
+    // the document was still loading, a gate parsed after init() would take a
+    // place in the queue ahead of one parsed before it, inverting document
+    // order for pure BLK-1 markup — a guarantee an opt-in net must not weaken.
+    Object.defineProperty(document, "readyState", {
+      configurable: true,
+      get: () => "loading",
+    });
+    // A leading `src` gate parks the unblock chain on its load event, which is
+    // what makes execution order observable: while it is parked, every gate
+    // behind it in the queue must still be closed.
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-category="analytics" id="remote" src="/remote.js"></script>
+    `;
+    const loading = harness({
+      blocking: {
+        blocklist: [{ pattern: "vendor.js", category: "analytics" }],
+      },
+    });
+    controllerFor(loading, vi.fn());
+
+    // Parsed after init(), so only the observer can see it before the scan.
+    const later = document.createElement("script");
+    later.id = "late";
+    later.type = "text/plain";
+    later.setAttribute("data-cmp-category", "analytics");
+    later.textContent = "window.lateRan = true;";
+    document.body.appendChild(later);
+    await flushChain();
+
+    document.dispatchEvent(new Event("DOMContentLoaded"));
+    loading.emit(decision({ necessary: true, analytics: true }));
+    await flushChain();
+
+    expect(stillGated("remote")).toBe(false);
+    // Inverted order would have run this inline gate immediately instead.
+    expect(stillGated("late")).toBe(true);
+
+    script("remote").dispatchEvent(new Event("load"));
+    await flushChain();
+
+    expect(stillGated("late")).toBe(false);
   });
 });

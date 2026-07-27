@@ -4,6 +4,7 @@ const fixtures = [
   "basic-site",
   "blocking-site",
   "csp-site",
+  "dynamic-site",
   "gtm-site",
   "us-only-site",
 ] as const;
@@ -11,6 +12,7 @@ const fixtureHeadings = {
   "basic-site": "Basic-site fixture",
   "blocking-site": "Blocking-site fixture",
   "csp-site": "CSP-site fixture",
+  "dynamic-site": "Dynamic-site fixture",
   "gtm-site": "GTM-site fixture",
   "us-only-site": "US-only-site fixture",
 } as const;

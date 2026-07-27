@@ -203,11 +203,9 @@ held closed until the decision that opens it arrives, including a decision
 restored from storage on a later page load.
 
 The declarative markup below is the guarantee. Scripts that a third party
-injects into the page at runtime are **not** intercepted in this release. A
-best-effort `MutationObserver` net arrives in Phase 5 and will still be
-documented as best-effort, never as a guarantee, because parser-inserted scripts
-cannot be reliably neutered after the fact. Anything that must not run before
-consent has to be authored as a gate.
+injects into the page at runtime are covered only by the best-effort
+[safety net](#dynamic-injection-safety-net) — never a guarantee. Anything that
+must not run before consent should be authored as a gate.
 
 ### Markup
 
@@ -257,13 +255,14 @@ the network before a decision needs a script gate or `data-cmp-src`.
 
 ### Options
 
-Both options tune how the guaranteed path behaves once gates exist; neither is
-needed to turn blocking on.
+None of these options is needed to turn blocking on; they tune how it behaves
+once gates exist.
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
 | `blocking.nonce` | `string` | none | Fallback CSP nonce for re-created scripts that carry no nonce of their own. Must be a non-empty string. |
 | `blocking.reloadOnWithdraw` | `boolean` | `false` | Reloads the page when consent is revoked for a script gate that already executed. |
+| `blocking.blocklist` | `BlocklistEntry[]` | `[]` | Patterns for the best-effort [dynamic injection net](#dynamic-injection-safety-net). Empty means the net is not installed at all. |
 
 ### Execution order
 
@@ -446,6 +445,84 @@ than an error. The same holds for a gate naming a service whose `onlyRegions`
 allowlist excludes the resolved region, or whose region never resolved at all. A
 typo therefore costs a tag or an embed, never a leak — so after renaming a
 category or service, check the rendered page for gates left behind.
+
+### Dynamic injection safety net
+
+Some tags cannot be authored as gates because you do not control the markup that
+injects them — a tag manager, an A/B testing tool, or a vendor script that loads
+a second script of its own. For those, `blocking.blocklist` installs a
+**best-effort** net:
+
+```js
+init({
+  categories: [{ id: "analytics", label: "…", description: "…" }],
+  blocking: {
+    blocklist: [
+      { pattern: "googletagmanager.com/gtag/js", category: "analytics" },
+      { pattern: "cdn.vendor.example/pixel.js", category: "marketing", service: "vendorPixel" },
+    ],
+  },
+});
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `pattern` | `string` | Case-sensitive substring matched against the script's `src` **as written by the injecting code**. Not a regular expression. |
+| `category` | `string` | The category whose consent releases the script. |
+| `service` | `string` | Optional. The script is released by that service's consent instead. |
+
+When a script's `src` is assigned and it matches a pattern whose consent is not
+granted, the URL is **diverted into `data-cmp-src`** instead of being assigned,
+and the element is marked `type="text/plain"` with the matching
+`data-cmp-category` — turning it into exactly the same gate the declarative
+markup produces. The element therefore has no source at all: nothing done to it
+afterwards, including resetting its `type` back to JavaScript, can make it fetch
+anything. A later grant reassembles it and runs it through the same ordered
+chain as any other gate. Grant consent first and matching scripts are left
+completely alone; withdraw it and interception resumes for scripts injected
+afterwards.
+
+#### What the net does and does not cover
+
+Interception has to happen **before** the element enters the document. Once a
+script carrying a real `src` is inserted, the browser has already begun fetching
+and scheduled the execution, and neither detaching the element nor changing its
+`type` cancels it — measured in Chromium. The net therefore works by patching the
+two entry points through which a URL reaches a script:
+`element.src = url` and `element.setAttribute("src", url)` on
+`HTMLScriptElement.prototype`. Everything else is uncovered:
+
+- **Only `<script src>` is intercepted.** A blocklist pattern has no effect on
+  anything else a vendor might use to reach the network — image pixels
+  (`new Image().src`), `fetch`, `sendBeacon`, `<iframe>`, `<link rel=preload>`,
+  Workers, or dynamic `import()`. Those need a script gate around the code that
+  issues them.
+- **Parser-inserted scripts.** A `<script src>` in the served HTML runs before
+  any library code can exist. Author it as a gate instead.
+- **`document.write()`**, including when a vendor script calls it at runtime.
+  The result is parser-inserted, so the net never sees it — and this is a common
+  pattern in older ad and A/B-testing tags.
+- **Dynamically injected inline scripts.** An inline script executes
+  synchronously the moment it is inserted, so no interception point exists.
+- **Code that goes around the patched entry points**: a script that captured the
+  native `src` setter before `init()` ran, `Element.prototype.setAttribute` or
+  `setAttributeNS` called directly, `attributes.setNamedItem`, or injection from
+  another realm such as an iframe or a worker.
+
+Patching a built-in prototype is a real global side effect. It is installed only
+when you configure at least one pattern, it affects no element type other than
+`<script>`, it is removed again by `reset()`, and it will not uninstall a patch
+another library installed after yours.
+
+One asymmetry worth knowing: `reloadOnWithdraw` cannot cover a blocklisted
+script that was allowed to load because consent was **already granted** when it
+was injected. Such a script is never tracked as a gate, so withdrawing consent
+updates the signals and stops future injections but does not reload the page for
+it, whereas the same tag authored as declarative markup would.
+
+Treat the net as defence in depth for tags you cannot author, never as the thing
+your compliance rests on. The guaranteed path is [markup](#markup), and it is
+what the pre-consent network-silence gate is proven against.
 
 ## Google Consent Mode v2
 
