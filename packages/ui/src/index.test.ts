@@ -238,8 +238,9 @@ function preferencesDialog(): HTMLElement {
   return find<HTMLElement>("[data-lc-preferences]");
 }
 
-function press(target: HTMLElement, key: string, shiftKey: boolean): void {
-  target.dispatchEvent(
+/** Dispatches a key on `target`; returns false when a handler consumed it. */
+function press(target: HTMLElement, key: string, shiftKey: boolean): boolean {
+  return target.dispatchEvent(
     new KeyboardEvent("keydown", {
       key,
       shiftKey,
@@ -750,6 +751,30 @@ describe("focus management (UI-3)", () => {
     expect(query("[data-lc-preferences]")).toBeNull();
     expect(query("[data-lc-banner]")).not.toBeNull();
     expect(bannerHidden()).toBe(false);
+  });
+
+  // A detached node still runs any listener that was never removed, so
+  // dispatching Escape on the closed first layer reports whether its trap was
+  // actually released or merely dropped on the floor.
+  test("releases the first layer's focus trap when the banner closes", async () => {
+    const { api } = await render(baseConfig(), { layout: "modal" });
+    const banner = find<HTMLElement>("[data-lc-banner]");
+
+    api.acceptAll();
+
+    expect(query("[data-lc-banner]")).toBeNull();
+    expect(press(banner, "Escape", false)).toBe(true);
+  });
+
+  test("releases the first layer's focus trap when preferences opened over it", async () => {
+    const { api } = await render(baseConfig(), { layout: "modal" });
+    const banner = find<HTMLElement>("[data-lc-banner]");
+    openPreferences();
+
+    api.acceptAll();
+
+    expect(query("[data-lc-banner]")).toBeNull();
+    expect(press(banner, "Escape", false)).toBe(true);
   });
 });
 

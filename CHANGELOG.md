@@ -89,6 +89,10 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- Each consent layer now releases exactly its own focus trap. Opening
+  preferences over a `modal`-layout banner previously overwrote the banner's
+  release function, leaking its `keydown` listener, and a decision taken in the
+  second layer then released the preferences trap in the banner's place.
 - A gated script queued under a grant no longer executes if consent is withdrawn
   while the queue is parked on a slower gate. Each gate's consent is re-read
   immediately before it runs, and a skipped gate stays eligible for a later

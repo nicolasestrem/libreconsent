@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Claude Code | PR #7 review follow-up (UI-3) | Gave each layer its own focus-trap release function so opening preferences over a modal-layout banner can no longer leak the banner's listener or misdirect `closeBanner()`. P-022. |
 | 2026-07-27 | Claude Code | Phase 4 UI (UI-1..8) | Added `@libreconsent/ui`: shadow-DOM banner and preferences modal, custom-property theming, EN+FR renderer dictionaries, focus management, and re-entry points. Core gained `registerRenderer()` and `ready.region` only. D-027..D-033 recorded. |
 | 2026-07-27 | Claude Code | Phase 4 gates (§11.3, §11.4) | Keyboard-only accept and reject journeys, equal-prominence check, and axe-core on both layers in light and dark themes. Two defects the gates caught are recorded as P-019 and P-020. |
 | 2026-07-27 | Claude Code | PR #6 review follow-up 2 (BLK-5) | Split gate queue state from execution state so `reloadOnWithdraw` cannot discard the page for a gate that never entered the document. P-018. |

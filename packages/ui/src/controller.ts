@@ -71,7 +71,12 @@ export class UiController {
 
   private preferences: Preferences | null = null;
 
-  private releaseTrap: (() => void) | null = null;
+  // One field per surface: the two layers can be trapped at the same time (a
+  // modal-layout banner sits behind an open preferences dialog), so a single
+  // field would lose the first release function and leak its listener.
+  private bannerTrap: (() => void) | null = null;
+
+  private preferencesTrap: (() => void) | null = null;
 
   private fab: HTMLElement | null = null;
 
@@ -175,7 +180,7 @@ export class UiController {
     // connected for focus restore to have somewhere to go.
     this.setBannerHidden(true);
     this.root.append(preferences.root);
-    this.releaseTrap = trapFocus(
+    this.preferencesTrap = trapFocus(
       preferences.dialog,
       () => this.closePreferences(true),
       restoreTo,
@@ -195,8 +200,10 @@ export class UiController {
       return;
     }
     this.disposed = true;
-    this.releaseTrap?.();
-    this.releaseTrap = null;
+    this.preferencesTrap?.();
+    this.preferencesTrap = null;
+    this.bannerTrap?.();
+    this.bannerTrap = null;
     for (const release of this.teardown.splice(0)) {
       release();
     }
@@ -233,7 +240,7 @@ export class UiController {
       // keypress away and carries the same weight as accepting, so the visitor
       // is never cornered into consenting (UI-7). Escape does close the
       // preferences layer, which is the dialog UI-3's requirement is about.
-      this.releaseTrap = trapFocus(banner.dialog, () => {}, null);
+      this.bannerTrap = trapFocus(banner.dialog, () => {}, null);
     }
     banner.dialog.focus({ preventScroll: true });
   }
@@ -248,10 +255,8 @@ export class UiController {
     if (!this.banner) {
       return;
     }
-    if (this.context.layout === "modal") {
-      this.releaseTrap?.();
-      this.releaseTrap = null;
-    }
+    this.bannerTrap?.();
+    this.bannerTrap = null;
     this.banner.root.remove();
     this.banner = null;
   }
@@ -276,8 +281,8 @@ export class UiController {
         this.openBanner();
       }
     }
-    this.releaseTrap?.();
-    this.releaseTrap = null;
+    this.preferencesTrap?.();
+    this.preferencesTrap = null;
   }
 
   private renderFab(): void {
