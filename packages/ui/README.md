@@ -131,6 +131,23 @@ under `prefers-reduced-motion`.
 Layout uses logical properties throughout, so a right-to-left document mirrors
 structurally without a second stylesheet.
 
+## Layout stability
+
+Neither layer is part of the document flow. The banner, the preferences overlay
+and the persistent settings button are all `position: fixed`, so they are painted
+over the page instead of displacing it: mounting the UI contributes **zero** to
+Cumulative Layout Shift no matter when consent code finishes loading, and no
+space needs to be reserved for it.
+
+`tests/hardening.e2e.spec.ts` enforces this with a buffered `layout-shift`
+PerformanceObserver installed before any page script, asserting no shift entry
+through banner paint and preferences open — alongside a companion test that
+displaces real content to prove the observer would catch a regression.
+
+The one exception is your own CSS: if you override the container to
+`position: static` or `relative`, or place the mount point inside a flow
+container you have styled, layout stability becomes your responsibility.
+
 ## What it never does
 
 - Pre-check an optional category or service (except restoring a saved decision,

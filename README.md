@@ -2,7 +2,7 @@
 
 Consent-mode-first, self-hosted consent infrastructure.
 
-## Phase 4 status
+## Phase 5 status
 
 `@libreconsent/core` implements validated configuration, consent state and
 lifecycle events, region resolution, first-party cookie/localStorage
@@ -22,14 +22,22 @@ are enforced in CI.
 The bridge and the optional Worker receipt service remain later phases. TCF
 support is intentionally and permanently excluded.
 
-Dynamically injected scripts are not intercepted yet; the guaranteed path is
-declarative markup, documented in
-[`packages/core/README.md`](packages/core/README.md#blocking).
+Dynamically injected scripts are covered by an opt-in **best-effort** safety net
+that marks a matching script inert before it can be fetched. It is explicitly not
+a guarantee — parser-inserted and dynamically injected inline scripts cannot be
+intercepted — so the guaranteed path remains declarative markup. Both are
+documented in
+[`packages/core/README.md`](packages/core/README.md#dynamic-injection-safety-net).
 
-The next product phase is Phase 5 — hardening: the best-effort MutationObserver
-net and the size, CSP, security and CLS audits. Completed requirements and their
-verification evidence are tracked in
+The non-functional gates now run on real code in CI: size budgets against the
+built artifacts, a prohibited-construct and zero-dependency scan over every
+shipped source file, a CSP fixture proving nonce propagation, and a
+layout-shift check proving the banner displaces no content. Completed
+requirements and their verification evidence are tracked in
 [`specs/TRACEABILITY.md`](specs/TRACEABILITY.md) and enforced in CI.
+
+The next product phase is Phase 6 — the US state-privacy module (GPC
+auto-opt-out and the Do-Not-Sell dialog).
 
 ## Development
 

@@ -90,6 +90,26 @@ declare global {
 }
 
 /**
+ * One pattern in the best-effort dynamic-injection safety net (BLK-4).
+ *
+ * A dynamically inserted `<script>` whose `src` contains `pattern` is neutered
+ * before it runs and re-offered under `category` (or `service`, when named).
+ */
+export interface BlocklistEntry {
+  /**
+   * Case-sensitive substring matched against a script's `src`.
+   *
+   * Not a regular expression: a plain substring is predictable, cannot
+   * backtrack pathologically, and stays JSON-serializable.
+   */
+  pattern: string;
+  /** Category that must be granted before a matching script may run. */
+  category: string;
+  /** Service that must be granted instead, when the pattern maps to one. */
+  service?: string;
+}
+
+/**
  * Declarative script and embed blocking configuration.
  *
  * Blocking itself is opted into by markup: a page with no `data-cmp-category`
@@ -107,6 +127,18 @@ export interface BlockingConfig {
    * Scripts cannot be un-executed, so this is the only way to undo their effects.
    */
   reloadOnWithdraw?: boolean;
+  /**
+   * Patterns for the **best-effort** dynamic-injection safety net (BLK-4).
+   *
+   * A `MutationObserver` neuters matching `<script src>` nodes inserted by
+   * other scripts while their category is denied. This is **not a guarantee**:
+   * parser-inserted scripts are never observed in time, and a dynamically
+   * inserted *inline* script executes synchronously on insertion, so no
+   * observer can precede it. The guaranteed path is always BLK-1 markup.
+   *
+   * Omitted or empty means no observer is created at all.
+   */
+  blocklist?: BlocklistEntry[];
 }
 
 /**
@@ -200,6 +232,8 @@ export interface NormalizedBlockingConfig {
   nonce?: string;
   /** Whether revoking an executed script's category reloads the page. */
   reloadOnWithdraw: boolean;
+  /** Best-effort dynamic-injection patterns. Empty means no observer. */
+  blocklist: BlocklistEntry[];
 }
 
 /**

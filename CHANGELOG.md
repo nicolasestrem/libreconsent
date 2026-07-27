@@ -6,6 +6,51 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- Phase 5 hardening: `blocking.blocklist` installs an opt-in, **best-effort**
+  safety net for scripts you cannot author as gates (tag managers, vendor
+  scripts that load other scripts). Each entry is
+  `{ pattern, category, service? }`, where `pattern` is a plain case-sensitive
+  substring of the script's `src` as written — not a regular expression. A
+  matching script whose consent is denied has its URL diverted into
+  `data-cmp-src` rather than assigned, so the element has no source to fetch,
+  and a later grant runs it through the same ordered chain as declarative
+  markup.
+- `specs/SECURITY_CHECKLIST.md` and `scripts/guardrails.test.mjs`: the security
+  and privacy audits that used to be per-phase manual greps now run on every
+  CI build, scanning every shipped source file for `eval`, `new Function`,
+  markup-injection sinks, any network API, and `__tcfapi` assignment, and
+  asserting zero runtime dependencies and no install scripts.
+- A layout-shift gate (`tests/hardening.e2e.spec.ts`) proving the banner and
+  preferences overlay contribute nothing to Cumulative Layout Shift, plus a
+  companion test that displaces real content to prove the measurement works.
+
+### Changed
+
+- The `blocking` configuration object now always reports a `blocklist` array
+  from `getConfig()`, defaulting to `[]`. Existing configurations are
+  unaffected; an empty blocklist installs nothing at all.
+
+### Known limitations
+
+- The BLK-4 net is explicitly **not** a guarantee, and the declarative markup
+  remains the guaranteed path. Interception has to happen before a script
+  enters the document — once a `<script src>` is inserted the browser has
+  already started fetching it, and neither detaching it nor changing its type
+  cancels execution.
+- **Only `<script src>` is intercepted.** A pattern has no effect on image
+  pixels, `fetch`, `sendBeacon`, `<iframe>`, preloads, Workers or dynamic
+  `import()`. Also uncovered: parser-inserted scripts, `document.write()` (even
+  when a vendor calls it at runtime), dynamically injected *inline* scripts, and
+  code that goes around the patched entry points.
+- Enabling a blocklist patches the `src` setter and `setAttribute` on
+  `HTMLScriptElement.prototype`. This is a deliberate global side effect: it is
+  installed only when at least one pattern is configured, affects no other
+  element type, is reverted by `reset()`, and will not uninstall another
+  library's later patch.
+- `reloadOnWithdraw` does not cover a blocklisted script that loaded because
+  consent was already granted when it was injected; such a script is never
+  tracked as a gate.
+
 - Phase 4 UI: `@libreconsent/ui` ships `mount(api, options?)`, rendering the
   consent banner (`bar-bottom`, `box` or `modal`) and the preferences modal in
   an open shadow root, with a light-DOM fallback. Accept all and reject all are

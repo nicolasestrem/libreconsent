@@ -1,6 +1,7 @@
 import { en, fr } from "./dictionaries";
 import { ConsentError } from "./errors";
 import type {
+  BlocklistEntry,
   CategoryConfig,
   CmpConfig,
   ConsentModeDefaults,
@@ -300,6 +301,29 @@ function normalizeI18n(
   };
 }
 
+function normalizeBlocklist(value: unknown): BlocklistEntry[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    invalid("blocking.blocklist", "must be an array");
+  }
+  return value.map((entry: BlocklistEntry, index) => {
+    const path = `blocking.blocklist[${index}]`;
+    requireRecord(entry, path);
+    requireNonEmptyString(entry.pattern, `${path}.pattern`);
+    requireNonEmptyString(entry.category, `${path}.category`);
+    if (entry.service !== undefined) {
+      requireNonEmptyString(entry.service, `${path}.service`);
+    }
+    return {
+      pattern: entry.pattern.trim(),
+      category: entry.category.trim(),
+      ...(entry.service === undefined ? {} : { service: entry.service.trim() }),
+    };
+  });
+}
+
 function normalizeBlocking(
   config: CmpConfig["blocking"],
 ): NormalizedBlockingConfig {
@@ -313,6 +337,7 @@ function normalizeBlocking(
   return {
     ...(config?.nonce === undefined ? {} : { nonce: config.nonce }),
     reloadOnWithdraw: config?.reloadOnWithdraw ?? false,
+    blocklist: normalizeBlocklist(config?.blocklist),
   };
 }
 

@@ -4,6 +4,9 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Claude Code | Phase 5 self-review (BLK-1, BLK-4) | Fixed four defects found by adversarial review, three blockers: a blocklist inverted BLK-1's document order, the net failed open on non-string URLs (Trusted Types), `type` reset resurrected a gated script, and a gated module was replayed as a classic script. P-024..P-027, D-040, D-041. |
+| 2026-07-27 | Claude Code | Phase 5 hardening (BLK-4, NFR-1..4) | Added the opt-in `blocking.blocklist` net, which diverts a matching script's URL so it has nothing to fetch; the planned detach-and-veto technique was proven ineffective in Chromium and replaced (P-023, D-037). Added a permanent guardrail scan and a layout-shift gate. D-036..D-039. |
+| 2026-07-27 | Claude Code | Phase 5 audits (§10, §11.3) | Turned the per-phase manual G-1/G-2/G-6 greps into `scripts/guardrails.test.mjs`, added `specs/SECURITY_CHECKLIST.md`, and recorded that core now has 0.16 kB of its 8 kB budget left — Phase 6 needs a size decision first. |
 | 2026-07-27 | Claude Code | PR #7 review follow-up (UI-3) | Gave each layer its own focus-trap release function so opening preferences over a modal-layout banner can no longer leak the banner's listener or misdirect `closeBanner()`. P-022. |
 | 2026-07-27 | Claude Code | Phase 4 UI (UI-1..8) | Added `@libreconsent/ui`: shadow-DOM banner and preferences modal, custom-property theming, EN+FR renderer dictionaries, focus management, and re-entry points. Core gained `registerRenderer()` and `ready.region` only. D-027..D-033 recorded. |
 | 2026-07-27 | Claude Code | Phase 4 gates (§11.3, §11.4) | Keyboard-only accept and reject journeys, equal-prominence check, and axe-core on both layers in light and dark themes. Two defects the gates caught are recorded as P-019 and P-020. |

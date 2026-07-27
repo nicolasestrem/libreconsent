@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>libreconsent dynamic-injection fixture</title>
+  </head>
+  <body>
+    <script>
+      window.__executed = [];
+    </script>
+    <header>
+      <p>libreconsent</p>
+    </header>
+    <main>
+      <h1>Dynamic-site fixture</h1>
+      <p data-fixture="dynamic-site">Dynamic script injection fixture.</p>
+    </main>
+    <script src="/dist/core.global.js"></script>
+    <script>
+      window.__lcApi = LibreConsentCore.init({
+        categories: [
+          {
+            id: "analytics",
+            label: "category.analytics.label",
+            description: "category.analytics.description",
+          },
+        ],
+        blocking: {
+          blocklist: [{ pattern: "vendor.js", category: "analytics" }],
+        },
+        i18n: {
+          translations: {
+            en: {
+              "category.analytics.label": "Analytics",
+              "category.analytics.description":
+                "Measures how visitors use this site.",
+            },
+          },
+        },
+      });
+
+      // A third-party tag manager injecting its own script is exactly the case
+      // BLK-4 exists for, so the fixture injects rather than declaring markup.
+      window.__injectVendor = () => {
+        var script = document.createElement("script");
+        script.src = "/dynamic-site/vendor.js";
+        document.body.appendChild(script);
+      };
+      window.__injectAllowed = () => {
+        var script = document.createElement("script");
+        script.src = "/dynamic-site/allowed.js";
+        document.body.appendChild(script);
+      };
+      window.__injectNested = () => {
+        var container = document.createElement("div");
+        var script = document.createElement("script");
+        script.src = "/dynamic-site/vendor.js";
+        container.appendChild(script);
+        document.body.appendChild(container);
+      };
+      // Appended first, URL assigned second. The browser prepares the script
+      // synchronously on that assignment, so this is the ordering that proves
+      // interception really precedes the fetch rather than merely racing it.
+      window.__injectConnected = () => {
+        var script = document.createElement("script");
+        document.body.appendChild(script);
+        script.src = "/dynamic-site/vendor.js";
+      };
+      // Resetting the type after the URL was diverted must not resurrect it.
+      window.__injectThenRetype = () => {
+        var script = document.createElement("script");
+        script.src = "/dynamic-site/vendor.js";
+        script.type = "text/javascript";
+        script.setAttribute("type", "text/javascript");
+        document.body.appendChild(script);
+      };
+      // A URL object rather than a string, as Trusted Types requires.
+      window.__injectUrlObject = () => {
+        var script = document.createElement("script");
+        script.src = new URL("/dynamic-site/vendor.js", location.origin);
+        document.body.appendChild(script);
+      };
+
+      window.__injectVendor();
+      window.__injectAllowed();
+    </script>
+  </body>
+</html>
