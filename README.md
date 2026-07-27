@@ -2,7 +2,7 @@
 
 Consent-mode-first, self-hosted consent infrastructure.
 
-## Phase 6 status
+## Phase 7 status
 
 `@libreconsent/core` implements validated configuration, consent state and
 lifecycle events, region resolution, first-party cookie/localStorage
@@ -31,8 +31,16 @@ reaches the browser before an actual decision. Details and the researched Google
 sources are in [`packages/core/README.md`](packages/core/README.md#us-state-privacy)
 and [`specs/US_NOTES.md`](specs/US_NOTES.md).
 
-The bridge and the optional Worker receipt service remain later phases. TCF
-support is intentionally and permanently excluded.
+Phase 7 adds [`@libreconsent/bridge`](packages/bridge/README.md), a UI-less,
+read-only adapter for domains where an external CMP owns consent. It observes a
+same-window TCF v2 API, maps purpose consent to libreconsent categories, and
+exposes familiar `ready` / `consent` / `change` events without providing
+`__tcfapi`, exposing TC strings, rendering UI, persisting data, or emitting
+Google signals. If no CMP appears before the configured deadline, it can either
+report `source: "none"` or hand off once to an injected full libreconsent
+fallback. The bridge unit/browser suites, 4 kB size gate, and permanent
+no-provider guardrail are green after review follow-up. TCF and GPP provider
+support are intentionally excluded; the bridge does not consume GPP either.
 
 Dynamically injected scripts are covered by an opt-in **best-effort** safety net
 that marks a matching script inert before it can be fetched. It is explicitly not
@@ -48,8 +56,7 @@ layout-shift check proving the banner displaces no content. Completed
 requirements and their verification evidence are tracked in
 [`specs/TRACEABILITY.md`](specs/TRACEABILITY.md) and enforced in CI.
 
-The next product phase is Phase 7 — bridge mode, a read-only listener that
-exposes the same API on domains where an external CMP owns consent.
+The next product phase is Phase 8 — the optional Worker receipt service.
 
 ## Development
 

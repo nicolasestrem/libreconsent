@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>libreconsent bridge fixture</title>
+    <script>
+      (() => {
+        const scenario = new URLSearchParams(location.search).get("scenario") ?? "tcloaded";
+        const listeners = new Map();
+        let assignmentCount = 0;
+        let tcfApi;
+
+        Object.defineProperty(window, "__tcfapi", {
+          configurable: true,
+          get: () => tcfApi,
+          set: (value) => {
+            assignmentCount += 1;
+            tcfApi = value;
+          },
+        });
+
+        const purposes = (granted) => ({
+          1: true,
+          2: granted,
+          3: granted,
+          4: granted,
+          7: true,
+          8: true,
+          9: true,
+          10: true,
+        });
+        const tcData = (eventStatus, granted = false) => ({
+          eventStatus,
+          gdprApplies: true,
+          listenerId: 73,
+          purpose: { consents: purposes(granted) },
+          tcString: "fixture-tc-string-must-not-leak",
+        });
+
+        function installCmp() {
+          window.__tcfapi = (command, version, callback, parameter) => {
+            window.__tcfCalls.push({ command, version, parameter });
+            if (command === "addEventListener") {
+              listeners.set(73, callback);
+              if (scenario === "cmpuishown") {
+                callback(tcData("cmpuishown"), true);
+              } else {
+                callback(tcData("tcloaded"), true);
+              }
+              return;
+            }
+            if (command === "removeEventListener") {
+              const removed = listeners.delete(parameter);
+              callback(removed);
+            }
+          };
+        }
+
+        window.__bridgeScenario = scenario;
+        window.__bridgeEvents = [];
+        window.__tcfCalls = [];
+        window.__tcfAssignmentCount = () => assignmentCount;
+        window.__captureTcfContract = () => {
+          const originalApi = window.__tcfapi;
+          const originalDescriptor = Object.getOwnPropertyDescriptor(
+            window,
+            "__tcfapi",
+          );
+          window.__tcfIntegrity = () => {
+            const descriptor = Object.getOwnPropertyDescriptor(
+              window,
+              "__tcfapi",
+            );
+            return {
+              sameFunction: window.__tcfapi === originalApi,
+              sameDescriptor:
+                descriptor?.configurable ===
+                  originalDescriptor?.configurable &&
+                descriptor?.enumerable === originalDescriptor?.enumerable &&
+                descriptor?.get === originalDescriptor?.get &&
+                descriptor?.set === originalDescriptor?.set &&
+                descriptor?.value === originalDescriptor?.value &&
+                descriptor?.writable === originalDescriptor?.writable,
+            };
+          };
+        };
+        window.__emitCmp = (eventStatus, granted = true) => {
+          const listener = listeners.get(73);
+          if (!listener) {
+            throw new Error("TCF listener is not registered");
+          }
+          listener(tcData(eventStatus, granted), true);
+        };
+
+        if (scenario === "tcloaded" || scenario === "cmpuishown") {
+          installCmp();
+        } else if (scenario === "delayed") {
+          setTimeout(installCmp, 35);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <header>
+      <p>libreconsent</p>
+    </header>
+    <main>
+      <h1>Bridge-site fixture</h1>
+      <p data-fixture="bridge-site">Read-only TCF bridge fixture.</p>
+    </main>
+    <script data-bridge-fixture-host>
+      (() => {
+        window.__captureTcfContract();
+
+        const effects = {
+          cookieWrites: [],
+          dataLayerAssignments: [],
+          dataLayerWrites: [],
+          gtagAssignments: [],
+          gtagCalls: [],
+          hostDomMutations: [],
+          localStorageClears: 0,
+          localStorageRemoves: [],
+          localStorageWrites: [],
+          unexpectedDomMutations: [],
+        };
+        const snapshotValue = (value) => {
+          if (value === undefined) {
+            return { type: "undefined" };
+          }
+          if (typeof value === "function") {
+            return { type: "function" };
+          }
+          try {
+            return JSON.parse(JSON.stringify(value));
+          } catch {
+            return { type: typeof value };
+          }
+        };
+
+        const cookieDescriptor = Object.getOwnPropertyDescriptor(
+          Document.prototype,
+          "cookie",
+        );
+        Object.defineProperty(document, "cookie", {
+          configurable: true,
+          get: () => cookieDescriptor.get.call(document),
+          set: (value) => {
+            effects.cookieWrites.push(String(value));
+            cookieDescriptor.set.call(document, value);
+          },
+        });
+
+        const storageSetItem = Storage.prototype.setItem;
+        const storageRemoveItem = Storage.prototype.removeItem;
+        const storageClear = Storage.prototype.clear;
+        Storage.prototype.setItem = function (key, value) {
+          if (this === localStorage) {
+            effects.localStorageWrites.push([String(key), String(value)]);
+          }
+          return storageSetItem.call(this, key, value);
+        };
+        Storage.prototype.removeItem = function (key) {
+          if (this === localStorage) {
+            effects.localStorageRemoves.push(String(key));
+          }
+          return storageRemoveItem.call(this, key);
+        };
+        Storage.prototype.clear = function () {
+          if (this === localStorage) {
+            effects.localStorageClears += 1;
+          }
+          return storageClear.call(this);
+        };
+
+        const seededDataLayer = new Proxy([], {
+          set(target, property, value, receiver) {
+            effects.dataLayerWrites.push({
+              property: String(property),
+              value: snapshotValue(value),
+            });
+            return Reflect.set(target, property, value, receiver);
+          },
+        });
+        let dataLayer = seededDataLayer;
+        Object.defineProperty(window, "dataLayer", {
+          configurable: true,
+          enumerable: true,
+          get: () => dataLayer,
+          set: (value) => {
+            effects.dataLayerAssignments.push(snapshotValue(value));
+            dataLayer = value;
+          },
+        });
+
+        const seededGtag = (...args) => {
+          effects.gtagCalls.push(snapshotValue(args));
+        };
+        let gtag = seededGtag;
+        Object.defineProperty(window, "gtag", {
+          configurable: true,
+          enumerable: true,
+          get: () => gtag,
+          set: (value) => {
+            effects.gtagAssignments.push(typeof value);
+            gtag = value;
+          },
+        });
+
+        const describeNode = (node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node;
+            return `${element.tagName.toLowerCase()}${element.getAttribute("src") ? `[src="${element.getAttribute("src")}"]` : ""}`;
+          }
+          return "text";
+        };
+        const observer = new MutationObserver((records) => {
+          for (const record of records) {
+            for (const node of record.addedNodes) {
+              if (
+                node.nodeType === Node.TEXT_NODE &&
+                node.textContent.trim() === ""
+              ) {
+                continue;
+              }
+              const element =
+                node.nodeType === Node.ELEMENT_NODE ? node : null;
+              const hostOwned =
+                element?.matches("[data-bridge-fixture-host]") === true ||
+                record.target.parentElement?.closest(
+                  "[data-bridge-fixture-host]",
+                ) !== null ||
+                (record.target instanceof Element &&
+                  record.target.closest("[data-bridge-fixture-host]") !== null);
+              const destination = hostOwned
+                ? effects.hostDomMutations
+                : effects.unexpectedDomMutations;
+              destination.push(describeNode(node));
+            }
+          }
+        });
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+        });
+
+        window.__bridgeEffects = () => ({
+          ...JSON.parse(JSON.stringify(effects)),
+          sameDataLayer: window.dataLayer === seededDataLayer,
+          sameGtag: window.gtag === seededGtag,
+        });
+      })();
+    </script>
+    <script
+      src="/dist/bridge.global.js"
+      data-bridge-fixture-host
+    ></script>
+    <script data-bridge-fixture-host>
+      (async () => {
+        const scenario = window.__bridgeScenario;
+        if (scenario === "fallback") {
+          await Promise.all(
+            ["/dist/core.global.js", "/dist/ui.global.js"].map(
+              (src) =>
+                new Promise((resolve, reject) => {
+                  const script = document.createElement("script");
+                  script.src = src;
+                  script.dataset.bridgeFixtureHost = "";
+                  script.addEventListener("load", resolve, { once: true });
+                  script.addEventListener("error", reject, { once: true });
+                  document.head.append(script);
+                }),
+            ),
+          );
+        }
+        const before = {
+          elementCount: document.querySelectorAll("*").length,
+          bodyChildren: document.body.children.length,
+        };
+        window.__bridgeDomBefore = before;
+
+        const timeoutMs = scenario === "fallback" ? 250 : 80;
+        const config = { timeoutMs };
+        if (scenario === "fallback") {
+          config.fallback = () => {
+            window.__fallbackActivatedAt = performance.now();
+            window.__bannerCountBeforeFallback = document.querySelectorAll(
+              "[data-libreconsent-ui]",
+            ).length;
+            const api = LibreConsentCore.init({
+              categories: [
+                {
+                  id: "analytics",
+                  label: "category.analytics.label",
+                  description: "category.analytics.description",
+                },
+                {
+                  id: "marketing",
+                  label: "category.marketing.label",
+                  description: "category.marketing.description",
+                },
+              ],
+              i18n: {
+                translations: {
+                  en: {
+                    "category.analytics.label": "Analytics",
+                    "category.analytics.description":
+                      "Measures how visitors use this site.",
+                    "category.marketing.label": "Marketing",
+                    "category.marketing.description":
+                      "Personalizes advertising across sites.",
+                  },
+                },
+              },
+            });
+            window.__fallbackApi = api;
+            window.__fallbackUi = LibreConsentUi.mount(api);
+            return api;
+          };
+        }
+
+        window.__bridgeStartedAt = performance.now();
+        window.__bridgeTimeoutMs = timeoutMs;
+        const api = LibreConsentBridge.initBridge(config);
+        window.__bridgeApi = api;
+        for (const type of ["ready", "consent", "change"]) {
+          api.on(type, (detail) => {
+            window.__bridgeEvents.push({
+              type,
+              detail: JSON.parse(JSON.stringify(detail)),
+            });
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

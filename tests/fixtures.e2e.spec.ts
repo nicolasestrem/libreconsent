@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const fixtures = [
   "basic-site",
+  "bridge-site",
   "blocking-site",
   "csp-site",
   "dynamic-site",
@@ -10,6 +11,7 @@ const fixtures = [
 ] as const;
 const fixtureHeadings = {
   "basic-site": "Basic-site fixture",
+  "bridge-site": "Bridge-site fixture",
   "blocking-site": "Blocking-site fixture",
   "csp-site": "CSP-site fixture",
   "dynamic-site": "Dynamic-site fixture",

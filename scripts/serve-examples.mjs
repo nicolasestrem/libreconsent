@@ -13,6 +13,18 @@ const headSnippetMarker = "<!-- LIBRECONSENT_HEAD_SNIPPET -->";
 // Fixtures load the built IIFE bundles the same way a host page would.
 const artifactRoutes = new Map([
   [
+    "/dist/bridge.global.js",
+    {
+      path: resolve(
+        process.cwd(),
+        process.env.LIBRECONSENT_BRIDGE_ARTIFACT_PATH ??
+          "packages/bridge/dist/index.global.js",
+      ),
+      missingMessage:
+        "Bridge browser artifact is unavailable. Run pnpm build first.",
+    },
+  ],
+  [
     "/dist/core.global.js",
     {
       path: resolve(

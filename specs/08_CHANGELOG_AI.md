@@ -4,6 +4,8 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Codex | Phase 7 review follow-up (BR-1..4) | Reopened and re-closed the gate after fixing synchronous CMP/fallback teardown races, vacuous startup side-effect/provider-identity proofs, a permissive timeout assertion, and missing GPP exclusions. P-040..P-045; final gate green with 340 unit, 54 E2E, and 15 a11y tests. |
+| 2026-07-27 | Codex | Phase 7 read-only TCF bridge (BR-1..4) | Added same-window CMP observation, strict purpose mapping, truthful read/events state, injected timeout fallback, one-banner handoff, and listener teardown. D-047..D-049; P-037..P-039 fixed; full gate green with 337 unit, 54 E2E, and 15 a11y tests. |
 | 2026-07-27 | Claude Code | Phase 6 US module (CFG-8, US-1..4) | Added the `usPrivacy` block, the in-memory implied grant for undecided US visitors, GPC auto-opt-out re-derived per load, and the Do-Not-Sell dialog in `@libreconsent/ui`. Nothing US-related is ever persisted, so CORE-8 holds. D-043..D-046. |
 | 2026-07-27 | Claude Code | Phase 6 research (US-4) | Fetched the live Google RDP, Consent Mode and GPC sources and wrote `specs/US_NOTES.md`. Verdict: RDP is account/tag-level and documentation-only for a consent library. The spec's start URL had 404'd; live replacements cited with dates. |
 | 2026-07-27 | Claude Code | NFR-1 re-baseline (§10, G-3) | Re-baselined the size budgets once from measurement at the maintainer's request: core 8 → 12 KB, core+ui 15 → 19 KB, moved together because the UI's ~6.7 KB made the combined cap the real gate. Projection and ratchet rule recorded in D-042. |

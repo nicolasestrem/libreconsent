@@ -6,6 +6,27 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- Phase 7 read-only bridge: `initBridge(config)` discovers a same-window
+  external TCF v2 CMP with bounded exponential-backoff polling, subscribes
+  through `addEventListener`, and exposes `getConsent()`, replayable `ready` /
+  `consent`, non-replayable `change`, `on()` / `off()`, and teardown-only
+  `reset()`. It does not provide `__tcfapi`, expose TC strings, render UI, write
+  storage, emit Google signals, or access the network.
+- A frozen `DEFAULT_PURPOSE_MAPPING`: analytics requires TCF purposes 1, 7, 8,
+  9 and 10; marketing requires 1, 2, 3 and 4. Both use strict `all`
+  aggregation. Custom mappings are complete replacements and may explicitly
+  choose `all` or `any`; `necessary` remains always true and cannot be
+  remapped.
+- Truthful bridge state containing only `source`, mapped `categories`,
+  `services`, `gdprApplies`, and `observedAt`. Direct TCF observations report
+  no service choices, and the bridge never invents a consent ID, revision,
+  persisted-decision marker, or decision timestamp.
+- Optional dependency-free fallback handoff: after the discovery timeout a
+  host-supplied factory may initialize full libreconsent and have its
+  `ready` / `consent` / `change` events forwarded as `source: "fallback"`.
+  Delaying core/UI creation until that handoff ensures only one banner owner.
+  A throwing factory fails closed to `source: "none"` without an unhandled
+  asynchronous error.
 - Phase 6 US state privacy: the `usPrivacy` configuration block
   (`{ enabled, regions, doNotSellSelector, respectGPC }`) makes one
   configuration serve both regulatory models. Where it applies, an undecided
@@ -78,6 +99,10 @@ All notable changes to this project are documented in this file.
 
 ### Known limitations
 
+- Bridge discovery is same-window only. Cross-frame locator/proxy support,
+  legitimate-interest and vendor-level consent, TC-string decoding, and direct
+  service-purpose mapping remain outside Phase 7. GPP detection, parsing,
+  emission, and `__gpp` provider behavior are also excluded.
 - Under the US opt-out model, third-party tags released by the implied grant
   will set their own cookies before the visitor has decided anything. Nothing of
   libreconsent's reaches storage first, but that is the regime working as
