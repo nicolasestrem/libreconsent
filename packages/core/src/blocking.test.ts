@@ -199,6 +199,7 @@ function harness(overrides: Partial<CmpConfig> = {}): {
     withdraw: () => undefined,
     showPreferences: () => undefined,
     hide: () => undefined,
+    registerRenderer: () => () => undefined,
     on: (event, callback) => {
       const listener = callback as unknown as (state: ConsentState) => void;
       if (event === "consent" || event === "change") {

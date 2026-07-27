@@ -11,6 +11,7 @@ import type {
   ConsentApi,
   ConsentEvents,
   ConsentPrefill,
+  ConsentRenderer,
   ConsentSelection,
   ConsentState,
   NormalizedCategoryConfig,
@@ -49,6 +50,7 @@ function cloneReady(payload: ReadyEvent): ReadyEvent {
   return {
     reason: payload.reason,
     consent: payload.consent ? cloneState(payload.consent) : null,
+    region: payload.region,
     ...(payload.prefill ? { prefill: clonePrefill(payload.prefill) } : {}),
   };
 }
@@ -114,6 +116,8 @@ export class ConsentLifecycle implements ConsentApi {
 
   private region: string | null = null;
 
+  private renderer: ConsentRenderer | null = null;
+
   private readonly consentMode: ConsentModeAdapter;
 
   private readonly blocking: BlockingController;
@@ -160,11 +164,34 @@ export class ConsentLifecycle implements ConsentApi {
   }
 
   showPreferences(): void {
-    // Phase 1 intentionally has no DOM renderer. This remains a safe UI intent.
+    this.callRenderer("showPreferences");
   }
 
   hide(): void {
-    // Phase 1 intentionally has no DOM renderer. This remains a safe UI intent.
+    this.callRenderer("hide");
+  }
+
+  registerRenderer(renderer: ConsentRenderer): () => void {
+    this.renderer = renderer;
+    return () => {
+      if (this.renderer === renderer) {
+        this.renderer = null;
+      }
+    };
+  }
+
+  private callRenderer(intent: keyof ConsentRenderer): void {
+    const renderer = this.renderer;
+    if (!renderer) {
+      // Without a renderer the intents stay inert, so hosts may call them
+      // before `@libreconsent/ui` is mounted.
+      return;
+    }
+    try {
+      renderer[intent]();
+    } catch {
+      // A renderer failure must not propagate into host page code.
+    }
   }
 
   on<K extends keyof ConsentEvents>(
@@ -203,6 +230,7 @@ export class ConsentLifecycle implements ConsentApi {
     this.queue = [];
     this.active = null;
     this.readyPayload = null;
+    this.renderer = null;
     this.consentMode.dispose();
     this.blocking.dispose();
     for (const listeners of Object.values(this.listeners)) {
@@ -253,10 +281,12 @@ export class ConsentLifecycle implements ConsentApi {
         ? {
             reason,
             consent: this.active ? cloneState(this.active) : null,
+            region: this.region,
           }
         : {
             reason,
             consent: null,
+            region: this.region,
             prefill,
           };
     this.emit("ready", this.readyPayload);

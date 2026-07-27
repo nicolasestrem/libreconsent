@@ -4,6 +4,8 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Claude Code | Phase 4 UI (UI-1..8) | Added `@libreconsent/ui`: shadow-DOM banner and preferences modal, custom-property theming, EN+FR renderer dictionaries, focus management, and re-entry points. Core gained `registerRenderer()` and `ready.region` only. D-027..D-033 recorded. |
+| 2026-07-27 | Claude Code | Phase 4 gates (§11.3, §11.4) | Keyboard-only accept and reject journeys, equal-prominence check, and axe-core on both layers in light and dark themes. Two defects the gates caught are recorded as P-019 and P-020. |
 | 2026-07-27 | Claude Code | PR #6 review follow-up 2 (BLK-5) | Split gate queue state from execution state so `reloadOnWithdraw` cannot discard the page for a gate that never entered the document. P-018. |
 | 2026-07-27 | Claude Code | PR #6 review follow-up (BLK-1, BLK-3, BLK-5) | Re-read each gate's consent before it executes so withdrawal stops a queued gate; awaited inline modules; confined `src` removal to iframe gates; corrected D-025's dropped `sendBeacon` deletion. P-015..P-017. |
 | 2026-07-26 | Claude Code | Phase 3 blocking (BLK-1..3, BLK-5) | Added declarative script/embed gating with document-order execution, nonce propagation, i18n placeholders, and `reloadOnWithdraw`; D-020..D-026 recorded. |

@@ -783,6 +783,34 @@ describe("initialization, region resolution, and singleton behavior (CFG-9, CORE
       expect(api.getConsent()?.services.regional).toBe(false);
     },
   );
+
+  test("reports the uppercased resolved region on ready before any decision", async () => {
+    const api = start(baseConfig({ resolveRegion: async () => " fr " }));
+
+    const ready = await waitForReady(api);
+
+    expect(ready.region).toBe("FR");
+    expect(ready.consent).toBeNull();
+  });
+
+  test.each([
+    { name: "no resolver", resolveRegion: undefined },
+    { name: "null resolution", resolveRegion: async () => null },
+    {
+      name: "rejected resolution",
+      resolveRegion: async () => {
+        throw new Error("offline");
+      },
+    },
+  ])("reports a null ready region for $name", async ({ resolveRegion }) => {
+    const api = start(
+      resolveRegion ? baseConfig({ resolveRegion }) : baseConfig(),
+    );
+
+    const ready = await waitForReady(api);
+
+    expect(ready.region).toBeNull();
+  });
 });
 
 describe("consent lifecycle and invariants (CORE-2..4, CORE-6..7, CORE-10)", () => {
@@ -1046,7 +1074,7 @@ describe("consent lifecycle and invariants (CORE-2..4, CORE-6..7, CORE-10)", () 
     });
   });
 
-  test("keeps Phase 1 UI intents DOM-safe and renderer-free", async () => {
+  test("keeps UI intents DOM-safe when no renderer is registered", async () => {
     document.body.innerHTML = "<main>Site</main>";
     const api = start(baseConfig());
     await waitForReady(api);
@@ -1054,6 +1082,69 @@ describe("consent lifecycle and invariants (CORE-2..4, CORE-6..7, CORE-10)", () 
     expect(api.showPreferences()).toBeUndefined();
     expect(api.hide()).toBeUndefined();
     expect(document.body.innerHTML).toBe("<main>Site</main>");
+  });
+
+  test("forwards UI intents to a registered renderer until it unregisters", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const renderer = { showPreferences: vi.fn(), hide: vi.fn() };
+
+    const unregister = api.registerRenderer(renderer);
+    api.showPreferences();
+    api.hide();
+
+    expect(renderer.showPreferences).toHaveBeenCalledOnce();
+    expect(renderer.hide).toHaveBeenCalledOnce();
+
+    unregister();
+    api.showPreferences();
+    api.hide();
+
+    expect(renderer.showPreferences).toHaveBeenCalledOnce();
+    expect(renderer.hide).toHaveBeenCalledOnce();
+  });
+
+  test("replaces an earlier renderer and ignores its stale unregister", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const first = { showPreferences: vi.fn(), hide: vi.fn() };
+    const second = { showPreferences: vi.fn(), hide: vi.fn() };
+
+    const unregisterFirst = api.registerRenderer(first);
+    api.registerRenderer(second);
+    unregisterFirst();
+    api.showPreferences();
+
+    expect(first.showPreferences).not.toHaveBeenCalled();
+    expect(second.showPreferences).toHaveBeenCalledOnce();
+  });
+
+  test("isolates renderer failures from the caller", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    api.registerRenderer({
+      showPreferences: () => {
+        throw new Error("renderer failed");
+      },
+      hide: () => {
+        throw new Error("renderer failed");
+      },
+    });
+
+    expect(() => api.showPreferences()).not.toThrow();
+    expect(() => api.hide()).not.toThrow();
+  });
+
+  test("drops the renderer on reset", async () => {
+    const api = start(baseConfig());
+    await waitForReady(api);
+    const renderer = { showPreferences: vi.fn(), hide: vi.fn() };
+    api.registerRenderer(renderer);
+
+    api.reset();
+    api.showPreferences();
+
+    expect(renderer.showPreferences).not.toHaveBeenCalled();
   });
 });
 
@@ -1449,7 +1540,7 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
     const api = start(baseConfig());
     const ready = await waitForReady(api);
 
-    expect(ready).toEqual({ reason: "new", consent: null });
+    expect(ready).toEqual({ reason: "new", consent: null, region: null });
     expect(api.getConsent()).toBeNull();
   });
 
@@ -1476,7 +1567,7 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
     const api = start(baseConfig());
     const ready = await waitForReady(api);
 
-    expect(ready).toEqual({ reason: "new", consent: null });
+    expect(ready).toEqual({ reason: "new", consent: null, region: null });
     expect(api.getConsent()).toBeNull();
   });
 
@@ -1530,7 +1621,7 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
     const api = start(baseConfig({ storage: { expiresDays: 1 } }));
     const ready = await waitForReady(api);
 
-    expect(ready).toEqual({ reason: "expired", consent: null });
+    expect(ready).toEqual({ reason: "expired", consent: null, region: null });
     expect(api.getConsent()).toBeNull();
   });
 
@@ -1603,6 +1694,7 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
     expect(ready).toEqual({
       reason: "revision",
       consent: null,
+      region: null,
       prefill: {
         categories: {
           necessary: true,

@@ -6,6 +6,37 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- Phase 4 UI: `@libreconsent/ui` ships `mount(api, options?)`, rendering the
+  consent banner (`bar-bottom`, `box` or `modal`) and the preferences modal in
+  an open shadow root, with a light-DOM fallback. Accept all and reject all are
+  emitted as the same button style in the same group, so equal prominence
+  cannot be undone by a theme or layout.
+- Preferences second layer: per-category sections, per-service toggles with
+  mixed-state category checkboxes, and collapsible cookie tables. Readonly
+  categories are stated as "always on" and expose no control; services excluded
+  by `onlyRegions` are not rendered at all, because the core cannot grant them.
+- WCAG 2.1 AA behaviour: labelled dialogs, focus trap, Escape to close, focus
+  restore to the invoking control, visible focus, and `prefers-reduced-motion`
+  support. axe-core runs against both layers in light and dark themes in CI,
+  alongside keyboard-only accept and reject journeys and an equal-prominence
+  check.
+- Theming through `--libreconsent-*` custom properties only, with automatic
+  `prefers-color-scheme` support and a `theme: "light" | "dark"` override. No
+  external asset, font or network request.
+- English and French renderer dictionaries (`uiEn`, `uiFr`) covering the banner,
+  preferences and cookie-table strings, all overridable per locale through the
+  core's `i18n.translations`. Browser-language selection for `i18n.autoDetect`
+  is now implemented, and the resolved locale is written to the mount point's
+  `lang` attribute.
+- Persistent re-entry: a config-removable floating settings button, a
+  `data-cmp-open` attribute binding, and `api.showPreferences()`.
+- `registerRenderer()` on `ConsentApi`, which makes the core's `showPreferences()`
+  and `hide()` intents operative once a renderer is mounted.
+- `region` on the `ready` event payload, so a renderer can tell which services
+  are grantable before any decision exists.
+- `specs/A11Y_CHECKLIST.md` for the manual accessibility passes required by UI-3.
+- An examples-server route for the built UI bundle, and a `basic-site` fixture
+  that mounts the real UI with services and cookie disclosures.
 - Phase 3 declarative blocking in `@libreconsent/core`: `type="text/plain"`
   script gates re-created in document order with `async`/`defer` semantics and
   attributes preserved, `data-cmp-service` and `data-cmp-type` support, and
