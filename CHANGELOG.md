@@ -4,11 +4,6 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-
-- Documented the exported maximum-retention boundary used by the remote Worker
-  purge regression.
-
 ## [1.0.0] - 2026-07-28
 
 ### Added
@@ -257,6 +252,9 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- The dedicated-account Worker purge gate now advances beyond the maximum
+  supported retention window instead of assuming the default retention, and
+  its exported boundary constant carries the required TSDoc.
 - The manual Worker account gate now applies migrations through the configured
   `DB` binding instead of a hard-coded test database name, and its setup
   explicitly requires `DB.remote: true` in the ignored test-only Wrangler

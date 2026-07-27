@@ -217,6 +217,11 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
      Custom test database names therefore resolve through their supplied
      Wrangler config while ordinary local development remains local-safe.
      P-059/P-060.
+  8. **Post-merge review follow-up:** the scheduled test time now advances
+     beyond the maximum accepted 3,650-day retention window rather than the
+     395-day default, so every valid account configuration reaches the purge
+     assertion. A pure boundary regression pins the relationship without
+     requiring account credentials. P-061.
 
 ### Phase 9 — Release
 - **Date / PR:** 2026-07-28 · Phase 9 PR pending · **TRACEABILITY audit: PASS — 62/62 requirements**
@@ -234,7 +239,7 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   3.08/4 kB; head snippet 0.76/1.5 kB.
 - **Phase 8 prerequisite:** merged-main CI
   [run 30307539024](https://github.com/nicolasestrem/libreconsent/actions/runs/30307539024)
-  passed. P-065 now advances the account purge clock by 3,651 days and its
+  passed. P-061 now advances the account purge clock by 3,651 days and its
   pure maximum-boundary regression is green. The ignored test-account config
   exists, but the URL, Origin, and bearer environment variables were
   unavailable, so this branch did not redeploy or rerun the external account
@@ -270,5 +275,5 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   a real AdSense domain using Google Privacy & messaging; exact Safari 15.4
   validation remains unproven; npm publication is deferred, so this work is a
   verified release candidate rather than registry availability.
-- **Findings:** P-061..P-070, all fixed and regression-tested. No blocker or
-  major finding remains open.
+- **Findings:** Phase 8 prerequisite P-061 and Phase 9 P-062..P-070 are fixed
+  and regression-tested. No blocker or major finding remains open.
