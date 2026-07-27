@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- The dedicated-account Worker purge gate now advances beyond the maximum
+  supported retention window instead of assuming the default retention.
+
 ### Added
 
 - Phase 8 optional decision receipts: `receiptEndpoint` posts a persisted
