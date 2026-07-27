@@ -955,6 +955,64 @@ describe("discovery and teardown", () => {
     expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
   });
 
+  test("keeps confirmed listener updates active after the discovery deadline", () => {
+    vi.useFakeTimers();
+    const startedAt = new Date("2026-07-27T00:00:00.000Z");
+    vi.setSystemTime(startedAt);
+    let callback: TcfApiCallback | undefined;
+    const external = vi.fn<TcfApi>((command, _version, registered) => {
+      if (command === "addEventListener") {
+        callback = registered;
+        invokeTcfCallback(registered, {
+          eventStatus: "cmpuishown",
+          gdprApplies: true,
+          listenerId: 48,
+        });
+      }
+    });
+    setTcfApi(external);
+    const fallback = new FallbackStub();
+    const factory = vi.fn(() => fallback);
+    const api = start({ timeoutMs: 10, fallback: factory });
+    const ready = vi.fn();
+    const consent = vi.fn();
+    api.on("ready", ready);
+    api.on("consent", consent);
+
+    expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
+    vi.setSystemTime(new Date(startedAt.getTime() + 11));
+    invokeTcfCallback(
+      callback as TcfApiCallback,
+      tcfData(
+        {
+          1: true,
+          2: false,
+          3: false,
+          4: false,
+          7: true,
+          8: true,
+          9: true,
+          10: true,
+        },
+        { eventStatus: "useractioncomplete", listenerId: 48 },
+      ),
+    );
+
+    expect(factory).not.toHaveBeenCalled();
+    expect(consent).toHaveBeenCalledOnce();
+    expect(api.getConsent()).toMatchObject({
+      source: "tcf",
+      categories: {
+        necessary: true,
+        analytics: true,
+        marketing: false,
+      },
+    });
+    expect(external.mock.calls.map(([command]) => command)).toEqual([
+      "addEventListener",
+    ]);
+  });
+
   test("discovers a replacement without registering a silent stub twice", () => {
     vi.useFakeTimers();
     const silent = vi.fn<TcfApi>();

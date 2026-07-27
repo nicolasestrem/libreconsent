@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Codex | PR #11 review follow-up (BR-2..4) | Kept successfully registered CMP listeners authoritative after the discovery deadline so later user decisions cannot trigger fallback. P-053; final gate green with 354 unit, 55 E2E, and 15 a11y tests; bridge 3.03 kB. |
 | 2026-07-27 | Codex | PR #11 review follow-up (BR-1) | Bound the first confirmed numeric TCF listener ID to its owning live CMP so later provider replacement cannot misroute teardown, while preserving queued-stub handoff. P-052; final gate green with 353 unit, 55 E2E, and 15 a11y tests; bridge 3.03 kB. |
 | 2026-07-27 | Codex | PR #11 review follow-up (BR-2..4) | Required callback-confirmed TCF registration before one-shot readiness, kept discovery live after asynchronous rejection, removed late confirmations, and enforced the absolute deadline before CMP acceptance. D-050; P-050/P-051; final gate green with 352 unit, 55 E2E, and 15 a11y tests; bridge 2.99 kB. |
 | 2026-07-27 | Codex | PR #11 review follow-up (BR-2..4) | Kept discovery alive after synchronous TCF registration rejection and made fallback readiness atomic with successful subscription setup. P-048/P-049; final gate green with 346 unit, 55 E2E, and 15 a11y tests; bridge 2.87 kB. |

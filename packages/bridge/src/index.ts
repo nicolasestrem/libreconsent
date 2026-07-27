@@ -510,7 +510,10 @@ class BridgeLifecycle implements BridgeApi {
             }
             return;
           }
-          if (Date.now() - this.startedAt >= this.config.timeoutMs) {
+          if (
+            !registrationConfirmed &&
+            Date.now() - this.startedAt >= this.config.timeoutMs
+          ) {
             if (success === true && data && typeof data === "object") {
               const lateListenerId = data.listenerId;
               if (typeof lateListenerId === "number") {

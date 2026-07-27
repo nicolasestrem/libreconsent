@@ -27,6 +27,9 @@ All notable changes to this project are documented in this file.
   Delaying core/UI creation until that handoff ensures only one banner owner.
   A throwing factory fails closed to `source: "none"` without an unhandled
   asynchronous error.
+- Confirmed external CMP listeners remain active after the discovery deadline,
+  so a later user decision continues through the TCF bridge and cannot
+  incorrectly activate the fallback UI.
 - Phase 6 US state privacy: the `usPrivacy` configuration block
   (`{ enabled, regions, doNotSellSelector, respectGPC }`) makes one
   configuration serve both regulatory models. Where it applies, an undecided

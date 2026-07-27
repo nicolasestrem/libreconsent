@@ -63,6 +63,7 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-050 | PR #11 bot review | BR-2, BR-3, BR-4 | P-048 recognized rejection only while the provider call remained on the stack. A queued or proxied CMP could return first and later report `success === false`; the bridge had already published one-shot `source: "tcf"` readiness, so discovery and fallback were permanently suppressed despite no listener. Per D-050, require `success === true` callback confirmation before TCF readiness, keep polling for a replacement without registering the same pending provider twice, resume bounded discovery after asynchronous rejection, and remove rather than accept listener confirmation arriving after handoff or deadline. | major | done | This PR |
 | P-051 | PR #11 bot review | BR-2, BR-4 | A delayed polling timer looked up and accepted `window.__tcfapi` before checking elapsed time. If a long task installed the provider only after `timeoutMs` and then yielded, that late CMP suppressed the required `none` / fallback handoff. Enforce the absolute deadline before candidate lookup on every poll. | major | done | This PR |
 | P-052 | PR #11 bot review | BR-1 | The active-provider lookup required for queued-stub handoff was also used during normal reset after a CMP had already confirmed ownership. If `window.__tcfapi` was later replaced by an unrelated provider, the bridge sent the original provider-local listener ID to the replacement, leaking the owner listener or colliding with an unrelated ID. Capture the first numeric listener ID and its live provider atomically at successful confirmation; use that retained owner for normal teardown while preserving live lookup for pre-confirmation late/stale callbacks. | major | done | This PR |
+| P-053 | PR #11 bot review | BR-2, BR-3, BR-4 | The absolute discovery deadline was checked on every listener callback, including ordinary consent updates after registration had already succeeded. A user deciding after the timeout could therefore lose the live CMP listener and activate fallback after TCF readiness. Limit the deadline to initial registration confirmation; confirmed listeners remain authoritative until teardown. | major | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -75,5 +76,5 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-040..P-052 were fixed and regression-tested within the Phase 7 review
+_None. P-040..P-053 were fixed and regression-tested within the Phase 7 review
 follow-ups._
