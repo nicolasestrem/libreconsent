@@ -2,7 +2,7 @@
 
 Consent-mode-first, self-hosted consent infrastructure.
 
-## Phase 7 status
+## Phase 8 status
 
 `@libreconsent/core` implements validated configuration, consent state and
 lifecycle events, region resolution, first-party cookie/localStorage
@@ -57,7 +57,18 @@ layout-shift check proving the banner displaces no content. Completed
 requirements and their verification evidence are tracked in
 [`specs/TRACEABILITY.md`](specs/TRACEABILITY.md) and enforced in CI.
 
-The next product phase is Phase 8 — the optional Worker receipt service.
+Phase 8 adds an optional, failure-isolated decision receipt hook and
+[`@libreconsent/worker-log`](packages/worker-log/README.md), a dependency-free
+Cloudflare Worker backed by D1. Only explicit persisted decisions are posted;
+restored, revision-prefill, implied-US, and GPC-derived states remain silent.
+The service validates an exact Origin and matching host, caps and validates the
+payload, rate-limits by `Origin + consentId` without IP data, protects retrieval
+with a bearer secret, and purges by server receipt time on a daily cron. It
+stores no IP, user agent, request header, fingerprint, region, or service
+choice. The feature is inert unless `receiptEndpoint` is configured, and a
+delivery failure never affects consent behavior.
+
+Phase 9 publishing has not started.
 
 ## Development
 

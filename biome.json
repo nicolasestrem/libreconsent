@@ -4,6 +4,9 @@
     "includes": [
       "**",
       "!**/dist",
+      "!**/.wrangler",
+      "!**/.wrangler-dry-run",
+      "!**/worker-configuration.d.ts",
       "!playwright-report",
       "!test-results",
       "!pnpm-lock.yaml",

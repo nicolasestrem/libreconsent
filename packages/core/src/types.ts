@@ -211,6 +211,14 @@ export interface I18nConfig {
 export interface CmpConfig {
   /** Ordered consent categories. `necessary` is injected when absent. */
   categories: CategoryConfig[];
+  /**
+   * Complete optional consent-receipt target (LOG-4).
+   *
+   * Relative and absolute HTTP(S) URLs are accepted. The core posts only
+   * explicit decisions, never appends a path, never retries, and never lets a
+   * delivery failure affect consent behavior.
+   */
+  receiptEndpoint?: string;
   /** Consent Mode settings reserved for Phase 2 signaling. */
   consentMode?: ConsentModeConfig;
   /** First-party persistence settings. */
@@ -323,6 +331,8 @@ export interface NormalizedServiceConfig {
 export interface NormalizedCmpConfig {
   /** Ordered categories with `necessary` first. */
   categories: NormalizedCategoryConfig[];
+  /** Trimmed complete consent-receipt target, when configured. */
+  receiptEndpoint?: string;
   /** Fully defaulted Consent Mode settings. */
   consentMode: NormalizedConsentModeConfig;
   /** Fully defaulted persistence settings. */

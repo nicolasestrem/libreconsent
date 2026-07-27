@@ -18,5 +18,6 @@
       "@libreconsent/core": ["packages/core/src/index.ts"]
     }
   },
-  "include": ["packages/*/src/**/*.ts", "tests/**/*.ts", "*.ts"]
+  "include": ["packages/*/src/**/*.ts", "tests/**/*.ts", "*.ts"],
+  "exclude": ["packages/worker-log"]
 }

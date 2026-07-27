@@ -12,19 +12,23 @@ budgets" for NFR-1, "E2E tests" for the CSP and network-silence fixtures):
 - No `eval`, `new Function`, `innerHTML` / `outerHTML` / `insertAdjacentHTML`
   assignment, or `document.write` in `packages/{core,ui,bridge}/src` (G-6).
 - No `fetch`, `XMLHttpRequest`, `sendBeacon`, `WebSocket`, `EventSource` or
-  `importScripts` in those sources — the library originates no network request
-  (NFR-2, NFR-3).
+  `importScripts` in those sources except the single LOG-4 `fetch` in
+  `packages/core/src/receipt.ts`; without `receiptEndpoint` the library
+  originates no network request (NFR-2, NFR-3).
 - No `__tcfapi` assignment anywhere; read-only consumption in `bridge` is the one
   permitted exception (G-1).
 - `core`, `ui` and `bridge` declare no runtime dependencies and no install
   scripts (G-2, supply chain).
-- `EXCEPTIONS` in the scan is empty, and any future entry must be a reviewed
-  diff naming the requirement that justifies it.
+- `EXCEPTIONS` contains only the reviewed LOG-4 `fetch` waiver for
+  `packages/core/src/receipt.ts`; any additional entry must be a reviewed diff
+  naming the requirement that justifies it.
 
 ## Code and supply chain
 
 - [ ] `pnpm-lock.yaml` changes in this diff are intentional and every new
       dev-dependency was reviewed; no dependency was added to a shipped package.
+- [ ] `@libreconsent/worker-log` has no runtime dependency; Wrangler,
+      Workers types, and the Workers Vitest pool remain root dev-dependencies.
 - [ ] No new global side effect beyond those documented. The BLK-4 net's
       `HTMLScriptElement.prototype` patch is installed only when a blocklist is
       configured, is scoped to script elements, and is reverted by `reset()`.
@@ -59,6 +63,18 @@ budgets" for NFR-1, "E2E tests" for the CSP and network-silence fixtures):
       self-hosting is the documented default.
 - [ ] The optional receipt endpoint (LOG-4, Phase 8) remains opt-in and off by
       default, and its failure can never affect the consent UX.
+- [ ] Receipt schema and retrieval output contain only consent ID, host,
+      revision, category booleans, client timestamp, action, and server receipt
+      time. No IP, user agent, request header, fingerprint, region, or service
+      choice is stored or exposed.
+- [ ] Receipt writes require an exact allowed Origin and matching payload host;
+      retrieval requires the untracked bearer secret.
+- [ ] API responses carry `Cache-Control: no-store`, and Workers observability
+      remains explicitly disabled so request URLs and authorization headers do
+      not become a second receipt or credential store.
+- [ ] Retention uses server-controlled `received_at`, not the client timestamp,
+      and the scheduled-handler test proves time-travel purge without a
+      public test route.
 
 ## Isolation
 

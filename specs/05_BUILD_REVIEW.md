@@ -176,9 +176,41 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   17. **P-053 (major, fixed): the discovery deadline was still enforced after successful registration.** A normal `useractioncomplete` callback arriving after the timeout entered the late-registration branch even though an earlier callback had already confirmed the listener, removing the active CMP listener and activating fallback after TCF readiness. The absolute deadline now applies only until first successful confirmation; the regression moves the clock beyond the deadline before the user's decision and proves TCF remains active without listener removal or fallback creation.
 
 ### Phase 8 — Worker log
-- **Date / PR:** _pending_ · **PII audit (no IP/UA):** _pending_
-- **Verdict:** _pending_
-- **Findings:** —
+- **Date / PR:** 2026-07-27 · Phase 8 PR pending · **PII audit (no IP/UA): PASS**
+- **Verdict:** **PASS** — LOG-1..4 are implemented and the phase may close.
+- **Findings:**
+  1. **PII/storage audit:** the tracked D1 migration has exactly eight columns:
+     internal numeric ID, consent ID, host, revision, JSON categories, client
+     timestamp, action, and server `received_at`. The runtime schema test
+     inspects those columns and both indexes. Neither storage nor retrieval can
+     represent IP, user agent, request headers, fingerprint, region, or service
+     choices. Worker observability is explicitly disabled and JSON responses
+     are `no-store`, so invocation logs and caches do not become secondary
+     stores. P-055.
+  2. **Core isolation:** `receiptEndpoint` is optional and normalized/frozen as
+     the complete relative or absolute HTTP(S) target. Only explicit persisted
+     decisions send. Restores, revision prefills, implied US grants, and GPC
+     states stay silent; synchronous throws and promise rejection cannot alter
+     state, persistence, events, or UI. The one LOG-4 guardrail waiver is
+     file-and-pattern exact. P-054.
+  3. **Worker boundary:** exact Origin allowlisting and matching payload host,
+     16 KiB streaming cap, strict field/value validation, 30/minute
+     `Origin + consentId` rate limit without IP, bearer-only ascending retrieval,
+     and server-time retention all pass in the Cloudflare runtime against real
+     isolated D1 migrations.
+  4. **Remote proof:** dedicated Estrem test Worker and D1 resources completed
+     migration/deploy, unique POST, bearer GET, and scheduled time-travel purge.
+     Wrangler identified the D1 binding as `remote`; the deployed GET changed
+     from one receipt to an empty trail. No test-only purge route exists. D-055;
+     P-056.
+  5. **Review patches:** documentation path ambiguity and the core evidence
+     weaknesses were corrected. The final gate then caught the repository-level
+     phase assertion still pinned to Phase 7; it now asserts Phase 8. P-054..P-058
+     are closed; no blocker remains.
+  6. **Final local gate before phase marker:** 390 unit/runtime tests (368
+     repository + 22 Worker), 55 E2E, and 15 accessibility tests pass. Core is
+     8.75/12 kB gzip, core+UI 16.25/19 kB, bridge 3.03/4 kB, and the head snippet
+     714 B/1.5 kB.
 
 ### Phase 9 — Release
 - **Date / PR:** _pending_ · **TRACEABILITY audit:** _pending_

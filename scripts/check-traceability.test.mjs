@@ -145,6 +145,6 @@ describe("phase-aware traceability", () => {
     );
 
     expect(result.errors).toEqual([]);
-    expect(result.latestCompletedPhase).toBe(7);
+    expect(result.latestCompletedPhase).toBe(8);
   });
 });

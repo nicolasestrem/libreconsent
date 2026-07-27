@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- Phase 8 optional decision receipts: `receiptEndpoint` posts a persisted
+  explicit decision with `keepalive`, while restored, revision-prefill,
+  implied-US, and GPC-derived states remain silent. Delivery is off by default,
+  never retried, and fully isolated from state, persistence, events, and UI.
+- `@libreconsent/worker-log`: a dependency-free ES-module Cloudflare Worker,
+  tracked D1 migration, exact-origin CORS/host checks, strict 16 KiB JSON
+  validation, privacy-preserving `Origin + consentId` rate limiting, bearer-only
+  ordered retrieval, and daily server-time retention purge.
+- Cloudflare runtime integration tests backed by isolated Miniflare/D1 storage,
+  plus a manual dedicated-account round-trip and scheduled-purge command that
+  has no public test-only endpoint.
 - Phase 7 read-only bridge: `initBridge(config)` discovers a same-window
   external TCF v2 CMP with bounded exponential-backoff polling, subscribes
   through `addEventListener`, and exposes `getConsent()`, replayable `ready` /

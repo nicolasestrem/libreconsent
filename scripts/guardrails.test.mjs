@@ -81,14 +81,20 @@ const PROHIBITED_PATTERNS = [
  * "every exception still matches a real finding" test deletes the incentive to
  * leave stale waivers behind.
  *
- * It is empty today because nothing in core/ui/bridge needs a waiver. The
- * intended first entry is LOG-4's opt-in `receiptEndpoint` fetch when Phase 8
- * lands — a site owner has to configure that endpoint, so it is not telemetry.
+ * LOG-4's opt-in receipt delivery is the sole network waiver: a site owner has
+ * to configure the complete endpoint, so it is not telemetry or phone-home.
  *
  * @type {{ file: string, pattern: string, reason: string }[]}
  */
 // biome-ignore lint/suspicious/noExportsInTest: the waiver list is part of this guardrail's reviewed contract, so it is deliberately readable from outside the suite.
-export const EXCEPTIONS = [];
+export const EXCEPTIONS = [
+  {
+    file: "packages/core/src/receipt.ts",
+    pattern: "fetch(",
+    reason:
+      "LOG-4 permits one opt-in, failure-isolated receipt POST to the site-configured endpoint.",
+  },
+];
 
 const STRING_TERMINATORS = { single: "'", double: '"', template: "`" };
 

@@ -2,6 +2,7 @@ import { BlockingController } from "./blocking";
 import { AD_SIGNALS } from "./config";
 import { ConsentModeAdapter } from "./consent-mode";
 import { ConsentError } from "./errors";
+import { deliverReceipt } from "./receipt";
 import {
   clearStored,
   persistState,
@@ -473,6 +474,17 @@ export class ConsentLifecycle implements ConsentApi {
     ).toISOString();
     this.active = base;
     persistState(this.config.storage, base);
+    if (this.config.receiptEndpoint) {
+      deliverReceipt(
+        this.config.receiptEndpoint,
+        base,
+        decision.kind === "withdraw"
+          ? "withdraw"
+          : previous && !previous.implied
+            ? "change"
+            : "consent",
+      );
+    }
 
     if (decision.kind === "withdraw") {
       this.emit("change", cloneState(base));

@@ -158,6 +158,7 @@ afterEach(() => {
   window.localStorage.clear();
   clearAllCookies();
   document.body.replaceChildren();
+  Reflect.deleteProperty(navigator, "globalPrivacyControl");
   delete (window as typeof window & { gtag?: unknown }).gtag;
   delete (window as typeof window & { dataLayer?: unknown }).dataLayer;
   vi.unstubAllGlobals();
@@ -213,6 +214,47 @@ describe("configuration (CFG-1..7)", () => {
     expect(() => {
       config.storage.expiresDays = 1;
     }).toThrow(TypeError);
+  });
+
+  test.each([
+    {
+      configured: "  /api/consent-receipt?source=cmp  ",
+      normalized: "/api/consent-receipt?source=cmp",
+      form: "relative",
+    },
+    {
+      configured: " https://receipts.example.com/receipt ",
+      normalized: "https://receipts.example.com/receipt",
+      form: "absolute",
+    },
+  ])(
+    "normalizes and freezes an optional complete $form receipt endpoint (LOG-4)",
+    async ({ configured, normalized }) => {
+      const api = start(baseConfig({ receiptEndpoint: configured }));
+      await waitForReady(api);
+
+      expect(api.getConfig().receiptEndpoint).toBe(normalized);
+      expect(Object.isFrozen(api.getConfig())).toBe(true);
+    },
+  );
+
+  test.each([
+    { endpoint: "", label: "empty" },
+    { endpoint: "   ", label: "whitespace-only" },
+    { endpoint: "http://", label: "malformed" },
+    { endpoint: "mailto:audit@example.com", label: "unsupported protocol" },
+    { endpoint: 42, label: "non-string" },
+  ])("rejects a $label receipt endpoint (LOG-4)", ({ endpoint }) => {
+    expectConsentError(
+      () =>
+        start(
+          baseConfig({
+            receiptEndpoint: endpoint as string,
+          }),
+        ),
+      "INVALID_CONFIG",
+      "receiptEndpoint",
+    );
   });
 
   test("moves a configured necessary category first and forces its invariants", async () => {
@@ -699,6 +741,19 @@ describe("initialization, region resolution, and singleton behavior (CFG-9, CORE
 
     expectConsentError(
       () => start(baseConfig({ revision: 2 })),
+      "INVALID_CONFIG",
+      "config",
+    );
+  });
+
+  test("includes the normalized receipt endpoint in singleton compatibility (LOG-4)", () => {
+    const first = start(baseConfig({ receiptEndpoint: " /audit/receipt " }));
+
+    expect(start(baseConfig({ receiptEndpoint: "/audit/receipt" }))).toBe(
+      first,
+    );
+    expectConsentError(
+      () => start(baseConfig({ receiptEndpoint: "/audit/other" })),
       "INVALID_CONFIG",
       "config",
     );
@@ -1861,6 +1916,235 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
       }),
     );
   });
+});
+
+describe("optional consent receipt delivery (LOG-4)", () => {
+  const endpoint = "/api/consent-receipt";
+  type FetchArguments = [
+    input: RequestInfo | URL,
+    init?: RequestInit | undefined,
+  ];
+  type FetchImplementation = (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) => Promise<Response>;
+
+  function parseReceiptCall(call: FetchArguments): Record<string, unknown> {
+    const body = call[1]?.body;
+    if (typeof body !== "string") {
+      throw new TypeError("Expected a JSON receipt body.");
+    }
+    return JSON.parse(body) as Record<string, unknown>;
+  }
+
+  test("stays completely inert when no endpoint is configured", async () => {
+    const fetchMock = vi.fn<FetchImplementation>();
+    vi.stubGlobal("fetch", fetchMock);
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    api.acceptAll();
+    api.setConsent({ categories: { analytics: false } });
+    api.withdraw();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("posts the exact payload after persistence with keepalive and maps actions", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("location", {
+      host: "app.example.test:8443",
+      protocol: "https:",
+    });
+    const storedAtDelivery: ConsentState[] = [];
+    const fetchMock = vi.fn<FetchImplementation>(() => {
+      const stored = window.localStorage.getItem("libreconsent");
+      if (!stored) {
+        throw new Error("Receipt delivery preceded persistence.");
+      }
+      storedAtDelivery.push(
+        JSON.parse(decodeURIComponent(stored)) as ConsentState,
+      );
+      return Promise.resolve(new Response(null, { status: 201 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const api = start(baseConfig({ receiptEndpoint: endpoint }));
+    await waitForReady(api);
+
+    vi.setSystemTime(new Date("2026-07-27T10:00:00.000Z"));
+    api.acceptAll();
+    vi.setSystemTime(new Date("2026-07-27T11:00:00.000Z"));
+    api.setConsent({ categories: { analytics: false } });
+    vi.setSystemTime(new Date("2026-07-27T12:00:00.000Z"));
+    api.withdraw();
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const actions = fetchMock.mock.calls.map(
+      (call) => parseReceiptCall(call).action,
+    );
+    expect(actions).toEqual(["consent", "change", "withdraw"]);
+
+    const [target, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    const state = api.getConsent();
+    const payloads = fetchMock.mock.calls.map((call) => parseReceiptCall(call));
+    const firstPayload = payloads[0];
+    expect(target).toBe(endpoint);
+    expect(init).toMatchObject({
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      keepalive: true,
+    });
+    expect(firstPayload).toEqual({
+      consentId: expect.stringMatching(UUID_V4),
+      host: "app.example.test:8443",
+      revision: 1,
+      categories: {
+        necessary: true,
+        analytics: true,
+        marketing: true,
+      },
+      ts: "2026-07-27T10:00:00.000Z",
+      action: "consent",
+    });
+    expect(storedAtDelivery).toHaveLength(3);
+    for (const [index, stored] of storedAtDelivery.entries()) {
+      expect(payloads[index]).toMatchObject({
+        consentId: stored.consentId,
+        revision: stored.revision,
+        categories: stored.categories,
+        ts: stored.updatedAt,
+      });
+    }
+    expect(state?.categories).toEqual({
+      necessary: true,
+      analytics: false,
+      marketing: false,
+    });
+  });
+
+  test("delivers queued decisions in their original order", async () => {
+    let resolveRegion: ((region: string | null) => void) | undefined;
+    const fetchMock = vi.fn<FetchImplementation>(() =>
+      Promise.resolve(new Response(null, { status: 201 })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const api = start(
+      baseConfig({
+        receiptEndpoint: endpoint,
+        resolveRegion: () =>
+          new Promise((resolve) => {
+            resolveRegion = resolve;
+          }),
+      }),
+    );
+
+    api.rejectAll();
+    api.acceptAll();
+    api.withdraw();
+    resolveRegion?.(null);
+    await waitForReady(api);
+
+    expect(
+      fetchMock.mock.calls.map((call) => parseReceiptCall(call)),
+    ).toMatchObject([
+      { action: "consent", categories: { analytics: false } },
+      { action: "change", categories: { analytics: true } },
+      { action: "withdraw", categories: { analytics: false } },
+    ]);
+  });
+
+  test("never posts restored or revision-prefill initialization states", async () => {
+    const fetchMock = vi.fn<FetchImplementation>(() =>
+      Promise.resolve(new Response(null, { status: 201 })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    setDocumentCookie(`libreconsent=${encodeState(storedState())}; Path=/`);
+    const restored = start(baseConfig({ receiptEndpoint: endpoint }));
+    await waitForReady(restored);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    restored.rejectAll();
+    expect(
+      parseReceiptCall(fetchMock.mock.calls[0] as FetchArguments).action,
+    ).toBe("change");
+
+    restored.reset();
+    fetchMock.mockClear();
+    setDocumentCookie(
+      `libreconsent=${encodeState(storedState({ revision: 1 }))}; Path=/`,
+    );
+    const revised = start(
+      baseConfig({ receiptEndpoint: endpoint, revision: 2 }),
+    );
+    const ready = await waitForReady(revised);
+    expect(ready.reason).toBe("revision");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    revised.setConsent({ categories: { analytics: true } });
+    expect(
+      parseReceiptCall(fetchMock.mock.calls[0] as FetchArguments).action,
+    ).toBe("consent");
+  });
+
+  test("never posts implied or GPC-derived states and treats the next decision as consent", async () => {
+    Object.defineProperty(navigator, "globalPrivacyControl", {
+      configurable: true,
+      value: true,
+    });
+    const fetchMock = vi.fn<FetchImplementation>(() =>
+      Promise.resolve(new Response(null, { status: 201 })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const api = start(
+      baseConfig({
+        receiptEndpoint: endpoint,
+        resolveRegion: async () => "US",
+        usPrivacy: { enabled: true },
+      }),
+    );
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toMatchObject({ implied: true, gpcApplied: true });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    api.rejectAll();
+    expect(
+      parseReceiptCall(fetchMock.mock.calls[0] as FetchArguments).action,
+    ).toBe("consent");
+    Reflect.deleteProperty(navigator, "globalPrivacyControl");
+  });
+
+  test.each([
+    {
+      label: "synchronous fetch throw",
+      fetcher: vi.fn(() => {
+        throw new Error("offline");
+      }),
+    },
+    {
+      label: "asynchronous fetch rejection",
+      fetcher: vi.fn(() => Promise.reject(new Error("offline"))),
+    },
+  ])(
+    "isolates a $label from state, storage, and events",
+    async ({ fetcher }) => {
+      vi.stubGlobal("fetch", fetcher);
+      const changes: ConsentState[] = [];
+      const api = start(baseConfig({ receiptEndpoint: endpoint }));
+      api.on("consent", (state) => changes.push(state));
+      await waitForReady(api);
+
+      expect(() => api.acceptAll()).not.toThrow();
+      await Promise.resolve();
+
+      expect(api.getConsent()?.categories.analytics).toBe(true);
+      expect(window.localStorage.getItem("libreconsent")).not.toBeNull();
+      expect(changes).toHaveLength(1);
+    },
+  );
 });
 
 describe("US state privacy configuration (CFG-8)", () => {

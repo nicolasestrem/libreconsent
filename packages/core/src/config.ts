@@ -428,6 +428,21 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
   requireRecord(config, "config");
   const { categories, referencedKeys } = normalizeCategories(config.categories);
 
+  let receiptEndpoint: string | undefined;
+  if (config.receiptEndpoint !== undefined) {
+    requireNonEmptyString(config.receiptEndpoint, "receiptEndpoint");
+    receiptEndpoint = config.receiptEndpoint.trim();
+    let parsed: URL;
+    try {
+      parsed = new URL(receiptEndpoint, "https://libreconsent.invalid/");
+    } catch {
+      invalid("receiptEndpoint", "must be a valid relative or absolute URL");
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      invalid("receiptEndpoint", "must use the HTTP or HTTPS protocol");
+    }
+  }
+
   if (config.storage !== undefined) {
     requireRecord(config.storage, "storage");
   }
@@ -554,6 +569,7 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
 
   const normalized: NormalizedCmpConfig = {
     categories,
+    ...(receiptEndpoint === undefined ? {} : { receiptEndpoint }),
     consentMode: {
       enabled: config.consentMode?.enabled ?? false,
       mapping,

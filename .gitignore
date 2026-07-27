@@ -3,4 +3,11 @@ dist/
 coverage/
 playwright-report/
 test-results/
+.wrangler/
+**/.wrangler/
+**/.wrangler-dry-run/
+**/.dev.vars
+**/.dev.vars.*
+packages/worker-log/wrangler.test-account.jsonc
+packages/worker-log/wrangler.local.jsonc
 .DS_Store
