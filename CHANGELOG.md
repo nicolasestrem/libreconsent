@@ -27,7 +27,9 @@ All notable changes to this project are documented in this file.
   `showOptOut()` on either the core API or the mount handle. It is deliberately
   minimal and separate from the consent banner: one action that denies the
   ad-mapped categories, leaves everything else as it was, and persists like any
-  other decision. Four new translation keys ship in English and French.
+  other decision. Four new translation keys ship in English and French. A
+  selector the browser cannot parse is rejected by `init()` like any other
+  invalid configuration, rather than leaving the link quietly inoperative.
 - `specs/US_NOTES.md`: the US-4 research record, citing the live Google and
   Global Privacy Control sources with retrieval dates, and explaining why
   libreconsent does not set Google's restricted data processing flags for you

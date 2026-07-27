@@ -23,6 +23,9 @@ const EMPTY_CHOICES: Choices = { categories: {}, services: {} };
  *
  * `closest()` throws on a malformed selector and this runs on every click in
  * the document, so one bad configuration value must not break the whole page.
+ * The core rejects an unparseable selector at `init()` (CFG-6), so this is the
+ * net for a config that never went through it — a host supplying its own
+ * `ConsentApi`, or one normalized where there was no DOM to validate against.
  */
 function matchesSelector(target: Element, selector: string): boolean {
   try {

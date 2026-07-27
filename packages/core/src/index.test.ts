@@ -1896,6 +1896,18 @@ describe("US state privacy configuration (CFG-8)", () => {
     });
   });
 
+  test("accepts a compound selector, so the check is not merely permissive", async () => {
+    // Guards the selector validation against being tightened into something
+    // that only accepts simple selectors.
+    const selector = 'footer a[href^="#"]:not(.external), [data-optout] > span';
+    const api = start(
+      baseConfig({ usPrivacy: { enabled: true, doNotSellSelector: selector } }),
+    );
+    await waitForReady(api);
+
+    expect(api.getConfig().usPrivacy.doNotSellSelector).toBe(selector);
+  });
+
   test.each([
     { name: "block", usPrivacy: [] as unknown, path: "usPrivacy" },
     {
@@ -1911,6 +1923,13 @@ describe("US state privacy configuration (CFG-8)", () => {
     {
       name: "doNotSellSelector",
       usPrivacy: { doNotSellSelector: "  " },
+      path: "usPrivacy.doNotSellSelector",
+    },
+    {
+      // Swallowed by the UI's click guard if it reaches the browser, which
+      // leaves the US-2 entry point dead and says nothing (CFG-6).
+      name: "unparseable doNotSellSelector",
+      usPrivacy: { doNotSellSelector: "[" },
       path: "usPrivacy.doNotSellSelector",
     },
     {

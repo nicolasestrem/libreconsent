@@ -275,15 +275,36 @@ libreconsent does not set Google's restricted data processing (RDP) flags. RDP
 is an account- and tag-level setting, and Google receives GPC directly and
 activates RDP for those ad requests itself in applicable states. Denying the
 three ad signals is the library's part. If you also want RDP on your own tags,
-set it from a `change` listener:
+derive it from the same mapping the opt-out uses and apply it on every decision:
 
 ```ts
-consent.on("change", (state) => {
+const { mapping } = consent.getConfig().consentMode;
+const adCategories = [
+  mapping.ad_storage,
+  mapping.ad_user_data,
+  mapping.ad_personalization,
+];
+
+const applyRdp = (state) => {
   gtag("config", "AW-CONVERSION_ID", {
-    restricted_data_processing: state.categories.marketing !== true,
+    // Any denied ad category means the visitor is opted out of sale or share.
+    restricted_data_processing: adCategories.some(
+      (id) => state.categories[id] !== true,
+    ),
   });
-});
+};
+
+// Both events, not just `change`: a decision restored from a previous page load
+// arrives once as `consent` and never as `change`, so a `change`-only listener
+// would leave RDP at its tag default for that whole session. `consent` is
+// replayable, so registering after `init()` still delivers it.
+consent.on("consent", applyRdp);
+consent.on("change", applyRdp);
 ```
+
+Read the mapping rather than naming a category: `consentMode.mapping` is
+configurable, so hardcoding `marketing` reports the wrong value for anyone who
+points the ad signals elsewhere.
 
 The sources behind this are recorded with retrieval dates in
 [`specs/US_NOTES.md`](../../specs/US_NOTES.md).

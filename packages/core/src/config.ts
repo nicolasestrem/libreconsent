@@ -64,6 +64,29 @@ function optionalBoolean(value: unknown, path: string): void {
   }
 }
 
+/**
+ * Rejects a selector no DOM can parse.
+ *
+ * Left unchecked, a malformed selector throws inside the UI's delegated click
+ * handler on every click in the page and leaves the "Do Not Sell" entry point
+ * permanently dead with nothing said about it — exactly the silent failure CFG-6
+ * requires be a synchronous configuration error instead. Validated against a
+ * detached fragment, so nothing in the document is touched or matched.
+ *
+ * Skipped where there is no DOM to ask: config can be normalized on a server,
+ * and the UI keeps its own guard for the selector it is handed.
+ */
+function requireSelector(value: string, path: string): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  try {
+    document.createDocumentFragment().querySelector(value);
+  } catch {
+    invalid(path, "must be a valid CSS selector");
+  }
+}
+
 function normalizeRegions(value: unknown, path: string): string[] {
   if (value === undefined) {
     return [];
@@ -363,6 +386,10 @@ function normalizeUsPrivacy(
   if (config?.doNotSellSelector !== undefined) {
     requireNonEmptyString(
       config.doNotSellSelector,
+      "usPrivacy.doNotSellSelector",
+    );
+    requireSelector(
+      config.doNotSellSelector.trim(),
       "usPrivacy.doNotSellSelector",
     );
   }

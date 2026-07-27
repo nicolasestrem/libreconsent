@@ -1077,11 +1077,19 @@ describe("US opt-out dialog (US-1, US-2, US-3)", () => {
     const onError = vi.fn();
     window.addEventListener("error", onError);
     try {
-      await render(
-        usConfig({
-          usPrivacy: { enabled: true, doNotSellSelector: ":::not-a-selector" },
-        }),
-      );
+      // `init()` rejects an unparseable selector (CFG-6), so the only way one
+      // reaches the controller is a config that never went through it. Mounting
+      // against a host-supplied `getConfig()` is that path, and the guard has to
+      // hold on it.
+      const api = start(usConfig());
+      const config = api.getConfig();
+      vi.spyOn(api, "getConfig").mockReturnValue({
+        ...config,
+        usPrivacy: { ...config.usPrivacy, doNotSellSelector: ":::not-valid" },
+      });
+      const handle = mount(api);
+      activeHandles.add(handle);
+      await waitForReady(api);
 
       document.body.click();
 
