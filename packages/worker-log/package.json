@@ -14,10 +14,14 @@
   },
   "files": [
     "dist",
+    "migrations",
+    "wrangler.example.jsonc",
     "README.md"
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run --environment jsdom src/index.test.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "wrangler types worker-configuration.d.ts --config wrangler.test.jsonc --env-interface Env --strict-vars false --include-runtime false --check && tsc --noEmit -p tsconfig.json",
+    "types": "wrangler types worker-configuration.d.ts --config wrangler.test.jsonc --env-interface Env --strict-vars false --include-runtime false"
   }
 }

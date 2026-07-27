@@ -84,6 +84,9 @@ with a stable `code` and a precise `path`, for example
   `SameSite=Lax`. `expiresDays` must be from 1 through 395.
 - `blocking` defaults to no fallback nonce and `reloadOnWithdraw: false`. A
   supplied `nonce` must be a non-empty string.
+- `receiptEndpoint` is optional and disabled when omitted. It is the complete
+  relative or absolute HTTP(S) fetch target; malformed URLs and other protocols
+  are rejected at `receiptEndpoint`.
 - `revision` defaults to `1` and must be a positive integer.
 - `consentMode` defaults to disabled, `denied-everywhere`, a 500 ms wait, and
   the standard analytics/marketing category mapping. `waitForUpdate` must be a
@@ -147,6 +150,34 @@ Cookies use `Path=/`, the configured domain, expiry, and SameSite value.
 
 `reset()` is a destructive test hook: it invalidates pending initialization,
 removes listeners and stored consent, and releases the singleton.
+
+## Optional decision receipts
+
+Set `receiptEndpoint` to send a small audit receipt after each explicit decision
+has been persisted:
+
+```ts
+const consent = init({
+  ...config,
+  receiptEndpoint: "https://receipts.example.com/receipt",
+});
+```
+
+The endpoint is used exactly as supplied; core never appends `/receipt`. Each
+best-effort `POST` uses `keepalive: true` and contains `consentId`, `host`,
+`revision`, category booleans, the decision's `updatedAt` as `ts`, and an
+`action` of `consent`, `change`, or `withdraw`.
+
+Receipts describe only explicit decisions. Restoration, revision prefills,
+implied US grants, and GPC-derived states do not send one. Delivery is isolated
+from the consent lifecycle: synchronous request failures and rejected promises
+are ignored, never retried, and cannot change state, persistence, events, or UI.
+With no endpoint the feature performs no fetch at all.
+
+The optional deployment is documented in
+[`@libreconsent/worker-log`](../worker-log/README.md). A receipt proves that a
+record exists; it does not prove which UI was shown historically or that the UI
+complied with every legal requirement.
 
 ## Region resolution
 

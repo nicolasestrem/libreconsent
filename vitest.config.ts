@@ -14,5 +14,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["packages/*/src/**/*.test.ts", "scripts/**/*.test.mjs"],
+    exclude: ["packages/worker-log/src/**/*.test.ts"],
   },
 });
