@@ -302,8 +302,9 @@ export class ConsentLifecycle implements ConsentApi {
     if (!this.active && this.usApplies()) {
       // US regions are opt-out (US-3): with no decision on file the visitor is
       // treated as consenting until they opt out, so tags run and Consent Mode
-      // is signaled. A decision that lapsed still seeds the implied state, so
-      // an earlier opt-out is not silently undone by expiry or a revision bump.
+      // is signaled. A decision that is no longer active still seeds the
+      // implied state, so an earlier opt-out is not silently widened to a full
+      // grant by expiry, a revision bump, or a rollback below the stored one.
       this.active = this.synthesizeUsState(
         storedState
           ? (prefill ?? this.sanitizeChoices(storedState))
