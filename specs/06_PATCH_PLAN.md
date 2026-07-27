@@ -71,6 +71,7 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-058 | Phase 8 final gate | TOOL-1 | The repository-level traceability regression still asserted Phase 7 after the Phase 8 marker was advanced, so `pnpm check` correctly failed despite the traceability command passing. Advance the assertion to Phase 8 and rerun the authoritative gate. | minor | done | This PR |
 | P-059 | PR #12 review follow-up | LOG-1 | The manual remote gate hard-coded the dedicated Estrem test database name even though its documented config path can select another D1 database. Target the Worker contract's required `DB` binding so Wrangler resolves the database from the supplied config. | major | done | This PR |
 | P-060 | PR #12 review follow-up | LOG-1 | The account-test setup told operators to copy the deployment example but omitted the `DB.remote: true` difference required by D-055, so Wrangler development could purge a local simulation instead of the deployed row. Document the test-only remote binding explicitly while keeping the reusable deployment example local-safe. | major | done | This PR |
+| P-061 | PR #12 post-merge review follow-up | LOG-1 | The dedicated-account purge gate advanced by 396 days even though valid account configuration accepts retention through 3,650 days, so the gate could correctly retain the row and then fail its empty-trail assertion. Advance strictly beyond the maximum accepted retention and pin the boundary with a pure regression test. | major | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -83,5 +84,4 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-040..P-053 were fixed and regression-tested within the Phase 7 review
-follow-ups._
+_None. P-061 was fixed and regression-tested in the Phase 8 follow-up._

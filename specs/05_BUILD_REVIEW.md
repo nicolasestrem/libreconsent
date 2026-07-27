@@ -217,6 +217,11 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
      Custom test database names therefore resolve through their supplied
      Wrangler config while ordinary local development remains local-safe.
      P-059/P-060.
+  8. **Post-merge review follow-up:** the scheduled test time now advances
+     beyond the maximum accepted 3,650-day retention window rather than the
+     395-day default, so every valid account configuration reaches the purge
+     assertion. A pure boundary regression pins the relationship without
+     requiring account credentials. P-061.
 
 ### Phase 9 — Release
 - **Date / PR:** _pending_ · **TRACEABILITY audit:** _pending_
