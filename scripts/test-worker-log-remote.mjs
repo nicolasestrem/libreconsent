@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { remotePurgeTime } from "./worker-log-remote-time.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const configPath = resolve(
@@ -146,7 +147,7 @@ const dev = spawn(
 try {
   const localUrl = `http://127.0.0.1:${port}`;
   await waitForRemoteDev(localUrl);
-  const futureTime = Date.now() + (395 + 1) * 24 * 60 * 60 * 1000;
+  const futureTime = remotePurgeTime(Date.now());
   const scheduledUrl = new URL("/cdn-cgi/handler/scheduled", localUrl);
   scheduledUrl.searchParams.set("cron", "0 0 * * *");
   scheduledUrl.searchParams.set("time", String(futureTime));

@@ -1,11 +1,27 @@
 # @libreconsent/ui
 
-Consent banner and preferences modal for [`@libreconsent/core`](../core).
+Consent banner and preferences modal for
+[`@libreconsent/core`](https://github.com/nicolasestrem/libreconsent/tree/v1.0.0/packages/core#readme).
 
 Renders in a shadow root by default so host CSS cannot alter it, ships zero
 runtime dependencies, and loads no external asset or font. It only reads core
 state and calls the core's public decision methods — nothing is written to
 storage before the visitor decides.
+
+## v1 release contract
+
+`1.0.0` is a release candidate and is not yet available from npm. After
+publication, install with
+`pnpm add @libreconsent/core @libreconsent/ui`. Import ESM and types only from
+the two package roots. For a self-hosted browser build, copy
+`dist/index.global.js` and use the `LibreConsentUi` global after
+`LibreConsentCore`.
+
+The package is MIT-licensed, has zero runtime dependencies, external assets,
+telemetry, or network requests. It supports the last two evergreen
+Chrome/Edge/Firefox releases and Safari 15.4+. Focused WebKit automation is not
+exact Safari 15.4 hardware validation. Default EN/FR strings are starting
+points, not legal advice.
 
 ## Quickstart
 
@@ -182,3 +198,7 @@ container you have styled, layout stability becomes your responsibility.
 pnpm --filter @libreconsent/ui build
 pnpm --filter @libreconsent/ui test
 ```
+
+The repository release audit installs the packed UI and core tarballs into a
+temporary TypeScript/ESM consumer, verifies `LibreConsentUi.mount`, and proves
+unsupported deep imports stay closed.

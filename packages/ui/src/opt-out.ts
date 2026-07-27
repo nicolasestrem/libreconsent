@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { RenderContext } from "./context";
 import { el } from "./dom";
 

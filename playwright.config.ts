@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 const isCi = Boolean(process.env.CI);
 
@@ -26,6 +26,16 @@ export default defineConfig({
     {
       name: "a11y",
       testMatch: /.*\.a11y\.spec\.ts/,
+    },
+    {
+      name: "compat-firefox",
+      testMatch: /release-compat\.e2e\.spec\.ts/,
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "compat-webkit",
+      testMatch: /release-compat\.e2e\.spec\.ts/,
+      use: { ...devices["Desktop Safari"] },
     },
   ],
 });

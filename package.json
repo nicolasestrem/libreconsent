@@ -1,7 +1,8 @@
 {
   "name": "libreconsent",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "packageManager": "pnpm@11.15.1",
   "engines": {
     "node": ">=24",
@@ -18,7 +19,10 @@
     "examples:serve": "node scripts/serve-examples.mjs",
     "e2e": "playwright test --project=e2e",
     "a11y": "playwright test --project=a11y",
-    "check": "pnpm traceability && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size && pnpm e2e && pnpm a11y"
+    "compatibility": "playwright test --project=compat-firefox --project=compat-webkit",
+    "release:check": "node scripts/release-check.mjs",
+    "release:dry-run": "node scripts/release-dry-run.mjs",
+    "check": "pnpm traceability && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size && pnpm release:check && pnpm release:dry-run && pnpm e2e && pnpm a11y && pnpm compatibility"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

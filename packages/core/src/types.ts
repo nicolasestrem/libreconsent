@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * A translatable cookie-disclosure row attached to a service.
  */

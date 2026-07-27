@@ -5,6 +5,26 @@ decisions. It has no shipped runtime npm dependencies, is not required by core,
 and stores no IP address, user agent, request header, region, fingerprint, or
 service-level choice.
 
+## v1 release contract
+
+`1.0.0` is a release candidate and is not yet published. After publication,
+install with:
+
+```sh
+pnpm add @libreconsent/worker-log
+pnpm add -D wrangler
+```
+
+The package-root ESM/default export and public TypeScript declarations are the
+only module API; deep imports are unsupported.
+
+The packaged example deploys the built `dist/index.js`, and `prepack` rebuilds
+that artifact. The tarball includes only the ESM bundle, declarations,
+migration, example Wrangler configuration, README, LICENSE, and package
+manifest. It includes no account-specific Wrangler file, test, spec, or secret.
+This is a Cloudflare Worker module rather than browser code, so it intentionally
+ships no IIFE global and has no browser-support contract.
+
 ## What it accepts
 
 `POST /receipt` accepts the exact core payload:
@@ -57,26 +77,36 @@ bindings, plus a current authenticated Wrangler.
    pnpm exec wrangler d1 create libreconsent-worker-log
    ```
 
-2. From the repository root, copy `packages/worker-log/wrangler.example.jsonc`
-   to the already-ignored
-   `packages/worker-log/wrangler.local.jsonc`. Set the returned D1
-   `database_id`, choose an unused numeric rate-limit `namespace_id`, and
-   replace `ALLOWED_ORIGINS` with a comma-separated list of exact HTTP(S)
-   origins. Keep account IDs and deployment-specific configuration out of
-   version control.
+2. Create a deployment directory in your application. Copy the installed
+   package's `dist/`, `migrations/`, and `wrangler.example.jsonc` into it, then
+   rename the configuration to `wrangler.jsonc`. Keep those three paths
+   together because the configuration intentionally resolves
+   `dist/index.js` and `migrations/` relative to itself.
+
+   Set the returned D1 `database_id`, choose an unused numeric rate-limit
+   `namespace_id`, and replace `ALLOWED_ORIGINS` with a comma-separated list
+   of exact HTTP(S) origins. Keep account IDs and deployment-specific
+   configuration out of version control.
 
 3. Set the bearer secret. Do not put it in Wrangler configuration:
 
    ```sh
-   pnpm exec wrangler secret put AUDIT_BEARER_TOKEN --config packages/worker-log/wrangler.local.jsonc
+   pnpm exec wrangler secret put AUDIT_BEARER_TOKEN --config worker-log/wrangler.jsonc
    ```
 
 4. Apply the tracked migrations and deploy:
 
    ```sh
-   pnpm exec wrangler d1 migrations apply libreconsent-worker-log --remote --config packages/worker-log/wrangler.local.jsonc
-   pnpm exec wrangler deploy --config packages/worker-log/wrangler.local.jsonc
+   pnpm exec wrangler d1 migrations apply DB --remote --config worker-log/wrangler.jsonc
+   pnpm exec wrangler deploy --config worker-log/wrangler.jsonc
    ```
+
+   The installed tarball already contains the built Worker. Contributors
+   deploying from this repository instead run
+   `pnpm --filter @libreconsent/worker-log build`, copy
+   `packages/worker-log/wrangler.example.jsonc` to the ignored
+   `packages/worker-log/wrangler.local.jsonc`, and use that config path for
+   the same secret, migration, and deployment commands.
 
 5. Configure core with the complete deployed target. Core does not append a
    path:
@@ -134,3 +164,12 @@ the configured remote D1 database. The migration command targets that binding,
 so custom test database names work. It invokes Wrangler's scheduled-handler
 test route with a future `time` and proves the deployed retrieval endpoint is
 empty. There is no test-only purge HTTP route.
+
+## Security, privacy, and support
+
+The Worker stores the documented consent receipt fields only: no IP, user
+agent, request headers, fingerprint, region, or service choices. Responses are
+`no-store` and the example disables observability. The service is an audit aid,
+not proof that the notice or user interface was legally compliant. Cloudflare
+Workers compatibility is the runtime target; browser support belongs to the
+core/UI/bridge packages.

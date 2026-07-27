@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: MIT
 CREATE TABLE consent_receipts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   consent_id TEXT NOT NULL,

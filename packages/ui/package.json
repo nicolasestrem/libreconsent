@@ -1,8 +1,27 @@
 {
   "name": "@libreconsent/ui",
-  "version": "0.0.0",
-  "private": true,
+  "version": "1.0.0",
   "description": "Consent banner and preferences UI for libreconsent.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nicolasestrem/libreconsent.git",
+    "directory": "packages/ui"
+  },
+  "homepage": "https://github.com/nicolasestrem/libreconsent#readme",
+  "bugs": {
+    "url": "https://github.com/nicolasestrem/libreconsent/issues"
+  },
+  "keywords": [
+    "consent",
+    "consent-banner",
+    "privacy",
+    "accessibility",
+    "shadow-dom"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,11 +32,17 @@
     }
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist/index.js",
+    "dist/index.js.map",
+    "dist/index.d.ts",
+    "dist/index.global.js",
+    "dist/index.global.js.map",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
+    "prepack": "pnpm run build",
     "test": "node ../../scripts/run-vitest.mjs run --root ../.. packages/ui/src"
   },
   "devDependencies": {

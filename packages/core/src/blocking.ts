@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { translate } from "./i18n";
 import type { ConsentApi, ConsentState, NormalizedCmpConfig } from "./types";
 

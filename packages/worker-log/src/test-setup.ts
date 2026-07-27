@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 

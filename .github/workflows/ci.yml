@@ -49,14 +49,23 @@ jobs:
       - name: Size budgets
         run: pnpm size
 
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Release audit
+        run: pnpm release:check
+
+      - name: Publication dry-runs
+        run: pnpm release:dry-run
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
 
       - name: E2E tests
         run: pnpm e2e
 
       - name: Accessibility tests
         run: pnpm a11y
+
+      - name: Firefox and WebKit compatibility smoke
+        run: pnpm compatibility
 
       - name: Upload Playwright artifacts
         if: failure()

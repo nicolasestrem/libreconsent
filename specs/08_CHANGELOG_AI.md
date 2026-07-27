@@ -4,6 +4,8 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-28 | Codex | Phase 8 post-merge review follow-up (LOG-1) | Made the dedicated-account purge gate advance beyond the maximum valid retention window instead of assuming the default, with a pure boundary regression. P-065. |
+| 2026-07-28 | Codex | Phase 9 v1.0.0 release preparation (NFR-5..6) | Prepared four MIT-licensed public package candidates, strict tarball and parsed publication dry-run gates, four current-doc quickstarts, a local-only demo, and focused Firefox/WebKit coverage. Fixed the inherited Phase 8 retention-boundary defect and Phase 9 review findings; npm publication, tagging, merge, and deployment remain deferred. D-056..D-058; P-061..P-069. |
 | 2026-07-27 | Codex | PR #12 review follow-up (LOG-1) | Removed the account-specific migration target in favor of the configured `DB` binding and documented the test-only `DB.remote: true` requirement. P-059/P-060. |
 | 2026-07-27 | Codex | Phase 8 Worker log (LOG-1..4) | Added opt-in failure-isolated core receipts, strict Origin-bound Worker/D1 storage and bearer retrieval, privacy-preserving rate limiting, server-time retention, real Cloudflare runtime/D1 coverage, and a dedicated-account remote purge gate. D-051..D-055; P-054..P-058. |
 | 2026-07-27 | Codex | PR #11 review follow-up (BR-2..4) | Kept successfully registered CMP listeners authoritative after the discovery deadline so later user decisions cannot trigger fallback. P-053; final gate green with 354 unit, 55 E2E, and 15 a11y tests; bridge 3.03 kB. |

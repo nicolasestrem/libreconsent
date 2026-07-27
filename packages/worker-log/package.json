@@ -1,8 +1,27 @@
 {
   "name": "@libreconsent/worker-log",
-  "version": "0.0.0",
-  "private": true,
+  "version": "1.0.0",
   "description": "Optional consent receipt worker for libreconsent.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nicolasestrem/libreconsent.git",
+    "directory": "packages/worker-log"
+  },
+  "homepage": "https://github.com/nicolasestrem/libreconsent#readme",
+  "bugs": {
+    "url": "https://github.com/nicolasestrem/libreconsent/issues"
+  },
+  "keywords": [
+    "consent",
+    "privacy",
+    "cloudflare-workers",
+    "d1",
+    "audit-log"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,13 +32,17 @@
     }
   },
   "files": [
-    "dist",
+    "dist/index.js",
+    "dist/index.js.map",
+    "dist/index.d.ts",
     "migrations",
     "wrangler.example.jsonc",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
+    "prepack": "pnpm run build",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "wrangler types worker-configuration.d.ts --config wrangler.test.jsonc --env-interface Env --strict-vars false --include-runtime false --check && tsc --noEmit -p tsconfig.json",
     "types": "wrangler types worker-configuration.d.ts --config wrangler.test.jsonc --env-interface Env --strict-vars false --include-runtime false"

@@ -118,6 +118,21 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (pathname === "/api/region") {
+    const regionHeader = request.headers["cf-ipcountry"];
+    const region =
+      typeof regionHeader === "string" && regionHeader.trim() !== ""
+        ? regionHeader.trim().toUpperCase()
+        : "US-CA";
+    response.writeHead(200, {
+      "cache-control": "private, max-age=300",
+      "content-type": "application/json; charset=utf-8",
+      vary: "CF-IPCountry",
+    });
+    response.end(JSON.stringify({ region }));
+    return;
+  }
+
   const filePath = resolveFixturePath(pathname);
   if (!filePath) {
     sendText(response, 403, "Forbidden");

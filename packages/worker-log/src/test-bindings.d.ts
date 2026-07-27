@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { D1Migration } from "cloudflare:test";
 
 declare global {

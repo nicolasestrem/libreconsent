@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Attribute values accepted by {@link el}. `false` and `undefined` omit the
  * attribute entirely; `true` writes an empty value.

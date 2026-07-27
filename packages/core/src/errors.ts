@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Stable error codes exposed by libreconsent core.
  */

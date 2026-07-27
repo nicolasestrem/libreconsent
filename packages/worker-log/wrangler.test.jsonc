@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "libreconsent-worker-log-test-local",

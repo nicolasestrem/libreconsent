@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { defineConfig } from "tsup";
 
 export default defineConfig({
@@ -10,4 +11,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   globalName: "LibreConsentUi",
+  banner: {
+    js: "/*! libreconsent v1.0.0 | MIT License | SPDX-License-Identifier: MIT */",
+  },
 });

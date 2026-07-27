@@ -4,8 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-28
+
 ### Added
 
+- MIT/SPDX licensing and publish-ready metadata for all four public packages,
+  strict tarball allowlists, preserved JavaScript license banners, root-only
+  export maps, and stable self-hosted IIFE/head-snippet artifacts.
+- Four copy-paste quickstarts (basic Consent Mode, GTM basic mode,
+  AdSense/Google Privacy & messaging bridge, and US-only opt-out) plus a
+  dependency-free local demo that contacts no real vendor.
+- `release:check`: exact metadata/license/export/tarball auditing, temporary
+  installation of all four packed packages, public ESM and TypeScript imports,
+  IIFE/head-bootstrap execution, and deep-import rejection.
+- `release:dry-run`: parsed `npm publish --dry-run --access public --json`
+  validation for every package, plus focused Firefox and Playwright WebKit
+  smoke coverage for all release examples.
 - Phase 8 optional decision receipts: `receiptEndpoint` posts a persisted
   explicit decision with `keepalive`, while restored, revision-prefill,
   implied-US, and GPC-derived states remain silent. Delivery is off by default,

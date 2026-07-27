@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>libreconsent GTM basic-mode quickstart</title>
+    <style>
+      body { margin: 0; font: 16px/1.6 system-ui, sans-serif; color: #17202a; background: #f5f7fa; }
+      main { max-width: 48rem; margin: 0 auto; padding: 4rem 1.5rem 8rem; }
+      output { padding: .2rem .4rem; border-radius: .25rem; background: #e8eef5; }
+      button { font: inherit; }
+    </style>
+    <script>
+      window.libreconsentConsentMode = {
+        enabled: true,
+        defaults: "denied-everywhere",
+        waitForUpdate: 500,
+      };
+    </script>
+    <!-- Defaults must execute before GTM container initialization. -->
+    <!-- LIBRECONSENT_HEAD_SNIPPET -->
+    <script>
+      window.dataLayer.push({
+        "gtm.start": Date.now(),
+        event: "gtm.js",
+      });
+    </script>
+    <!-- Replace this local URL with https://www.googletagmanager.com/gtm.js?id=GTM-XXXX. -->
+    <script
+      async
+      type="text/plain"
+      data-cmp-category="analytics"
+      src="/quickstarts/gtm-basic-mode/gtm.js"
+    ></script>
+  </head>
+  <body>
+    <main>
+      <h1>GTM basic-mode quickstart</h1>
+      <p>
+        Consent defaults precede the container marker, and the local container
+        stub stays gated until Analytics is granted.
+      </p>
+      <p>Container loader: <output id="gtm-status">blocked</output></p>
+      <p><button type="button" data-cmp-open>Privacy preferences</button></p>
+    </main>
+    <script src="/dist/core.global.js"></script>
+    <script src="/dist/ui.global.js"></script>
+    <script>
+      window.__quickstartApi = LibreConsentCore.init({
+        categories: [
+          {
+            id: "analytics",
+            label: "category.analytics.label",
+            description: "category.analytics.description",
+          },
+          {
+            id: "marketing",
+            label: "category.marketing.label",
+            description: "category.marketing.description",
+          },
+        ],
+        consentMode: window.libreconsentConsentMode,
+        i18n: {
+          translations: {
+            en: {
+              "category.analytics.label": "Analytics",
+              "category.analytics.description": "Measures use of this site.",
+              "category.marketing.label": "Marketing",
+              "category.marketing.description": "Supports personalized advertising.",
+            },
+          },
+        },
+      });
+      window.__quickstartUi = LibreConsentUi.mount(window.__quickstartApi);
+    </script>
+  </body>
+</html>

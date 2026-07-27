@@ -1,7 +1,7 @@
+// SPDX-License-Identifier: MIT
 {
-  "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "libreconsent-worker-log",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "compatibility_date": "2026-07-27",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,

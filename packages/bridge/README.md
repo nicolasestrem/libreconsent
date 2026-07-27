@@ -8,6 +8,20 @@ libreconsent-compatible read and event methods. It never provides or assigns
 `__tcfapi`, returns a TC string, renders a consent surface, writes storage,
 loads a network resource, or emits Google consent signals.
 
+## v1 release contract
+
+`1.0.0` is prepared but not yet published. After publication, install with
+`pnpm add @libreconsent/bridge`; ESM and TypeScript imports are package-root
+only. Self-hosted browsers may copy `dist/index.global.js` and use
+`LibreConsentBridge`.
+
+The MIT-licensed bridge has zero runtime dependencies, telemetry, storage, DOM
+output, or network activity of its own. It targets the last two evergreen
+Chrome/Edge/Firefox releases and Safari 15.4+; WebKit smoke is not exact Safari
+15.4 hardware proof. It is fixture-tested but has not been validated on a real
+AdSense domain using Google Privacy & messaging, so no production
+interoperability claim is made.
+
 ## Quick start
 
 ```ts
@@ -225,6 +239,10 @@ consume `__tcfapi`, and consumption is read-only. In particular it does not:
 - write cookies or localStorage;
 - write `dataLayer`, call `gtag`, or emit Consent Mode updates.
 
+Google requires a certified TCF CMP for personalized AdSense traffic in the
+EEA, UK, and Switzerland. This read-only adapter neither replaces that CMP nor
+makes libreconsent certified.
+
 Listener registration and removal follow the current official
 [IAB CMP API v2 specification](https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/TCFv2/IAB%20Tech%20Lab%20-%20CMP%20API%20v2.md).
 
@@ -234,3 +252,7 @@ Listener registration and removal follow the current official
 pnpm --filter @libreconsent/bridge build
 pnpm --filter @libreconsent/bridge test
 ```
+
+The repository release audit additionally compiles and runs the packed
+package-root API, checks `LibreConsentBridge.initBridge` in the IIFE, and
+proves deep imports are rejected.

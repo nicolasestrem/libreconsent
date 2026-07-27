@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { ConsentApi } from "@libreconsent/core";
 import { afterEach, describe, expect, expectTypeOf, test, vi } from "vitest";
 import {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { BlockingController } from "./blocking";
 import { normalizeConfig } from "./config";

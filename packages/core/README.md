@@ -2,7 +2,23 @@
 
 Consent state, validation, first-party persistence, lifecycle events,
 declarative script and embed blocking, and Google Consent Mode v2 signaling for
-libreconsent. UI rendering arrives in a later phase.
+libreconsent.
+
+## v1 release contract
+
+`1.0.0` is prepared as a release candidate but is not yet published to npm.
+After publication, install with `pnpm add @libreconsent/core`. ESM and
+TypeScript consumers import only from `@libreconsent/core`; deep imports are
+unsupported. Self-hosted browsers may copy `dist/index.global.js`
+(`LibreConsentCore`) and the synchronous
+`dist/head-snippet.global.js` artifact to their own origin.
+
+The package is MIT-licensed, has no runtime dependencies, telemetry, or
+built-in vendor request, and persists nothing before a decision. Declarative
+gates are guaranteed; blocklist interception is best-effort. Browser support
+is the last two evergreen Chrome/Edge/Firefox releases and Safari 15.4+, but
+exact Safari 15.4 hardware validation is not yet proven. Default text and
+examples are not legal advice.
 
 ## Quickstart
 
@@ -50,7 +66,7 @@ const consent = init({
 });
 
 consent.on("ready", ({ reason, consent: restored, prefill }) => {
-  // Render a later-phase UI when `restored` is null. A revision prefill is
+  // Mount @libreconsent/ui when `restored` is null. A revision prefill is
   // inactive until the visitor makes a fresh decision.
   console.log({ reason, restored, prefill });
 });
@@ -125,8 +141,9 @@ available. `ready` and `consent` replay to late subscribers, while `change`
 does not. Initialization emits `ready` before a restored `consent`. The first
 user decision emits `consent`; later decisions and withdrawal emit `change`.
 
-`showPreferences()` and `hide()` are DOM-safe no-op intents in Phase 1 so an
-integration can call them before the UI package exists.
+`showPreferences()` and `hide()` are DOM-safe intents. They remain inert until
+`@libreconsent/ui` mounts and registers its renderer, so integrations may call
+them before the UI is ready without branching on DOM state.
 
 ## State and persistence
 
@@ -175,7 +192,8 @@ are ignored, never retried, and cannot change state, persistence, events, or UI.
 With no endpoint the feature performs no fetch at all.
 
 The optional deployment is documented in
-[`@libreconsent/worker-log`](../worker-log/README.md). A receipt proves that a
+[`@libreconsent/worker-log`](https://github.com/nicolasestrem/libreconsent/tree/v1.0.0/packages/worker-log#readme).
+A receipt proves that a
 record exists; it does not prove which UI was shown historically or that the UI
 complied with every legal requirement.
 
@@ -284,7 +302,7 @@ decision takes precedence over the signal: a visitor who explicitly chose on
 your site keeps that choice until it expires or is withdrawn, at which point GPC
 is honored again. The regulatory reasoning, and a conflict-notification nuance
 worth reviewing with counsel if you have substantial California traffic, are in
-[`specs/US_NOTES.md`](../../specs/US_NOTES.md).
+[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/US_NOTES.md).
 
 ### Do Not Sell or Share
 
@@ -338,7 +356,7 @@ configurable, so hardcoding `marketing` reports the wrong value for anyone who
 points the ad signals elsewhere.
 
 The sources behind this are recorded with retrieval dates in
-[`specs/US_NOTES.md`](../../specs/US_NOTES.md).
+[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/US_NOTES.md).
 
 ## Blocking
 
@@ -486,7 +504,8 @@ oblige you to restate the rest.
 
 Styling is a single minimal inline rule — a border, padding, centered text — and
 no external asset, so a placeholder is legible on any page without shipping CSS.
-Themed presentation arrives with the UI package in Phase 4.
+The consent surfaces rendered by `@libreconsent/ui` have their own
+CSS-custom-property theming; core placeholders intentionally remain minimal.
 
 ### Embed recipes
 
@@ -759,15 +778,19 @@ network-silence guarantee comes from gating the tag itself, which
 
 ### Consulted Google documentation
 
-Accessed 2026-07-26:
+Rechecked 2026-07-28:
 
 - [Set up consent mode on websites](https://developers.google.com/tag-platform/security/guides/consent), updated 2026-05-06.
 - [Google tag API reference](https://developers.google.com/tag-platform/gtagjs/reference), updated 2026-04-17.
 - [GTM consent-template APIs](https://developers.google.com/tag-platform/tag-manager/templates/consent-apis), updated 2026-03-05.
+- [The data layer](https://developers.google.com/tag-platform/tag-manager/datalayer), used to recheck container initialization order.
+- [Google consent management requirements for AdSense publishers](https://support.google.com/adsense/answer/13554116?hl=en), used to keep the bridge boundary explicit.
+- [How the Google CMP works](https://support.google.com/adsense/answer/16918505?hl=en), used to recheck Google Privacy & messaging scope.
 
 Consulted for the US module (US-4) on 2026-07-27. The spec's original start URL,
 `support.google.com/adsense/answer/9561024`, returns HTTP 404; these are the
-live replacements. Full notes in [`specs/US_NOTES.md`](../../specs/US_NOTES.md).
+live replacements. Full notes are in
+[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/US_NOTES.md).
 
 - [Helping advertisers comply with the U.S. states' privacy laws in Google Ads](https://support.google.com/google-ads/answer/9614122).
 - [Disable the collection of personalized advertising data](https://support.google.com/google-ads/answer/9606827).
@@ -788,3 +811,7 @@ not public API.
 pnpm --filter @libreconsent/core build
 pnpm --filter @libreconsent/core test
 ```
+
+The repository-level `pnpm release:check` also installs the packed tarball in a
+temporary consumer, compiles its public types, runs its package-root ESM
+import, checks the two stable browser artifacts, and rejects deep imports.

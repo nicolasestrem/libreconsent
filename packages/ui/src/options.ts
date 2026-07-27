@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * First-layer presentation. `bar-bottom` is a non-blocking bottom bar, `box`
  * a floating card, and `modal` a centered dialog with an overlay.
