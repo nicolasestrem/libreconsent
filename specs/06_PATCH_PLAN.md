@@ -80,6 +80,7 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-067 | Phase 9 quickstart review | G-1, NFR-6 | The public AdSense bridge page installed its own test `__tcfapi` provider, making an explicitly read-only consumer quickstart unsafe to copy. Keep the page consumer-only and inject the fake CMP strictly from Playwright setup. | major | done | This PR |
 | P-068 | Phase 9 Worker packaging review | NFR-6 | The packaged Worker example and deployment instructions still depended on repository-relative paths and did not give an installed consumer a coherent copy-and-deploy layout. Make the example self-contained and document copying its bundle, migration, and config together before applying the `DB` migration. | major | done | This PR |
 | P-069 | Phase 9 documentation and metadata review | NFR-5, NFR-6 | Package docs retained stale phase-era wording/relative repository links, package manifests omitted discovery keywords, and the GTM replacement marker was ambiguous. Refresh current v1 guidance, use stable release links, require meaningful keywords, and name the exact gated GTM loader URL. | minor | done | This PR |
+| P-070 | PR #14 review follow-up | LOG-1 | The exported remote-gate maximum-retention constant had no TSDoc despite the repository convention requiring documentation on every export. Document the boundary at its declaration. | minor | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -92,4 +93,4 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-061..P-069 were fixed and regression-tested._
+_None. P-061..P-070 were fixed and regression-tested._

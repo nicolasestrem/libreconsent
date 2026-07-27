@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Documented the exported maximum-retention boundary used by the remote Worker
+  purge regression.
+
 ## [1.0.0] - 2026-07-28
 
 ### Added

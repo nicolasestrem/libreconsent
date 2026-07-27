@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-28 | Codex | PR #14 review follow-up (LOG-1) | Added the missing TSDoc contract for the exported remote-gate maximum-retention boundary. P-070. |
 | 2026-07-28 | Codex | Phase 8 post-merge review follow-up (LOG-1) | Made the dedicated-account purge gate advance beyond the maximum valid retention window instead of assuming the default, with a pure boundary regression. P-065. |
 | 2026-07-28 | Codex | Phase 9 v1.0.0 release preparation (NFR-5..6) | Prepared four MIT-licensed public package candidates, strict tarball and parsed publication dry-run gates, four current-doc quickstarts, a local-only demo, and focused Firefox/WebKit coverage. Fixed the inherited Phase 8 retention-boundary defect and Phase 9 review findings; npm publication, tagging, merge, and deployment remain deferred. D-056..D-058; P-061..P-069. |
 | 2026-07-27 | Codex | PR #12 review follow-up (LOG-1) | Removed the account-specific migration target in favor of the configured `DB` binding and documented the test-only `DB.remote: true` requirement. P-059/P-060. |

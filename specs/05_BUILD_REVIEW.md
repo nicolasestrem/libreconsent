@@ -270,5 +270,5 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   a real AdSense domain using Google Privacy & messaging; exact Safari 15.4
   validation remains unproven; npm publication is deferred, so this work is a
   verified release candidate rather than registry availability.
-- **Findings:** P-061..P-069, all fixed and regression-tested. No blocker or
+- **Findings:** P-061..P-070, all fixed and regression-tested. No blocker or
   major finding remains open.
