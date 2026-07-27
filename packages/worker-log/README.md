@@ -112,7 +112,14 @@ pnpm --filter @libreconsent/worker-log test
 
 The account test is manual and excluded from ordinary CI. Create the ignored
 `wrangler.test-account.jsonc` from the example and point it at dedicated
-non-production Worker/D1 resources. Set:
+non-production Worker/D1 resources. Keep the required `DB` binding name, use
+any database name you chose for that resource, and add `"remote": true` to
+that D1 binding in this ignored test-only config. This is what makes the local
+scheduled handler purge the same remote row that the deployed Worker stored;
+do not add it to the reusable deployment example, where an ordinary
+`wrangler dev` should remain local by default.
+
+Set:
 
 ```sh
 export LIBRECONSENT_WORKER_LOG_URL="https://your-test-worker.workers.dev"
@@ -122,7 +129,8 @@ pnpm test:worker-log:remote
 ```
 
 That command applies migrations, deploys, posts and retrieves a unique receipt,
-then starts Wrangler development with the same D1 binding in `remote` mode. It
-invokes Wrangler's scheduled-handler test route with a future `time` and proves
-the deployed retrieval endpoint is empty. There is no test-only purge HTTP
-route.
+then starts Wrangler development with the required `DB` binding connected to
+the configured remote D1 database. The migration command targets that binding,
+so custom test database names work. It invokes Wrangler's scheduled-handler
+test route with a future `time` and proves the deployed retrieval endpoint is
+empty. There is no test-only purge HTTP route.

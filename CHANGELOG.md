@@ -238,6 +238,10 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- The manual Worker account gate now applies migrations through the configured
+  `DB` binding instead of a hard-coded test database name, and its setup
+  explicitly requires `DB.remote: true` in the ignored test-only Wrangler
+  config so the scheduled handler purges the deployed receipt.
 - Listener teardown now retains the CMP that owns the first successfully
   confirmed numeric listener ID. A later unrelated `window.__tcfapi`
   replacement can no longer receive or collide with that provider-local ID,

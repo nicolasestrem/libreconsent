@@ -211,6 +211,12 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
      repository + 22 Worker), 55 E2E, and 15 accessibility tests pass. Core is
      8.75/12 kB gzip, core+UI 16.25/19 kB, bridge 3.03/4 kB, and the head snippet
      714 B/1.5 kB.
+  7. **PR review follow-up:** the account gate now targets the required `DB`
+     binding rather than one account-specific database name, and the setup
+     explicitly requires `DB.remote: true` only in the ignored test config.
+     Custom test database names therefore resolve through their supplied
+     Wrangler config while ordinary local development remains local-safe.
+     P-059/P-060.
 
 ### Phase 9 — Release
 - **Date / PR:** _pending_ · **TRACEABILITY audit:** _pending_

@@ -12,6 +12,7 @@ const allowedOrigin = process.env.LIBRECONSENT_WORKER_LOG_ORIGIN;
 const bearerToken = process.env.LIBRECONSENT_WORKER_LOG_TOKEN;
 const port = Number(process.env.LIBRECONSENT_WORKER_LOG_PORT ?? "8791");
 const wrangler = resolve(root, "node_modules/wrangler/bin/wrangler.js");
+const databaseBinding = "DB";
 
 if (!existsSync(configPath)) {
   throw new Error(
@@ -75,7 +76,7 @@ await runWrangler([
   "d1",
   "migrations",
   "apply",
-  "libreconsent-worker-log-test",
+  databaseBinding,
   "--remote",
   "--config",
   configPath,

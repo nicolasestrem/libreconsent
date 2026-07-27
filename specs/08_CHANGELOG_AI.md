@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-27 | Codex | PR #12 review follow-up (LOG-1) | Removed the account-specific migration target in favor of the configured `DB` binding and documented the test-only `DB.remote: true` requirement. P-059/P-060. |
 | 2026-07-27 | Codex | Phase 8 Worker log (LOG-1..4) | Added opt-in failure-isolated core receipts, strict Origin-bound Worker/D1 storage and bearer retrieval, privacy-preserving rate limiting, server-time retention, real Cloudflare runtime/D1 coverage, and a dedicated-account remote purge gate. D-051..D-055; P-054..P-058. |
 | 2026-07-27 | Codex | PR #11 review follow-up (BR-2..4) | Kept successfully registered CMP listeners authoritative after the discovery deadline so later user decisions cannot trigger fallback. P-053; final gate green with 354 unit, 55 E2E, and 15 a11y tests; bridge 3.03 kB. |
 | 2026-07-27 | Codex | PR #11 review follow-up (BR-1) | Bound the first confirmed numeric TCF listener ID to its owning live CMP so later provider replacement cannot misroute teardown, while preserving queued-stub handoff. P-052; final gate green with 353 unit, 55 E2E, and 15 a11y tests; bridge 3.03 kB. |
