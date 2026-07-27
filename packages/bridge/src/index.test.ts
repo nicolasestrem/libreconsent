@@ -1102,6 +1102,36 @@ describe("discovery and teardown", () => {
     expect(cmp).toHaveBeenCalledOnce();
   });
 
+  test("retains the CMP that confirmed the listener for teardown", () => {
+    let callback: TcfApiCallback | undefined;
+    const owner = vi.fn<TcfApi>((command, _version, registered, listenerId) => {
+      if (command === "addEventListener") {
+        callback = registered;
+      } else {
+        expect(command).toBe("removeEventListener");
+        expect(listenerId).toBe(75);
+      }
+    });
+    const replacement = vi.fn<TcfApi>();
+    setTcfApi(owner);
+    const api = start();
+    invokeTcfCallback(callback as TcfApiCallback, {
+      eventStatus: "cmpuishown",
+      gdprApplies: true,
+      listenerId: 75,
+      purpose: { consents: {} },
+    });
+    setTcfApi(replacement);
+
+    api.reset();
+
+    expect(owner.mock.calls.map(([command]) => command)).toEqual([
+      "addEventListener",
+      "removeEventListener",
+    ]);
+    expect(replacement).not.toHaveBeenCalled();
+  });
+
   test("ignores a non-numeric listener ID instead of removing the wrong listener", () => {
     let callback: TcfApiCallback | undefined;
     const external = vi.fn<TcfApi>((command, _version, registered) => {

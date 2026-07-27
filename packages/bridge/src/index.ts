@@ -365,6 +365,7 @@ class BridgeLifecycle implements BridgeApi {
   private backoffMs = 10;
   private tcfApi: TcfApi | null = null;
   private listenerId: number | null = null;
+  private listenerApi: TcfApi | null = null;
   private fallbackUnsubscribes: Array<() => void> = [];
 
   constructor(
@@ -415,10 +416,11 @@ class BridgeLifecycle implements BridgeApi {
       this.timer = null;
     }
     if (this.listenerId !== null) {
-      this.removeTcfListener(this.listenerId, this.tcfApi);
+      this.removeTcfListener(this.listenerId, this.listenerApi ?? this.tcfApi);
     }
     this.tcfApi = null;
     this.listenerId = null;
+    this.listenerApi = null;
     for (const unsubscribe of this.fallbackUnsubscribes.splice(0)) {
       try {
         unsubscribe();
@@ -485,7 +487,10 @@ class BridgeLifecycle implements BridgeApi {
               try {
                 const lateListenerId = data.listenerId;
                 if (typeof lateListenerId === "number") {
-                  this.removeTcfListener(lateListenerId, candidate);
+                  this.removeTcfListener(
+                    lateListenerId,
+                    this.resolveTcfApi(candidate),
+                  );
                 }
               } catch {
                 // A late CMP callback may only attempt to remove its own listener.
@@ -497,7 +502,10 @@ class BridgeLifecycle implements BridgeApi {
             if (success === true && data && typeof data === "object") {
               const staleListenerId = data.listenerId;
               if (typeof staleListenerId === "number") {
-                this.removeTcfListener(staleListenerId, candidate);
+                this.removeTcfListener(
+                  staleListenerId,
+                  this.resolveTcfApi(candidate),
+                );
               }
             }
             return;
@@ -506,7 +514,10 @@ class BridgeLifecycle implements BridgeApi {
             if (success === true && data && typeof data === "object") {
               const lateListenerId = data.listenerId;
               if (typeof lateListenerId === "number") {
-                this.removeTcfListener(lateListenerId, candidate);
+                this.removeTcfListener(
+                  lateListenerId,
+                  this.resolveTcfApi(candidate),
+                );
               }
             }
             this.tcfApi = null;
@@ -530,6 +541,15 @@ class BridgeLifecycle implements BridgeApi {
             return;
           }
           registrationConfirmed = true;
+          if (
+            data &&
+            typeof data === "object" &&
+            typeof data.listenerId === "number" &&
+            this.listenerId === null
+          ) {
+            this.listenerApi = this.resolveTcfApi(candidate);
+            this.listenerId = data.listenerId;
+          }
           this.handleTcf(data, success);
           if (success === true) {
             this.emitReady("tcf", this.active);
@@ -586,22 +606,25 @@ class BridgeLifecycle implements BridgeApi {
     }, delay);
   }
 
-  private removeTcfListener(
-    listenerId: number,
-    registeredApi: TcfApi | null,
-  ): void {
-    let teardownApi = registeredApi;
+  private resolveTcfApi(fallback: TcfApi | null): TcfApi | null {
     try {
       const activeApi =
         typeof window !== "undefined"
           ? Reflect.get(window, "__tcfapi")
           : undefined;
       if (typeof activeApi === "function") {
-        teardownApi = activeApi;
+        return activeApi;
       }
     } catch {
       // Fall back to the provider used for registration when lookup is blocked.
     }
+    return fallback;
+  }
+
+  private removeTcfListener(
+    listenerId: number,
+    teardownApi: TcfApi | null,
+  ): void {
     if (!teardownApi) {
       return;
     }
@@ -620,9 +643,6 @@ class BridgeLifecycle implements BridgeApi {
       typeof data !== "object"
     ) {
       return;
-    }
-    if (typeof data.listenerId === "number") {
-      this.listenerId = data.listenerId;
     }
     if (data.gdprApplies === false) {
       this.observeTcf(false, null);

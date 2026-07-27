@@ -200,6 +200,10 @@ bridge.reset();
 It cancels discovery timers, removes the CMP listener when a `listenerId` was
 provided, unsubscribes fallback event forwarding, clears the bridge's replay
 memory, and releases the singleton so `initBridge()` can be called again.
+The bridge captures the listener ID and owning provider together on the first
+successful callback. A queued stub that has already handed off therefore binds
+teardown to the live CMP, while a later unrelated provider replacement cannot
+receive the earlier provider's local listener ID.
 If a queued CMP supplies its first numeric listener ID only after reset, the
 invalidated registration wrapper uses that late ID solely to remove the
 external listener. It does not restore bridge state, replay memory, or events.

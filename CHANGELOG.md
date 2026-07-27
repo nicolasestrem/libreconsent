@@ -224,6 +224,11 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- Listener teardown now retains the CMP that owns the first successfully
+  confirmed numeric listener ID. A later unrelated `window.__tcfapi`
+  replacement can no longer receive or collide with that provider-local ID,
+  while queued-stub handoff still binds ownership to the live CMP at
+  confirmation time.
 - TCF readiness now requires a successful `addEventListener` callback before
   the absolute discovery deadline. A silent queued stub no longer publishes
   irreversible `source: "tcf"` readiness, asynchronous registration rejection
