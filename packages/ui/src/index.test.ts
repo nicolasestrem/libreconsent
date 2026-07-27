@@ -1122,6 +1122,22 @@ describe("US opt-out dialog (US-1, US-2, US-3)", () => {
     expect(stored()).toBeNull();
   });
 
+  test("keeps the programmatic opt-out inert while the module is disabled", async () => {
+    // `api.showOptOut()` and the mount handle bypass the selector, so gating
+    // only the delegated click would leave the dialog reachable — and able to
+    // record a decision — for a configuration that switched the module off.
+    const { api, handle } = await render(
+      baseConfig({ usPrivacy: { enabled: false } }),
+    );
+
+    api.showOptOut();
+    handle.showOptOut();
+
+    expect(query("[data-lc-optout]")).toBeNull();
+    expect(query("[data-lc-banner]")).not.toBeNull();
+    expect(stored()).toBeNull();
+  });
+
   test("leaves the banner hidden when dismissed over an open preferences layer", async () => {
     const link = doNotSellLink();
     const { api } = await render(

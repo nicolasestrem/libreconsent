@@ -481,16 +481,21 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
 
   // The default mapping is always populated, so its targets only have to exist
   // once something reads them. Consent Mode reads all four signals; the US
-  // module reads the three ad signals to build its opt-out (US-1).
-  if (config.consentMode?.enabled === true || usPrivacy.enabled) {
-    for (const signal of SIGNALS) {
-      const mapped = mapping[signal];
-      if (!categories.some((category) => category.id === mapped)) {
-        invalid(
-          `consentMode.mapping.${signal}`,
-          `references unknown category "${mapped}"`,
-        );
-      }
+  // module reads only the three ad signals (US-1), so a US-only configuration
+  // must not be rejected over an `analytics_storage` target nothing consults.
+  const readSignals =
+    config.consentMode?.enabled === true
+      ? SIGNALS
+      : usPrivacy.enabled
+        ? AD_SIGNALS
+        : [];
+  for (const signal of readSignals) {
+    const mapped = mapping[signal];
+    if (!categories.some((category) => category.id === mapped)) {
+      invalid(
+        `consentMode.mapping.${signal}`,
+        `references unknown category "${mapped}"`,
+      );
     }
   }
   if (usPrivacy.enabled) {

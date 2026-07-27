@@ -1963,6 +1963,49 @@ describe("US state privacy configuration (CFG-8)", () => {
     );
   });
 
+  test("accepts a US-only configuration with no analytics category", async () => {
+    // The US module reads only the three ad signals, so the unused default
+    // `analytics_storage` target must not make a valid configuration throw.
+    const api = start({
+      categories: [
+        {
+          id: "marketing",
+          label: "category.marketing.label",
+          description: "category.marketing.description",
+        },
+      ],
+      i18n: { default: "en", translations: { en: dictionary } },
+      usPrivacy: { enabled: true },
+    });
+
+    await waitForReady(api);
+
+    expect(api.getConfig().categories.map(({ id }) => id)).toEqual([
+      "necessary",
+      "marketing",
+    ]);
+  });
+
+  test("still validates all four signals when Consent Mode is enabled", () => {
+    expectConsentError(
+      () =>
+        start({
+          categories: [
+            {
+              id: "marketing",
+              label: "category.marketing.label",
+              description: "category.marketing.description",
+            },
+          ],
+          i18n: { default: "en", translations: { en: dictionary } },
+          consentMode: { enabled: true },
+          usPrivacy: { enabled: true },
+        }),
+      "INVALID_CONFIG",
+      "consentMode.mapping.analytics_storage",
+    );
+  });
+
   test("rejects an ad signal mapped to a permanently granted category", () => {
     expectConsentError(
       () =>

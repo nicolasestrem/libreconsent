@@ -232,7 +232,10 @@ export class UiController {
    * regime, so this asks nothing and offers one action.
    */
   showOptOut(): void {
-    if (this.disposed || this.optOut) {
+    // The guard belongs here as well as on the delegated selector: this method
+    // is also reached from `api.showOptOut()` and the mount handle, and a
+    // disabled module must not record a decision through any of the three.
+    if (this.disposed || this.optOut || !this.config.usPrivacy.enabled) {
       return;
     }
     const restoreTo = activeElement();
