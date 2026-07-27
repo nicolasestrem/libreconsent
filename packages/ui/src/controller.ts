@@ -375,7 +375,12 @@ export class UiController {
     }
     this.preferences.root.remove();
     this.preferences = null;
-    if (reopenBanner && !this.decided) {
+    // Not while the opt-out dialog is still open, mirroring `closeOptOut`: the
+    // two layers stack in either order through `api.showPreferences()`, and
+    // whichever closes first must not reveal the first layer behind the one
+    // left open (D-031). Whichever closes last still reveals it, so an
+    // undecided visitor is never stranded without a way to consent.
+    if (reopenBanner && !this.decided && !this.optOut) {
       // Revealed before focus restore so the trap has a focusable target.
       // Rebuilt when the host called `hide()` while preferences were open.
       if (this.banner) {

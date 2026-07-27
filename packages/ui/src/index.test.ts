@@ -1157,6 +1157,30 @@ describe("US opt-out dialog (US-1, US-2, US-3)", () => {
     expect(bannerHidden()).toBe(true);
   });
 
+  test("leaves the banner hidden when preferences close over an open dialog", async () => {
+    const link = doNotSellLink();
+    const { api } = await render(
+      baseConfig({
+        usPrivacy: { enabled: true, doNotSellSelector: "#do-not-sell" },
+      }),
+    );
+
+    // The mirror of the case above: the two layers stack in this order too,
+    // because `api.showPreferences()` is reachable while the dialog is open.
+    link.click();
+    api.showPreferences();
+    modalAction("close").click();
+
+    expect(query("[data-lc-optout]")).not.toBeNull();
+    expect(bannerHidden()).toBe(true);
+
+    // Closing the last layer still gets the visitor back to a way to consent.
+    optOutAction("dismiss").click();
+
+    expect(bannerHidden()).toBe(false);
+    expect(stored()).toBeNull();
+  });
+
   test("opens through the core renderer intent and the mount handle (US-2)", async () => {
     const { api, handle } = await render(usConfig());
 
