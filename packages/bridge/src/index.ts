@@ -453,7 +453,16 @@ class BridgeLifecycle implements BridgeApi {
     if (candidate) {
       this.tcfApi = candidate;
       try {
+        let registrationReturned = false;
+        let synchronousRegistrationFailed = false;
         candidate("addEventListener", 2, (data, success) => {
+          if (!registrationReturned && success === false) {
+            synchronousRegistrationFailed = true;
+            return;
+          }
+          if (synchronousRegistrationFailed) {
+            return;
+          }
           if (this.invalidated) {
             if (success === true && data && typeof data === "object") {
               try {
@@ -469,8 +478,14 @@ class BridgeLifecycle implements BridgeApi {
           }
           this.handleTcf(data, success);
         });
-        this.emitReady("tcf", this.active);
-        return;
+        registrationReturned = true;
+        if (!synchronousRegistrationFailed) {
+          this.emitReady("tcf", this.active);
+          return;
+        }
+        if (this.tcfApi === candidate) {
+          this.tcfApi = null;
+        }
       } catch {
         if (this.tcfApi === candidate) {
           this.tcfApi = null;
@@ -626,6 +641,26 @@ class BridgeLifecycle implements BridgeApi {
       return;
     }
 
+    const subscriptions: Array<() => void> = [];
+    const pendingObservations: Array<() => void> = [];
+    let setupComplete = false;
+    const forward = (observation: () => void) => {
+      if (setupComplete) {
+        observation();
+      } else {
+        pendingObservations.push(observation);
+      }
+    };
+    const cleanupSubscriptions = () => {
+      for (const unsubscribe of subscriptions.splice(0)) {
+        try {
+          unsubscribe();
+        } catch {
+          // Partial fallback subscription cleanup remains isolated.
+        }
+      }
+    };
+
     try {
       const fallback = factory();
       if (
@@ -648,57 +683,76 @@ class BridgeLifecycle implements BridgeApi {
         const state = payload.consent
           ? this.fromFallback(payload.consent)
           : null;
-        if (state) {
-          this.observe(state);
-        } else {
-          this.emitReady("fallback", null);
-        }
+        forward(() => {
+          if (state) {
+            this.observe(state);
+          } else {
+            this.emitReady("fallback", null);
+          }
+        });
       };
       const onConsent = (state: BridgeFallbackConsentState) => {
         if (this.validFallbackState(state)) {
-          this.observe(this.fromFallback(state));
+          const observation = this.fromFallback(state);
+          forward(() => this.observe(observation));
         }
       };
       const onChange = (state: BridgeFallbackConsentState) => {
         if (this.validFallbackState(state)) {
-          this.observe(this.fromFallback(state));
+          const observation = this.fromFallback(state);
+          forward(() => this.observe(observation));
         }
       };
       if (
         !this.registerFallbackSubscription(
           () => fallback.on("ready", onReady),
           "ready",
+          subscriptions,
         )
       ) {
+        cleanupSubscriptions();
         return;
       }
       if (
         !this.registerFallbackSubscription(
           () => fallback.on("consent", onConsent),
           "consent",
+          subscriptions,
         )
       ) {
+        cleanupSubscriptions();
         return;
       }
-      this.registerFallbackSubscription(
-        () => fallback.on("change", onChange),
-        "change",
-      );
-    } catch {
-      for (const unsubscribe of this.fallbackUnsubscribes.splice(0)) {
-        try {
-          unsubscribe();
-        } catch {
-          // Partial fallback subscription cleanup remains isolated.
-        }
+      if (
+        !this.registerFallbackSubscription(
+          () => fallback.on("change", onChange),
+          "change",
+          subscriptions,
+        )
+      ) {
+        cleanupSubscriptions();
+        return;
       }
+      this.fallbackUnsubscribes.push(...subscriptions.splice(0));
+    } catch {
+      cleanupSubscriptions();
       this.emitReady("none", null);
+      return;
+    }
+
+    setupComplete = true;
+    for (const observation of pendingObservations) {
+      if (this.invalidated) {
+        return;
+      }
+      observation();
     }
   }
 
   private registerFallbackSubscription(
     subscribe: () => () => void,
     event: keyof BridgeEvents,
+    subscriptions: Array<() => void>,
   ): boolean {
     const unsubscribe = subscribe();
     if (typeof unsubscribe !== "function") {
@@ -712,7 +766,7 @@ class BridgeLifecycle implements BridgeApi {
       }
       return false;
     }
-    this.fallbackUnsubscribes.push(unsubscribe);
+    subscriptions.push(unsubscribe);
     return true;
   }
 

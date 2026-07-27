@@ -224,6 +224,15 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- A CMP that synchronously rejects TCF listener registration no longer leaves
+  the bridge permanently ready with `source: "tcf"` and no listener. Discovery
+  keeps polling until another provider accepts registration or the configured
+  timeout activates the normal `none` / fallback path.
+- Synchronous fallback event replay is now held until all three forwarding
+  subscriptions are installed and removable. If later setup fails, every
+  established subscription is cleaned up, staged events are discarded, and the
+  bridge fails closed to `source: "none"` instead of exposing stale fallback
+  readiness or consent.
 - Bridge teardown now removes an external listener through the currently active
   same-window `__tcfapi` provider. This covers the standard queued-stub handoff
   where the real CMP replaces the stub before returning the listener ID; reset

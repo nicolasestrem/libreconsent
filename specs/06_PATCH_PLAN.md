@@ -58,6 +58,8 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-045 | Phase 7 documentation review | BR-1 | The no-TCF boundary documented TC strings, vendor consent and cross-frame behavior but omitted GPP, leaving readers unsure whether `__gpp` consumption or provider behavior was supported. State explicitly that GPP detection, parsing, emission, and `__gpp` provision are outside Phase 7. | minor | done | This PR |
 | P-046 | Phase 7 teardown audit | BR-1, BR-2 | A queued CMP could accept `addEventListener`, let the bridge emit `ready` with `source: "tcf"` and null consent, then supply its first listener ID only after a consumer reset. Reset had no ID to remove and cleared the API reference; the later callback was ignored, leaking the external listener. Wrap each registration so a numeric listener ID arriving after invalidation is used solely for `removeEventListener`, without restoring state or events. | major | done | This PR |
 | P-047 | PR #11 bot review | BR-1, BR-2 | P-046 still removed through the provider captured at registration. Under the standard queued-stub handoff, the real CMP can replace `window.__tcfapi` before returning the listener ID, so both normal reset and late post-reset removal called an obsolete stub and leaked the listener held by the replacement CMP. Resolve the active same-window provider at removal time, falling back to the registration provider only when live lookup is unavailable; cover both teardown paths with stub-replacement unit and browser regressions. | major | done | This PR |
+| P-048 | PR #11 bot review | BR-2, BR-4 | A CMP could synchronously reject `addEventListener` with `success === false`, but the bridge still emitted `ready` with `source: "tcf"` and stopped polling. No listener existed, and the discovery timeout could no longer activate the configured fallback. Treat a synchronous unsuccessful callback as a failed registration, publish no TCF readiness, and continue bounded discovery through replacement-provider success or timeout handoff. | major | done | This PR |
+| P-049 | PR #11 bot review | BR-3, BR-4 | A fallback could synchronously replay `ready` or `consent` during subscription setup and then fail a later subscription. The bridge published the replay before setup completed, so cleanup could not replace its one-shot fallback readiness with the required fail-closed `source: "none"` outcome. Stage synchronous observations until all three subscriptions are removable, then forward them in order; discard the staged events and clean every established subscription if setup fails. | major | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -70,6 +72,6 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-040..P-047 were fixed and regression-tested within the Phase 7 review
+_None. P-040..P-049 were fixed and regression-tested within the Phase 7 review
 follow-ups; the final full workspace verification passed and the phase gate is
 closed._

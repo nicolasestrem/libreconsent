@@ -795,6 +795,60 @@ describe("discovery and teardown", () => {
     expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
   });
 
+  test("keeps polling when CMP listener registration fails synchronously", () => {
+    vi.useFakeTimers();
+    const failing = vi.fn<TcfApi>((command, _version, callback) => {
+      if (command === "addEventListener") {
+        invokeTcfCallback(callback, {}, false);
+      }
+    });
+    setTcfApi(failing);
+    const ready = vi.fn();
+    const api = start({ timeoutMs: 50 });
+    api.on("ready", ready);
+
+    expect(ready).not.toHaveBeenCalled();
+
+    const replacement = vi.fn<TcfApi>();
+    setTcfApi(replacement);
+    vi.advanceTimersByTime(10);
+
+    expect(failing).toHaveBeenCalledOnce();
+    expect(replacement).toHaveBeenCalledWith(
+      "addEventListener",
+      2,
+      expect.any(Function),
+    );
+    expect(ready).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
+  });
+
+  test("activates fallback after synchronous registration failures reach the deadline", () => {
+    vi.useFakeTimers();
+    const failing = vi.fn<TcfApi>((command, _version, callback) => {
+      if (command === "addEventListener") {
+        invokeTcfCallback(callback, {}, false);
+      }
+    });
+    setTcfApi(failing);
+    const fallback = new FallbackStub();
+    const factory = vi.fn(() => fallback);
+    const ready = vi.fn();
+    const api = start({ timeoutMs: 10, fallback: factory });
+    api.on("ready", ready);
+
+    expect(ready).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(10);
+    expect(factory).toHaveBeenCalledOnce();
+    expect(ready).not.toHaveBeenCalled();
+
+    fallback.emitReady(null);
+
+    expect(failing).toHaveBeenCalledTimes(2);
+    expect(ready).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledWith({ source: "fallback", consent: null });
+  });
+
   test("removes the exact CMP listener during teardown", () => {
     let callback: TcfApiCallback | undefined;
     const external = vi.fn<TcfApi>(
@@ -1030,6 +1084,92 @@ describe("fallback handoff", () => {
     expect(ready).toHaveBeenCalledWith({ source: "none", consent: null });
   });
 
+  test("does not publish synchronous fallback replay before every subscription succeeds", () => {
+    vi.useFakeTimers();
+    const unsubscribeReady = vi.fn();
+    const fallback = {
+      getConsent: () => null,
+      on: vi.fn(
+        (
+          event: string,
+          callback: (payload: BridgeFallbackReadyEvent) => void,
+        ) => {
+          if (event === "ready") {
+            callback({
+              consent: {
+                categories: { necessary: true, analytics: true },
+                services: { ga: true },
+              },
+            });
+            return unsubscribeReady;
+          }
+          throw new Error("subscription");
+        },
+      ),
+      off: vi.fn(),
+    } as unknown as BridgeFallbackApi;
+    const api = start({ timeoutMs: 10, fallback: () => fallback });
+    const ready = vi.fn();
+    const consent = vi.fn();
+    api.on("ready", ready);
+    api.on("consent", consent);
+
+    vi.advanceTimersByTime(10);
+
+    expect(unsubscribeReady).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledWith({ source: "none", consent: null });
+    expect(consent).not.toHaveBeenCalled();
+    expect(api.getConsent()).toBeNull();
+  });
+
+  test("discards staged fallback events when a subscription is not removable", () => {
+    vi.useFakeTimers();
+    const unsubscribeReady = vi.fn();
+    const unsubscribeConsent = vi.fn();
+    const fallback = {
+      getConsent: () => null,
+      on: vi.fn(
+        (
+          event: string,
+          callback:
+            | ((payload: BridgeFallbackReadyEvent) => void)
+            | ((payload: BridgeFallbackConsentState) => void),
+        ) => {
+          if (event === "ready") {
+            (callback as (payload: BridgeFallbackReadyEvent) => void)({
+              consent: null,
+            });
+            return unsubscribeReady;
+          }
+          if (event === "consent") {
+            (callback as (payload: BridgeFallbackConsentState) => void)({
+              categories: { necessary: true, analytics: true },
+              services: { ga: true },
+            });
+            return unsubscribeConsent;
+          }
+          return undefined;
+        },
+      ),
+      off: vi.fn(),
+    } as unknown as BridgeFallbackApi;
+    const api = start({ timeoutMs: 10, fallback: () => fallback });
+    const ready = vi.fn();
+    const consent = vi.fn();
+    api.on("ready", ready);
+    api.on("consent", consent);
+
+    vi.advanceTimersByTime(10);
+
+    expect(unsubscribeReady).toHaveBeenCalledOnce();
+    expect(unsubscribeConsent).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledOnce();
+    expect(ready).toHaveBeenCalledWith({ source: "none", consent: null });
+    expect(consent).not.toHaveBeenCalled();
+    expect(api.getConsent()).toBeNull();
+  });
+
   test("ignores captured fallback callbacks invoked after reset", () => {
     vi.useFakeTimers();
     const callbacks = new Map<string, (payload: unknown) => void>();
@@ -1063,9 +1203,11 @@ describe("fallback handoff", () => {
     expect(api.getConsent()).toBeNull();
   });
 
-  test("immediately tears down synchronous fallback replay when ready resets", () => {
+  test("tears down every subscription when staged fallback replay resets", () => {
     vi.useFakeTimers();
     const unsubscribeReady = vi.fn();
+    const unsubscribeConsent = vi.fn();
+    const unsubscribeChange = vi.fn();
     const subscribedEvents: string[] = [];
     const fallback = {
       getConsent: () => null,
@@ -1079,7 +1221,7 @@ describe("fallback handoff", () => {
             callback({ consent: null });
             return unsubscribeReady;
           }
-          return vi.fn();
+          return event === "consent" ? unsubscribeConsent : unsubscribeChange;
         },
       ),
       off: vi.fn(),
@@ -1090,7 +1232,9 @@ describe("fallback handoff", () => {
     vi.advanceTimersByTime(10);
 
     expect(unsubscribeReady).toHaveBeenCalledOnce();
-    expect(subscribedEvents).toEqual(["ready"]);
+    expect(unsubscribeConsent).toHaveBeenCalledOnce();
+    expect(unsubscribeChange).toHaveBeenCalledOnce();
+    expect(subscribedEvents).toEqual(["ready", "consent", "change"]);
     expect(api.getConsent()).toBeNull();
   });
 
