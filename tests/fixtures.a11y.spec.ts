@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 
 const fixtures = [
   "basic-site",
+  "bridge-site",
   "blocking-site",
   "csp-site",
   "dynamic-site",

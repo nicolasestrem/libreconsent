@@ -6,6 +6,30 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- Phase 7 read-only bridge: `initBridge(config)` discovers a same-window
+  external TCF v2 CMP with bounded exponential-backoff polling, subscribes
+  through `addEventListener`, and exposes `getConsent()`, replayable `ready` /
+  `consent`, non-replayable `change`, `on()` / `off()`, and teardown-only
+  `reset()`. It does not provide `__tcfapi`, expose TC strings, render UI, write
+  storage, emit Google signals, or access the network.
+- A frozen `DEFAULT_PURPOSE_MAPPING`: analytics requires TCF purposes 1, 7, 8,
+  9 and 10; marketing requires 1, 2, 3 and 4. Both use strict `all`
+  aggregation. Custom mappings are complete replacements and may explicitly
+  choose `all` or `any`; `necessary` remains always true and cannot be
+  remapped.
+- Truthful bridge state containing only `source`, mapped `categories`,
+  `services`, `gdprApplies`, and `observedAt`. Direct TCF observations report
+  no service choices, and the bridge never invents a consent ID, revision,
+  persisted-decision marker, or decision timestamp.
+- Optional dependency-free fallback handoff: after the discovery timeout a
+  host-supplied factory may initialize full libreconsent and have its
+  `ready` / `consent` / `change` events forwarded as `source: "fallback"`.
+  Delaying core/UI creation until that handoff ensures only one banner owner.
+  A throwing factory fails closed to `source: "none"` without an unhandled
+  asynchronous error.
+- Confirmed external CMP listeners remain active after the discovery deadline,
+  so a later user decision continues through the TCF bridge and cannot
+  incorrectly activate the fallback UI.
 - Phase 6 US state privacy: the `usPrivacy` configuration block
   (`{ enabled, regions, doNotSellSelector, respectGPC }`) makes one
   configuration serve both regulatory models. Where it applies, an undecided
@@ -78,6 +102,10 @@ All notable changes to this project are documented in this file.
 
 ### Known limitations
 
+- Bridge discovery is same-window only. Cross-frame locator/proxy support,
+  legitimate-interest and vendor-level consent, TC-string decoding, and direct
+  service-purpose mapping remain outside Phase 7. GPP detection, parsing,
+  emission, and `__gpp` provider behavior are also excluded.
 - Under the US opt-out model, third-party tags released by the implied grant
   will set their own cookies before the visitor has decided anything. Nothing of
   libreconsent's reaches storage first, but that is the regime working as
@@ -199,6 +227,33 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- Listener teardown now retains the CMP that owns the first successfully
+  confirmed numeric listener ID. A later unrelated `window.__tcfapi`
+  replacement can no longer receive or collide with that provider-local ID,
+  while queued-stub handoff still binds ownership to the live CMP at
+  confirmation time.
+- TCF readiness now requires a successful `addEventListener` callback before
+  the absolute discovery deadline. A silent queued stub no longer publishes
+  irreversible `source: "tcf"` readiness, asynchronous registration rejection
+  resumes bounded discovery, and a late success confirmation is removed rather
+  than displacing the configured `none` / fallback handoff.
+- A delayed polling task now checks the absolute discovery deadline before
+  accepting a newly visible CMP, so a provider installed only after timeout
+  cannot suppress the required `none` / fallback result.
+- A CMP that synchronously rejects TCF listener registration no longer leaves
+  the bridge permanently ready with `source: "tcf"` and no listener. Discovery
+  keeps polling until another provider accepts registration or the configured
+  timeout activates the normal `none` / fallback path.
+- Synchronous fallback event replay is now held until all three forwarding
+  subscriptions are installed and removable. If later setup fails, every
+  established subscription is cleaned up, staged events are discarded, and the
+  bridge fails closed to `source: "none"` instead of exposing stale fallback
+  readiness or consent.
+- Bridge teardown now removes an external listener through the currently active
+  same-window `__tcfapi` provider. This covers the standard queued-stub handoff
+  where the real CMP replaces the stub before returning the listener ID; reset
+  and late post-reset callbacks no longer strand listeners on the replacement
+  CMP.
 - Each consent layer now releases exactly its own focus trap. Opening
   preferences over a `modal`-layout banner previously overwrote the banner's
   release function, leaking its `keydown` listener, and a decision taken in the

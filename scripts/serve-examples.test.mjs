@@ -75,6 +75,27 @@ describe("example fixture server", () => {
     }
   });
 
+  test("returns a clear 500 when the compiled bridge artifact is unavailable", async () => {
+    const port = randomPort();
+    const server = await startServer(port, {
+      LIBRECONSENT_BRIDGE_ARTIFACT_PATH:
+        "packages/bridge/dist/missing-index.global.js",
+    });
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:${port}/dist/bridge.global.js`,
+      );
+
+      expect(response.status).toBe(500);
+      await expect(response.text()).resolves.toBe(
+        "Bridge browser artifact is unavailable. Run pnpm build first.",
+      );
+    } finally {
+      await stopServer(server);
+    }
+  });
+
   test("returns a clear 500 when the compiled UI artifact is unavailable", async () => {
     const port = randomPort();
     const server = await startServer(port, {
@@ -127,6 +148,29 @@ describe("example fixture server", () => {
     try {
       const response = await fetch(
         `http://127.0.0.1:${port}/dist/core.global.js`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe(
+        "text/javascript; charset=utf-8",
+      );
+      await expect(response.text()).resolves.toContain(
+        "Serving example fixtures",
+      );
+    } finally {
+      await stopServer(server);
+    }
+  });
+
+  test("serves the compiled bridge artifact as executable JavaScript", async () => {
+    const port = randomPort();
+    const server = await startServer(port, {
+      LIBRECONSENT_BRIDGE_ARTIFACT_PATH: "scripts/serve-examples.mjs",
+    });
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:${port}/dist/bridge.global.js`,
       );
 
       expect(response.status).toBe(200);
