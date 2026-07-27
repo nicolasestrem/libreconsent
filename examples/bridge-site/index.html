@@ -41,6 +41,7 @@
         function installCmp() {
           window.__tcfapi = (command, version, callback, parameter) => {
             window.__tcfCalls.push({ command, version, parameter });
+            window.__tcfRealCalls.push({ command, version, parameter });
             if (command === "addEventListener") {
               listeners.set(73, callback);
               if (scenario === "cmpuishown") {
@@ -60,6 +61,7 @@
         window.__bridgeScenario = scenario;
         window.__bridgeEvents = [];
         window.__tcfCalls = [];
+        window.__tcfRealCalls = [];
         window.__tcfAssignmentCount = () => assignmentCount;
         window.__captureTcfContract = () => {
           const originalApi = window.__tcfapi;
@@ -97,6 +99,22 @@
           installCmp();
         } else if (scenario === "delayed") {
           setTimeout(installCmp, 35);
+        } else if (scenario === "stub-swap") {
+          const queuedCalls = [];
+          window.__tcfapi = (...args) => {
+            window.__tcfCalls.push({
+              command: args[0],
+              version: args[1],
+              parameter: args[3],
+            });
+            queuedCalls.push(args);
+          };
+          setTimeout(() => {
+            installCmp();
+            for (const args of queuedCalls) {
+              window.__tcfapi(...args);
+            }
+          }, 35);
         }
       })();
     </script>

@@ -410,12 +410,8 @@ class BridgeLifecycle implements BridgeApi {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    if (this.tcfApi && this.listenerId !== null) {
-      try {
-        this.tcfApi("removeEventListener", 2, () => {}, this.listenerId);
-      } catch {
-        // External CMP teardown failures must not escape host cleanup.
-      }
+    if (this.listenerId !== null) {
+      this.removeTcfListener(this.listenerId, this.tcfApi);
     }
     this.tcfApi = null;
     this.listenerId = null;
@@ -463,7 +459,7 @@ class BridgeLifecycle implements BridgeApi {
               try {
                 const lateListenerId = data.listenerId;
                 if (typeof lateListenerId === "number") {
-                  candidate("removeEventListener", 2, () => {}, lateListenerId);
+                  this.removeTcfListener(lateListenerId, candidate);
                 }
               } catch {
                 // A late CMP callback may only attempt to remove its own listener.
@@ -498,6 +494,32 @@ class BridgeLifecycle implements BridgeApi {
       this.timer = null;
       this.poll();
     }, delay);
+  }
+
+  private removeTcfListener(
+    listenerId: number,
+    registeredApi: TcfApi | null,
+  ): void {
+    let teardownApi = registeredApi;
+    try {
+      const activeApi =
+        typeof window !== "undefined"
+          ? Reflect.get(window, "__tcfapi")
+          : undefined;
+      if (typeof activeApi === "function") {
+        teardownApi = activeApi;
+      }
+    } catch {
+      // Fall back to the provider used for registration when lookup is blocked.
+    }
+    if (!teardownApi) {
+      return;
+    }
+    try {
+      teardownApi("removeEventListener", 2, () => {}, listenerId);
+    } catch {
+      // External CMP teardown failures must not escape host cleanup.
+    }
   }
 
   private readonly handleTcf: TcfCallback = (data, success) => {

@@ -224,6 +224,11 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- Bridge teardown now removes an external listener through the currently active
+  same-window `__tcfapi` provider. This covers the standard queued-stub handoff
+  where the real CMP replaces the stub before returning the listener ID; reset
+  and late post-reset callbacks no longer strand listeners on the replacement
+  CMP.
 - Each consent layer now releases exactly its own focus trap. Opening
   preferences over a `modal`-layout banner previously overwrote the banner's
   release function, leaking its `keydown` listener, and a decision taken in the

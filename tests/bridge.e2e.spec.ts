@@ -71,6 +71,11 @@ declare global {
       version: number;
       parameter?: number;
     }>;
+    __tcfRealCalls?: Array<{
+      command: string;
+      version: number;
+      parameter?: number;
+    }>;
     __tcfIntegrity?: () => TcfIntegrity;
   }
 }
@@ -140,6 +145,14 @@ function tcfCalls(): Array<{
   return window.__tcfCalls ?? [];
 }
 
+function tcfRealCalls(): Array<{
+  command: string;
+  version: number;
+  parameter?: number;
+}> {
+  return window.__tcfRealCalls ?? [];
+}
+
 function tcfIntegrity(): TcfIntegrity {
   if (!window.__tcfIntegrity) {
     throw new Error("TCF integrity instrumentation is unavailable");
@@ -149,7 +162,13 @@ function tcfIntegrity(): TcfIntegrity {
 
 async function openBridge(
   page: Page,
-  scenario: "tcloaded" | "delayed" | "cmpuishown" | "none" | "fallback",
+  scenario:
+    | "tcloaded"
+    | "delayed"
+    | "cmpuishown"
+    | "none"
+    | "fallback"
+    | "stub-swap",
 ): Promise<void> {
   await page.goto(`/bridge-site/?scenario=${scenario}`);
   await page.waitForFunction(() =>
@@ -400,4 +419,21 @@ test("teardown removes the external CMP listener without replacing __tcfapi (BR-
     sameDescriptor: true,
     sameFunction: true,
   });
+});
+
+test("teardown removes a queued listener through the replacement CMP provider (BR-1)", async ({
+  page,
+}) => {
+  await openBridge(page, "stub-swap");
+
+  await page.evaluate(() => window.__bridgeApi?.reset());
+
+  await expect
+    .poll(() => page.evaluate(tcfRealCalls))
+    .toContainEqual({
+      command: "removeEventListener",
+      version: 2,
+      parameter: 73,
+    });
+  expect((await page.evaluate(bridgeSideEffects)).tcfAssignmentCount).toBe(2);
 });

@@ -368,16 +368,16 @@ describe("TCF observation", () => {
 
   test("removes a queued CMP listener whose first callback arrives after reset", () => {
     let callback: TcfApiCallback | undefined;
-    const external = vi.fn<TcfApi>(
-      (command, _version, registered, listenerId) => {
-        if (command === "addEventListener") {
-          callback = registered;
-        } else {
-          expect(listenerId).toBe(92);
-        }
-      },
-    );
-    setTcfApi(external);
+    const stub = vi.fn<TcfApi>((command, _version, registered) => {
+      if (command === "addEventListener") {
+        callback = registered;
+      }
+    });
+    const cmp = vi.fn<TcfApi>((command, _version, _registered, listenerId) => {
+      expect(command).toBe("removeEventListener");
+      expect(listenerId).toBe(92);
+    });
+    setTcfApi(stub);
     const api = start();
     const ready = vi.fn();
     const consent = vi.fn();
@@ -388,6 +388,7 @@ describe("TCF observation", () => {
     expect(ready).toHaveBeenCalledWith({ source: "tcf", consent: null });
 
     api.reset();
+    setTcfApi(cmp);
     invokeTcfCallback(
       callback as TcfApiCallback,
       tcfData(
@@ -405,10 +406,10 @@ describe("TCF observation", () => {
       ),
     );
 
-    expect(external.mock.calls.map(([command]) => command)).toEqual([
+    expect(stub.mock.calls.map(([command]) => command)).toEqual([
       "addEventListener",
-      "removeEventListener",
     ]);
+    expect(cmp).toHaveBeenCalledOnce();
     expect(ready).toHaveBeenCalledOnce();
     expect(consent).not.toHaveBeenCalled();
     expect(change).not.toHaveBeenCalled();
@@ -820,6 +821,35 @@ describe("discovery and teardown", () => {
       "addEventListener",
       "removeEventListener",
     ]);
+  });
+
+  test("removes the listener through a CMP that replaced the queued stub", () => {
+    let callback: TcfApiCallback | undefined;
+    const stub = vi.fn<TcfApi>((command, _version, registered) => {
+      if (command === "addEventListener") {
+        callback = registered;
+      }
+    });
+    const cmp = vi.fn<TcfApi>((command, _version, _registered, listenerId) => {
+      expect(command).toBe("removeEventListener");
+      expect(listenerId).toBe(74);
+    });
+    setTcfApi(stub);
+    const api = start();
+    setTcfApi(cmp);
+    invokeTcfCallback(callback as TcfApiCallback, {
+      eventStatus: "cmpuishown",
+      gdprApplies: true,
+      listenerId: 74,
+      purpose: { consents: {} },
+    });
+
+    api.reset();
+
+    expect(stub.mock.calls.map(([command]) => command)).toEqual([
+      "addEventListener",
+    ]);
+    expect(cmp).toHaveBeenCalledOnce();
   });
 
   test("ignores a non-numeric listener ID instead of removing the wrong listener", () => {
