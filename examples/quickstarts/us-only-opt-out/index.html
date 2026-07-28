@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>libreconsent US-only opt-out quickstart</title>
+    <style>
+      body { margin: 0; font: 16px/1.6 system-ui, sans-serif; color: #17202a; background: #f5f7fa; }
+      main, footer { max-width: 48rem; margin: 0 auto; padding: 3rem 1.5rem; }
+      footer { padding-block-start: 0; }
+      output { padding: .2rem .4rem; border-radius: .25rem; background: #e8eef5; }
+      button, a { font: inherit; }
+    </style>
+    <script>
+      window.libreconsentConsentMode = {
+        enabled: true,
+        defaults: "denied-everywhere",
+        waitForUpdate: 500,
+      };
+    </script>
+    <!--
+      Complete inline copy of @libreconsent/core/dist/head-snippet.global.js.
+      Keep it before any gated Google tag.
+    -->
+    <script data-libreconsent-head-artifact>
+// biome-ignore-all format: preserve the exact packaged bootstrap
+// biome-ignore-all lint: preserve the exact packaged bootstrap
+/*! libreconsent v1.0.0 | MIT License | SPDX-License-Identifier: MIT */
+"use strict";var LibreConsentCore=(()=>{var d={defaults:"denied-everywhere",waitForUpdate:500,adsDataRedaction:!1,urlPassthrough:!1};function i(e){return e!==null&&typeof e=="object"&&!Array.isArray(e)}function f(e){return i(e)&&Array.isArray(e.deniedRegions)&&e.deniedRegions.every(n=>typeof n=="string"&&n.trim()!=="")}function l(e){if(e===void 0)return null;if(!i(e))return d;if(e.enabled===void 0||e.enabled===!1)return null;if(e.enabled!==!0)return d;let n=e.defaults??"denied-everywhere",o=e.waitForUpdate??500,t=e.adsDataRedaction??!1,s=e.urlPassthrough??!1;return n!=="denied-everywhere"&&!f(n)||typeof o!="number"||!Number.isInteger(o)||o<1||typeof t!="boolean"||typeof s!="boolean"?d:{defaults:n==="denied-everywhere"?n:{deniedRegions:n.deniedRegions.map(u=>u.trim().toUpperCase())},waitForUpdate:o,adsDataRedaction:t,urlPassthrough:s}}function a(e,n,o){return{analytics_storage:e,ad_storage:e,ad_user_data:e,ad_personalization:e,...n===void 0?{}:{wait_for_update:n},...o===void 0?{}:{region:o}}}function r(e){let n=l(e.libreconsentConsentMode);if(n===null)return;let o=e.dataLayer??[];e.dataLayer=o,typeof e.gtag!="function"&&(e.gtag=function(){o.push(arguments)}),n.defaults==="denied-everywhere"?e.gtag("consent","default",a("denied",n.waitForUpdate)):(e.gtag("consent","default",a("denied",n.waitForUpdate,n.defaults.deniedRegions)),e.gtag("consent","default",a("granted"))),n.adsDataRedaction&&e.gtag("set","ads_data_redaction",!0),n.urlPassthrough&&e.gtag("set","url_passthrough",!0)}r(window);})();
+    </script>
+    <script type="text/plain" data-cmp-category="analytics" src="/quickstarts/us-only-opt-out/analytics.js"></script>
+    <script type="text/plain" data-cmp-category="marketing" src="/quickstarts/us-only-opt-out/ads.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>US-only opt-out quickstart</h1>
+      <p>
+        Region resolution uses a same-origin endpoint. US visitors receive an
+        in-memory implied grant unless GPC or an explicit opt-out applies.
+      </p>
+      <p>Analytics: <output id="analytics-status">blocked</output></p>
+      <p>Advertising: <output id="ads-status">blocked</output></p>
+      <p><button type="button" data-cmp-open>Privacy preferences</button></p>
+    </main>
+    <footer>
+      <a id="do-not-sell" href="#do-not-sell">Do Not Sell or Share My Personal Information</a>
+    </footer>
+    <script src="/dist/core.global.js"></script>
+    <script src="/dist/ui.global.js"></script>
+    <script>
+      async function resolveRegion() {
+        try {
+          const response = await fetch("/api/region", {
+            credentials: "same-origin",
+            headers: { accept: "application/json" },
+          });
+          if (!response.ok) return null;
+          const body = await response.json();
+          return typeof body.region === "string" ? body.region : null;
+        } catch {
+          return null;
+        }
+      }
+
+      window.__quickstartApi = LibreConsentCore.init({
+        categories: [
+          {
+            id: "analytics",
+            label: "category.analytics.label",
+            description: "category.analytics.description",
+          },
+          {
+            id: "marketing",
+            label: "category.marketing.label",
+            description: "category.marketing.description",
+          },
+        ],
+        consentMode: window.libreconsentConsentMode,
+        resolveRegion,
+        usPrivacy: {
+          enabled: true,
+          regions: ["US"],
+          doNotSellSelector: "#do-not-sell",
+          respectGPC: true,
+        },
+        i18n: {
+          translations: {
+            en: {
+              "category.analytics.label": "Analytics",
+              "category.analytics.description": "Measures use of this site.",
+              "category.marketing.label": "Advertising",
+              "category.marketing.description": "Supports targeted advertising.",
+            },
+          },
+        },
+      });
+      window.__quickstartUi = LibreConsentUi.mount(window.__quickstartApi);
+    </script>
+  </body>
+</html>

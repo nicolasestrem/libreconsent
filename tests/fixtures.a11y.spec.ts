@@ -9,6 +9,11 @@ const fixtures = [
   "dynamic-site",
   "gtm-site",
   "us-only-site",
+  "quickstarts/basic-consent-mode",
+  "quickstarts/gtm-basic-mode",
+  "quickstarts/adsense-bridge",
+  "quickstarts/us-only-opt-out",
+  "demo-site",
 ] as const;
 
 for (const fixture of fixtures) {

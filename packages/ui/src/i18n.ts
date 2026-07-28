@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { Dictionary, NormalizedCmpConfig } from "@libreconsent/core";
 import { uiDictionaries, uiEn } from "./dictionaries";
 

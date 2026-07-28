@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 const FOCUSABLE = [
   "a[href]",
   "button:not([disabled])",

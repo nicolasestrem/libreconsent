@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { ConsentApi } from "@libreconsent/core";
 import { UiController } from "./controller";
 import { normalizeOptions, type UiOptions } from "./options";

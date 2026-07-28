@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { ConsentState } from "./types";
 
 /** Actions accepted by the optional receipt service (LOG-2). */

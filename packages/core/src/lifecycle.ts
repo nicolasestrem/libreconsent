@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { BlockingController } from "./blocking";
 import { AD_SIGNALS } from "./config";
 import { ConsentModeAdapter } from "./consent-mode";

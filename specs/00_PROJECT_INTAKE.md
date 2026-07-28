@@ -18,7 +18,8 @@
 - **C-2:** Open source, freely forkable. This structurally excludes TCF certification (CMP-ID liability model).
 - **C-3:** Must not endanger AdSense revenue on EEA/UK/CH-audience domains → those domains use Google's own free certified CMP ("Privacy & messaging"); libreconsent takes a bridge role there.
 - **C-4:** One integration API across all domains regardless of which banner runs (bridge mode).
-- **C-5:** Zero runtime dependencies; self-hostable; no telemetry.
+- **C-5:** Zero third-party runtime dependencies; first-party package peers are
+  allowed where the public API requires them; self-hostable; no telemetry.
 
 ## Success criteria
 

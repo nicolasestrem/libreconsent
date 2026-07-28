@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { describe, expect, test } from "vitest";
 import { installConsentModeDefaults } from "./head-bootstrap";
 

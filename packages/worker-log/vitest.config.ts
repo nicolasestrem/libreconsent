@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import {
   cloudflareTest,
   readD1Migrations,

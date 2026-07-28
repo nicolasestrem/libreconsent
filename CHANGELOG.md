@@ -6,11 +6,25 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
-- The dedicated-account Worker purge gate now advances beyond the maximum
-  supported retention window instead of assuming the default retention.
+- Made the Consent Mode, GTM, and US opt-out quickstarts directly copyable by
+  embedding the complete synchronous head bootstrap instead of relying on the
+  repository-only example server to replace a placeholder. The release audit
+  now pins every embedded copy to the packaged v1 artifact.
 
 ### Added
 
+- MIT/SPDX licensing and publish-ready metadata for all four public packages,
+  strict tarball allowlists, preserved JavaScript license banners, root-only
+  export maps, and stable self-hosted IIFE/head-snippet artifacts.
+- Four copy-paste quickstarts (basic Consent Mode, GTM basic mode,
+  AdSense/Google Privacy & messaging bridge, and US-only opt-out) plus a
+  dependency-free local demo that contacts no real vendor.
+- `release:check`: exact metadata/license/export/tarball auditing, temporary
+  installation of all four packed packages, public ESM and TypeScript imports,
+  IIFE/head-bootstrap execution, and deep-import rejection.
+- `release:dry-run`: parsed `npm publish --dry-run --access public --json`
+  validation for every package, plus focused Firefox and Playwright WebKit
+  smoke coverage for all release examples.
 - Phase 8 optional decision receipts: `receiptEndpoint` posts a persisted
   explicit decision with `keepalive`, while restored, revision-prefill,
   implied-US, and GPC-derived states remain silent. Delivery is off by default,
@@ -95,6 +109,8 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- `@libreconsent/ui` now declares `@libreconsent/core ^1.0.0` as its required
+  peer dependency, while retaining the workspace link used for development.
 - `getConfig()` now always reports a `usPrivacy` object, defaulting to
   `{ enabled: false, regions: ["US"], respectGPC: true }`. Existing
   configurations are unaffected: with `enabled` false nothing about their
@@ -243,6 +259,9 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- The dedicated-account Worker purge gate now advances beyond the maximum
+  supported retention window instead of assuming the default retention, and
+  its exported boundary constant carries the required TSDoc.
 - The manual Worker account gate now applies migrations through the configured
   `DB` binding instead of a hard-coded test database name, and its setup
   explicitly requires `DB.remote: true` in the ignored test-only Wrangler

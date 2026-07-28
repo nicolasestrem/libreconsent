@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { ConsentState, NormalizedStorageConfig } from "./types";
 
 const UUID_V4 =

@@ -17,8 +17,9 @@ budgets" for NFR-1, "E2E tests" for the CSP and network-silence fixtures):
   originates no network request (NFR-2, NFR-3).
 - No `__tcfapi` assignment anywhere; read-only consumption in `bridge` is the one
   permitted exception (G-1).
-- `core`, `ui` and `bridge` declare no runtime dependencies and no install
-  scripts (G-2, supply chain).
+- `core`, `ui` and `bridge` declare no third-party runtime dependencies and no
+  install scripts; UI's exact `@libreconsent/core ^1.0.0` peer is the sole
+  first-party package relationship (G-2, supply chain).
 - `EXCEPTIONS` contains only the reviewed LOG-4 `fetch` waiver for
   `packages/core/src/receipt.ts`; any additional entry must be a reviewed diff
   naming the requirement that justifies it.

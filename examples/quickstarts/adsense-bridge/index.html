@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>libreconsent AdSense bridge quickstart</title>
+    <style>
+      body { margin: 0; font: 16px/1.6 system-ui, sans-serif; color: #17202a; background: #f5f7fa; }
+      main { max-width: 48rem; margin: 0 auto; padding: 4rem 1.5rem; }
+      .warning { padding: 1rem; border-inline-start: .3rem solid #9b4d00; background: #fff4e5; }
+      output { display: block; padding: 1rem; white-space: pre-wrap; background: #e8eef5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>AdSense / Google Privacy &amp; messaging bridge quickstart</h1>
+      <p class="warning">
+        The bridge is read-only. It observes an external CMP; it is never a TCF
+        provider, never renders a replacement banner, and never makes
+        libreconsent a Google-certified CMP.
+      </p>
+      <p>Observed state:</p>
+      <output id="bridge-state" aria-live="polite">Waiting for the external CMP…</output>
+    </main>
+    <script src="/dist/bridge.global.js"></script>
+    <script>
+      const output = document.querySelector("#bridge-state");
+      window.__quickstartBridge = LibreConsentBridge.initBridge({
+        timeoutMs: 1000,
+      });
+      for (const event of ["ready", "consent", "change"]) {
+        window.__quickstartBridge.on(event, (detail) => {
+          output.textContent = `${event}: ${JSON.stringify(detail, null, 2)}`;
+        });
+      }
+    </script>
+  </body>
+</html>

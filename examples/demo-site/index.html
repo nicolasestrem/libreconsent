@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>libreconsent local demo</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { margin: 0; font: 16px/1.6 system-ui, sans-serif; color: #17202a; background: #eef3f8; }
+      main { max-width: 60rem; margin: 0 auto; padding: 3rem 1.5rem 8rem; }
+      .panel { margin-block: 1.5rem; padding: 1.25rem; border-radius: .75rem; background: white; box-shadow: 0 .5rem 2rem #1232; }
+      .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+      button { padding: .65rem 1rem; font: inherit; cursor: pointer; }
+      pre { overflow: auto; padding: 1rem; background: #17202a; color: #f8fafc; }
+      iframe { width: 100%; min-height: 8rem; border: 1px solid #789; }
+      @media (prefers-color-scheme: dark) {
+        body { color: #edf2f7; background: #111827; }
+        .panel { background: #1f2937; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>libreconsent local demo</h1>
+      <p>
+        This page uses only local built artifacts and local demo content. It
+        contacts no analytics, advertising, or other third-party vendor.
+      </p>
+      <div class="actions">
+        <button type="button" data-cmp-open>Open privacy preferences</button>
+        <button type="button" id="withdraw">Withdraw consent</button>
+      </div>
+      <section class="panel" aria-labelledby="state-heading">
+        <h2 id="state-heading">Current consent state</h2>
+        <pre id="consent-state" aria-live="polite">Waiting for initialization…</pre>
+      </section>
+      <section class="panel" aria-labelledby="gated-heading">
+        <h2 id="gated-heading">Gated local content</h2>
+        <p id="local-script-status">Analytics script is blocked.</p>
+        <iframe
+          title="Local marketing content"
+          data-cmp-src="/demo-site/local-embed.html"
+          data-cmp-category="marketing"
+        ></iframe>
+      </section>
+    </main>
+    <script src="/dist/core.global.js"></script>
+    <script src="/dist/ui.global.js"></script>
+    <script
+      type="text/plain"
+      data-cmp-category="analytics"
+      src="/demo-site/local-analytics.js"
+    ></script>
+    <script>
+      const state = document.querySelector("#consent-state");
+      const config = {
+        categories: [
+          {
+            id: "analytics",
+            label: "category.analytics.label",
+            description: "category.analytics.description",
+          },
+          {
+            id: "marketing",
+            label: "category.marketing.label",
+            description: "category.marketing.description",
+          },
+        ],
+        i18n: {
+          translations: {
+            en: {
+              "category.analytics.label": "Analytics",
+              "category.analytics.description": "Loads a local demonstration script.",
+              "category.marketing.label": "Marketing",
+              "category.marketing.description": "Loads a local demonstration frame.",
+            },
+          },
+        },
+      };
+      window.__demoApi = LibreConsentCore.init(config);
+      window.__demoUi = LibreConsentUi.mount(window.__demoApi);
+
+      function renderState(value) {
+        state.textContent = value === null
+          ? "No active decision"
+          : JSON.stringify(value, null, 2);
+      }
+      window.__demoApi.on("ready", (event) => renderState(event.consent));
+      window.__demoApi.on("consent", renderState);
+      window.__demoApi.on("change", renderState);
+      document.querySelector("#withdraw").addEventListener("click", () => {
+        window.__demoApi.withdraw();
+      });
+    </script>
+  </body>
+</html>

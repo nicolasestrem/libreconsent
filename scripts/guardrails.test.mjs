@@ -309,7 +309,7 @@ describe("library guardrails", () => {
     ).toEqual([]);
   });
 
-  test("core, ui, and bridge declare zero runtime dependencies", () => {
+  test("core, ui, and bridge declare no third-party runtime dependencies", () => {
     for (const packageName of SCANNED_PACKAGES) {
       const manifestPath = path.join(
         repositoryRoot,
@@ -323,10 +323,16 @@ describe("library guardrails", () => {
         Object.keys(manifest.dependencies ?? {}),
         `${packageName} runtime dependencies (G-2)`,
       ).toEqual([]);
+      const expectedPeerDependencies =
+        packageName === "ui"
+          ? {
+              "@libreconsent/core": "^1.0.0",
+            }
+          : {};
       expect(
-        Object.keys(manifest.peerDependencies ?? {}),
+        manifest.peerDependencies ?? {},
         `${packageName} peer dependencies (G-2)`,
-      ).toEqual([]);
+      ).toEqual(expectedPeerDependencies);
 
       for (const hook of ["preinstall", "install", "postinstall"]) {
         expect(

@@ -176,7 +176,7 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   17. **P-053 (major, fixed): the discovery deadline was still enforced after successful registration.** A normal `useractioncomplete` callback arriving after the timeout entered the late-registration branch even though an earlier callback had already confirmed the listener, removing the active CMP listener and activating fallback after TCF readiness. The absolute deadline now applies only until first successful confirmation; the regression moves the clock beyond the deadline before the user's decision and proves TCF remains active without listener removal or fallback creation.
 
 ### Phase 8 — Worker log
-- **Date / PR:** 2026-07-27 · Phase 8 PR pending · **PII audit (no IP/UA): PASS**
+- **Date / PR:** 2026-07-27 · [#12](https://github.com/nicolasestrem/libreconsent/pull/12) · **PII audit (no IP/UA): PASS**
 - **Verdict:** **PASS** — LOG-1..4 are implemented and the phase may close.
 - **Findings:**
   1. **PII/storage audit:** the tracked D1 migration has exactly eight columns:
@@ -224,6 +224,66 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
      requiring account credentials. P-061.
 
 ### Phase 9 — Release
-- **Date / PR:** _pending_ · **TRACEABILITY audit:** _pending_
-- **Verdict:** _pending_
-- **Findings:** —
+- **Date / PR:** 2026-07-28 · Phase 9 PR pending · **TRACEABILITY audit: PASS — 60/60 requirements through completed Phase 8**
+- **Scope:** NFR-5, NFR-6; `1.0.0` release candidate only — no npm publication, tag, merge, or deployment. The Phase 9 completion marker remains open until the required `v1.0.0` tag exists.
+- **Verdict:** release-candidate gates pass locally; Phase 9 remains incomplete
+  until tagging. `pnpm check`, Firefox/WebKit compatibility smoke,
+  `git diff --check`, strict tarball inspection, temporary-consumer
+  ESM/TypeScript/IIFE checks, and parsed npm publication dry-runs are green.
+- **Verification:** final `pnpm check` passed on 2026-07-28 — traceability
+  through completed Phase 8 (60 requirements), with the two Phase 9 rows also
+  present and passing; strict TypeScript and Biome over 109
+  files, 375 repository unit tests plus 22 Worker runtime/D1 tests, all package
+  builds and four size ceilings, four strict tarballs and publication
+  dry-runs, 66 Chromium E2E tests, 20 accessibility tests, and 10 focused
+  Firefox/WebKit compatibility tests.
+- **Measured size:** core 8.80/12 kB gzip; core+UI 16.35/19 kB; bridge
+  3.08/4 kB; head snippet 0.76/1.5 kB.
+- **Phase 8 prerequisite:** merged-main CI
+  [run 30307539024](https://github.com/nicolasestrem/libreconsent/actions/runs/30307539024)
+  passed. P-061 now advances the account purge clock by 3,651 days and its
+  pure maximum-boundary regression is green. The ignored test-account config
+  exists, but the URL, Origin, and bearer environment variables were
+  unavailable, so this branch did not redeploy or rerun the external account
+  round trip.
+- **Review checklist:**
+  1. NFR-5 and NFR-6 each have exactly one passing traceability row. The
+     repository regression keeps Phase 8 and its 60 requirements as the latest
+     completed set until the Phase 9 release tag exists.
+  2. All four public packages align at `1.0.0`, carry MIT metadata and LICENSE
+     files, expose package roots only, preserve generated JavaScript license
+     banners, and have no third-party runtime dependency. The UI declares core
+     `^1.0.0` as its required peer, and the release audit enforces that exact
+     contract.
+  3. Strict `npm pack` manifests contain only the declared bundles, types,
+     documentation/license files, and the Worker's migration/example config;
+     tests, specs, secrets, account configuration, and unrelated artifacts are
+     absent.
+  4. The Worker example targets `dist/index.js`, and `prepack` rebuilds before
+     packing. A temporary consumer imports all four package roots at runtime
+     and in strict TypeScript, validates three browser globals plus the head
+     snippet, and proves deep imports reject.
+  5. All four documented quickstarts and the local-only demo have expected
+     consent behavior, no console/page errors, no unintended external request,
+     and zero serious/critical axe finding. The three Consent Mode quickstarts
+     embed the complete packaged synchronous head bootstrap and work without
+     repository-only HTML preprocessing. Flagship pre-consent network silence
+     remains green.
+  6. Current official Google Consent Mode, Tag Manager, AdSense/Google Privacy
+     & messaging, and GPC/RDP documentation was rechecked on 2026-07-28 and is
+     cited in the release README and PR.
+  7. Firefox and Playwright WebKit smoke all five release pages. This is not
+     claimed as exact Safari 15.4 hardware coverage.
+  8. Guardrails G-1..G-6 were rechecked by the authoritative gate: the bridge
+     remains read-only, core/UI/bridge have no third-party runtime dependencies,
+     UI's exact core peer is the sole first-party relationship, size ceilings
+     are unchanged, and declarative network-silence coverage remains intact.
+- **Launch limitations:** Phase 9 remains incomplete until `v1.0.0` is tagged.
+  The bridge remains fixture-tested but unvalidated on
+  a real AdSense domain using Google Privacy & messaging; exact Safari 15.4
+  validation remains unproven; npm publication is deferred, so this work is a
+  verified release candidate rather than registry availability.
+- **Findings:** Phase 8 prerequisite P-061 and Phase 9 P-062..P-073 are fixed
+  and regression-tested. No implementation blocker or major finding remains
+  open; the required `v1.0.0` tag is the sole outstanding Phase 9
+  definition-of-done item.

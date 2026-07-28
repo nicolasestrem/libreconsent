@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 
+/**
+ * Maximum retention window accepted by the Worker configuration.
+ */
 export const MAX_RETENTION_DAYS = 3650;
 
 /**

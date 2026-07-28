@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { normalizeConfig, sameConfig } from "./config";
 import { ConsentError } from "./errors";
 import { ConsentLifecycle } from "./lifecycle";

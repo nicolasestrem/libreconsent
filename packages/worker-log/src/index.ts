@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 const MAX_BODY_BYTES = 16 * 1024;
 const DEFAULT_RETENTION_DAYS = 395;
 const MIN_RETENTION_DAYS = 1;
@@ -378,9 +379,34 @@ async function scheduledHandler(
 }
 
 /**
+ * Minimum scheduled-event surface used by the packaged Worker.
+ */
+export interface WorkerLogScheduledEvent {
+  /** Scheduled execution time in milliseconds since the Unix epoch. */
+  readonly scheduledTime: number;
+}
+
+/**
+ * Importable module shape of the packaged Worker.
+ *
+ * Wrangler supplies the concrete bindings at runtime. Keeping the public type
+ * environment-agnostic lets TypeScript consumers import the package without
+ * installing Cloudflare's ambient Worker types.
+ */
+export interface WorkerLogModule {
+  /** Handles receipt writes and authenticated audit reads. */
+  fetch(request: Request, env: unknown): Promise<Response>;
+  /** Purges receipts older than the configured server-time retention window. */
+  scheduled(controller: WorkerLogScheduledEvent, env: unknown): Promise<void>;
+}
+
+/**
  * Optional libreconsent receipt Worker.
  */
-export default {
-  fetch: fetchHandler,
-  scheduled: scheduledHandler,
-} satisfies ExportedHandler<Env>;
+const worker: WorkerLogModule = {
+  fetch: (request, env) => fetchHandler(request, env as Env),
+  scheduled: (controller, env) =>
+    scheduledHandler(controller as ScheduledController, env as Env),
+};
+
+export default worker;

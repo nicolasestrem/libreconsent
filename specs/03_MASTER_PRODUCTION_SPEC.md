@@ -107,7 +107,7 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 
 - **NFR-1 Size (CI hard-fail):** core ≤ 12 KB min+gz; core+ui IIFE ≤ 19 KB; bridge ≤ 4 KB; head snippet ≤ 1.5 KB. The first two figures were re-baselined once, after Phase 5, from measurement rather than estimate (D-042); the original 8 KB / 15 KB were set at Phase 0 before any code existed. Raising a budget again requires the same evidence and a new DECISION_LOG entry — G-3 stays a hard CI failure.
 - **NFR-2 Performance:** no CLS from banner injection (reserved positioning documented); zero library-originated network (except LOG-4 opt-in).
-- **NFR-3 Library privacy:** no telemetry/phone-home/CDN requirement; self-host first.
+- **NFR-3 Library privacy:** no telemetry/phone-home/CDN requirement; no third-party runtime dependencies; the UI may require a compatible core through package peer metadata; self-host first.
 - **NFR-4 Security:** G-6; BLK-2 CSP; all storage first-party.
 - **NFR-5 License:** MIT (DECISION_LOG D-002); SPDX headers; no copyleft encumbrance on build output.
 - **NFR-6 API stability:** semver from 1.0; only package-root exports are public.

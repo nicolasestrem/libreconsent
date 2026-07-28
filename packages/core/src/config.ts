@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { en, fr } from "./dictionaries";
 import { ConsentError } from "./errors";
 import type {

@@ -1,0 +1,179 @@
+// SPDX-License-Identifier: MIT
+import { describe, expect, test } from "vitest";
+import { npmInvocation } from "./npm-invocation.mjs";
+import {
+  validateEmbeddedHeadSnippet,
+  validateManifest,
+  validateTarballFiles,
+} from "./release-check.mjs";
+
+const releasePackage = {
+  directory: "packages/example",
+  files: ["LICENSE", "README.md", "dist/index.js", "package.json"],
+  name: "@libreconsent/example",
+};
+
+function validManifest() {
+  return {
+    name: releasePackage.name,
+    version: "1.0.0",
+    description: "Example",
+    license: "MIT",
+    repository: {
+      type: "git",
+      url: "git+https://github.com/nicolasestrem/libreconsent.git",
+      directory: releasePackage.directory,
+    },
+    homepage: "https://github.com/nicolasestrem/libreconsent#readme",
+    bugs: {
+      url: "https://github.com/nicolasestrem/libreconsent/issues",
+    },
+    keywords: ["consent", "privacy", "example"],
+    publishConfig: { access: "public" },
+    exports: {
+      ".": {
+        types: "./dist/index.d.ts",
+        import: "./dist/index.js",
+      },
+    },
+    scripts: { prepack: "pnpm run build" },
+  };
+}
+
+describe("release package audit", () => {
+  test("selects a portable npm invocation", () => {
+    expect(
+      npmInvocation(["pack", "--json"], {
+        platform: "win32",
+        comSpec: "C:\\Windows\\System32\\cmd.exe",
+      }),
+    ).toEqual({
+      args: ["/d", "/s", "/c", "npm", "pack", "--json"],
+      command: "C:\\Windows\\System32\\cmd.exe",
+    });
+    expect(
+      npmInvocation(["pack", "--json"], {
+        platform: "linux",
+      }),
+    ).toEqual({
+      args: ["pack", "--json"],
+      command: "npm",
+    });
+  });
+
+  test("accepts complete public-package metadata", () => {
+    expect(validateManifest(validManifest(), releasePackage)).toEqual([]);
+  });
+
+  test("requires the declared peer dependency contract exactly", () => {
+    const uiPackage = {
+      ...releasePackage,
+      name: "@libreconsent/ui",
+      peerDependencies: {
+        "@libreconsent/core": "^1.0.0",
+      },
+    };
+
+    expect(
+      validateManifest(
+        {
+          ...validManifest(),
+          name: uiPackage.name,
+        },
+        uiPackage,
+      ),
+    ).toContain("peerDependencies must match the release contract exactly");
+    expect(
+      validateManifest(
+        {
+          ...validManifest(),
+          name: uiPackage.name,
+          peerDependencies: {
+            "@libreconsent/core": "^2.0.0",
+          },
+        },
+        uiPackage,
+      ),
+    ).toContain("peerDependencies must match the release contract exactly");
+    expect(
+      validateManifest(
+        {
+          ...validManifest(),
+          name: uiPackage.name,
+          peerDependencies: {
+            "@libreconsent/core": "^1.0.0",
+          },
+        },
+        uiPackage,
+      ),
+    ).toEqual([]);
+  });
+
+  test("rejects private, deep-exported, dependency-bearing packages", () => {
+    const manifest = {
+      ...validManifest(),
+      private: true,
+      dependencies: { copyleft: "1.0.0" },
+      exports: {
+        ".": validManifest().exports["."],
+        "./internal": "./dist/internal.js",
+      },
+    };
+
+    expect(validateManifest(manifest, releasePackage)).toEqual(
+      expect.arrayContaining([
+        "public package must not declare private",
+        "only the package-root export may be public",
+        "runtime dependencies are not allowed in the v1 packages",
+      ]),
+    );
+  });
+
+  test("requires the tarball allowlist to match exactly", () => {
+    expect(
+      validateTarballFiles(releasePackage.files, releasePackage.files),
+    ).toEqual([]);
+    expect(
+      validateTarballFiles(
+        [...releasePackage.files, "src/secret.ts"],
+        releasePackage.files,
+      ),
+    ).toEqual([expect.stringContaining("src/secret.ts")]);
+  });
+
+  test("requires copyable quickstarts to inline the packaged head snippet", () => {
+    const artifact =
+      "window.gtag = function () {};\n//# sourceMappingURL=head.js.map";
+    const validHtml = `<script>
+window.libreconsentConsentMode = { enabled: true };
+</script>
+<script data-libreconsent-head-artifact>
+window.gtag = function () {};
+</script>`;
+
+    expect(validateEmbeddedHeadSnippet(validHtml, artifact)).toEqual([]);
+    expect(
+      validateEmbeddedHeadSnippet(
+        validHtml.replace(
+          "window.gtag = function () {};",
+          "window.gtag = undefined;",
+        ),
+        artifact,
+      ),
+    ).toContain("inline head snippet differs from the packaged artifact");
+    expect(
+      validateEmbeddedHeadSnippet(
+        validHtml.replace(
+          /<script data-libreconsent-head-artifact>[\s\S]*?<\/script>/,
+          "<!-- LIBRECONSENT_HEAD_SNIPPET -->",
+        ),
+        artifact,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        "repository-only head-snippet placeholder remains",
+        "complete inline head snippet is missing",
+      ]),
+    );
+  });
+});

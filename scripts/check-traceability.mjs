@@ -42,8 +42,11 @@ const SUPPORTED_CI_CHECKS = new Set([
   "Unit tests",
   "Build",
   "Size budgets",
+  "Release audit",
+  "Publication dry-runs",
   "E2E tests",
   "Accessibility tests",
+  "Firefox and WebKit compatibility smoke",
   "All gates",
 ]);
 

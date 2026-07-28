@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 /**
  * Determines how TCF purpose grants become one libreconsent category grant.
  */

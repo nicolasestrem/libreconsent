@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import { createScheduledController } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test } from "vitest";

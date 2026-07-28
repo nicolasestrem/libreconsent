@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 import type { ConsentModeDefaults } from "./types";
 
 /** Browser globals consumed by the inline Consent Mode head artifact. */
