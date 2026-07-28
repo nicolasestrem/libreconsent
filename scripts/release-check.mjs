@@ -18,6 +18,14 @@ import {
 const nodeCommand = process.execPath;
 const licenseBanner =
   "/*! libreconsent v1.0.0 | MIT License | SPDX-License-Identifier: MIT */";
+const sourceMappingComment = /\n?\/\/# sourceMappingURL=.*$/m;
+const copyableConsentModeQuickstarts = [
+  "examples/quickstarts/basic-consent-mode/index.html",
+  "examples/quickstarts/gtm-basic-mode/index.html",
+  "examples/quickstarts/us-only-opt-out/index.html",
+];
+const embeddedArtifactPreamble =
+  /^\/\/ biome-ignore-all format: preserve the exact packaged bootstrap\r?\n\/\/ biome-ignore-all lint: preserve the exact packaged bootstrap\r?\n/;
 
 function fail(message) {
   throw new Error(message);
@@ -136,6 +144,39 @@ export function validateTarballFiles(actualFiles, expectedFiles) {
       ];
 }
 
+export function validateEmbeddedHeadSnippet(html, expectedSource) {
+  const errors = [];
+  const placeholder = "<!-- LIBRECONSENT_HEAD_SNIPPET -->";
+  const openingTag = "<script data-libreconsent-head-artifact>";
+  const configIndex = html.indexOf("window.libreconsentConsentMode");
+  const snippetIndex = html.indexOf(openingTag);
+  const snippetMatch = html.match(
+    /<script data-libreconsent-head-artifact>([\s\S]*?)<\/script>/,
+  );
+
+  if (html.includes(placeholder)) {
+    errors.push("repository-only head-snippet placeholder remains");
+  }
+  if (!snippetMatch) {
+    errors.push("complete inline head snippet is missing");
+  } else {
+    const actualSource = snippetMatch[1]
+      .trim()
+      .replace(embeddedArtifactPreamble, "");
+    const packagedSource = expectedSource
+      .replace(sourceMappingComment, "")
+      .trim();
+    if (actualSource !== packagedSource) {
+      errors.push("inline head snippet differs from the packaged artifact");
+    }
+  }
+  if (configIndex < 0 || snippetIndex < configIndex) {
+    errors.push("head snippet must follow its standalone configuration");
+  }
+
+  return errors;
+}
+
 function validateMetadataAndArtifacts() {
   const rootManifest = readJson(path.join(repositoryRoot, "package.json"));
   if (
@@ -214,6 +255,21 @@ function validateMetadataAndArtifacts() {
   );
   if (workerConfig.main !== "dist/index.js") {
     fail("worker package configuration must deploy dist/index.js");
+  }
+
+  const packagedHeadSnippet = readFileSync(
+    path.join(repositoryRoot, "packages/core/dist/head-snippet.global.js"),
+    "utf8",
+  );
+  for (const quickstartPath of copyableConsentModeQuickstarts) {
+    const html = readFileSync(
+      path.join(repositoryRoot, quickstartPath),
+      "utf8",
+    );
+    const errors = validateEmbeddedHeadSnippet(html, packagedHeadSnippet);
+    if (errors.length > 0) {
+      fail(`${quickstartPath}: ${errors.join("; ")}`);
+    }
   }
 }
 
@@ -409,7 +465,7 @@ export function runReleaseCheck() {
     rmSync(tempRoot, { recursive: true, force: true });
   }
   console.log(
-    "Release check passed: 4 strict tarballs, public ESM/types/IIFE imports, blocked deep imports, MIT/SPDX metadata, and packaged Worker configuration.",
+    "Release check passed: 4 strict tarballs, public ESM/types/IIFE imports, blocked deep imports, copyable inline head bootstraps, MIT/SPDX metadata, and packaged Worker configuration.",
   );
 }
 

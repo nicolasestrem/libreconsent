@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-28 | Codex | PR #14 review follow-up (CM-1, TOOL-5, NFR-6) | Embedded the complete packaged Consent Mode head bootstrap in all three applicable copyable quickstarts and made the release audit reject transformation markers, missing or drifted copies, and wrong ordering. P-073. |
 | 2026-07-28 | Codex | PR #14 review follow-up (G-2, NFR-3, NFR-6) | Kept the completed-phase marker at Phase 8 until the required `v1.0.0` tag exists, declared core as the UI's sole first-party peer, clarified the third-party dependency guardrail, and made both audits enforce that contract. D-059; P-071/P-072. |
 | 2026-07-28 | Codex | PR #14 review follow-up (LOG-1) | Added the missing TSDoc contract for the exported remote-gate maximum-retention boundary. P-070. |
 | 2026-07-28 | Codex | Phase 8 post-merge review follow-up (LOG-1) | Made the dedicated-account purge gate advance beyond the maximum valid retention window instead of assuming the default, with a pure boundary regression. P-061. |

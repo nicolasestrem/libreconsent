@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Made the Consent Mode, GTM, and US opt-out quickstarts directly copyable by
+  embedding the complete synchronous head bootstrap instead of relying on the
+  repository-only example server to replace a placeholder. The release audit
+  now pins every embedded copy to the packaged v1 artifact.
+
 ### Added
 
 - MIT/SPDX licensing and publish-ready metadata for all four public packages,

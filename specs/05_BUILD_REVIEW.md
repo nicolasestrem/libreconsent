@@ -233,7 +233,7 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
 - **Verification:** final `pnpm check` passed on 2026-07-28 — traceability
   through completed Phase 8 (60 requirements), with the two Phase 9 rows also
   present and passing; strict TypeScript and Biome over 109
-  files, 374 repository unit tests plus 22 Worker runtime/D1 tests, all package
+  files, 375 repository unit tests plus 22 Worker runtime/D1 tests, all package
   builds and four size ceilings, four strict tarballs and publication
   dry-runs, 66 Chromium E2E tests, 20 accessibility tests, and 10 focused
   Firefox/WebKit compatibility tests.
@@ -265,7 +265,9 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
      snippet, and proves deep imports reject.
   5. All four documented quickstarts and the local-only demo have expected
      consent behavior, no console/page errors, no unintended external request,
-     and zero serious/critical axe finding. Flagship pre-consent network silence
+     and zero serious/critical axe finding. The three Consent Mode quickstarts
+     embed the complete packaged synchronous head bootstrap and work without
+     repository-only HTML preprocessing. Flagship pre-consent network silence
      remains green.
   6. Current official Google Consent Mode, Tag Manager, AdSense/Google Privacy
      & messaging, and GPC/RDP documentation was rechecked on 2026-07-28 and is
@@ -281,7 +283,7 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   a real AdSense domain using Google Privacy & messaging; exact Safari 15.4
   validation remains unproven; npm publication is deferred, so this work is a
   verified release candidate rather than registry availability.
-- **Findings:** Phase 8 prerequisite P-061 and Phase 9 P-062..P-072 are fixed
+- **Findings:** Phase 8 prerequisite P-061 and Phase 9 P-062..P-073 are fixed
   and regression-tested. No implementation blocker or major finding remains
   open; the required `v1.0.0` tag is the sole outstanding Phase 9
   definition-of-done item.

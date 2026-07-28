@@ -17,8 +17,16 @@
         waitForUpdate: 500,
       };
     </script>
-    <!-- Defaults must execute before GTM container initialization. -->
-    <!-- LIBRECONSENT_HEAD_SNIPPET -->
+    <!--
+      Complete inline copy of @libreconsent/core/dist/head-snippet.global.js.
+      Defaults must execute before GTM container initialization.
+    -->
+    <script data-libreconsent-head-artifact>
+// biome-ignore-all format: preserve the exact packaged bootstrap
+// biome-ignore-all lint: preserve the exact packaged bootstrap
+/*! libreconsent v1.0.0 | MIT License | SPDX-License-Identifier: MIT */
+"use strict";var LibreConsentCore=(()=>{var d={defaults:"denied-everywhere",waitForUpdate:500,adsDataRedaction:!1,urlPassthrough:!1};function i(e){return e!==null&&typeof e=="object"&&!Array.isArray(e)}function f(e){return i(e)&&Array.isArray(e.deniedRegions)&&e.deniedRegions.every(n=>typeof n=="string"&&n.trim()!=="")}function l(e){if(e===void 0)return null;if(!i(e))return d;if(e.enabled===void 0||e.enabled===!1)return null;if(e.enabled!==!0)return d;let n=e.defaults??"denied-everywhere",o=e.waitForUpdate??500,t=e.adsDataRedaction??!1,s=e.urlPassthrough??!1;return n!=="denied-everywhere"&&!f(n)||typeof o!="number"||!Number.isInteger(o)||o<1||typeof t!="boolean"||typeof s!="boolean"?d:{defaults:n==="denied-everywhere"?n:{deniedRegions:n.deniedRegions.map(u=>u.trim().toUpperCase())},waitForUpdate:o,adsDataRedaction:t,urlPassthrough:s}}function a(e,n,o){return{analytics_storage:e,ad_storage:e,ad_user_data:e,ad_personalization:e,...n===void 0?{}:{wait_for_update:n},...o===void 0?{}:{region:o}}}function r(e){let n=l(e.libreconsentConsentMode);if(n===null)return;let o=e.dataLayer??[];e.dataLayer=o,typeof e.gtag!="function"&&(e.gtag=function(){o.push(arguments)}),n.defaults==="denied-everywhere"?e.gtag("consent","default",a("denied",n.waitForUpdate)):(e.gtag("consent","default",a("denied",n.waitForUpdate,n.defaults.deniedRegions)),e.gtag("consent","default",a("granted"))),n.adsDataRedaction&&e.gtag("set","ads_data_redaction",!0),n.urlPassthrough&&e.gtag("set","url_passthrough",!0)}r(window);})();
+    </script>
     <script>
       window.dataLayer.push({
         "gtm.start": Date.now(),

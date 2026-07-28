@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 import { describe, expect, test } from "vitest";
 import { npmInvocation } from "./npm-invocation.mjs";
-import { validateManifest, validateTarballFiles } from "./release-check.mjs";
+import {
+  validateEmbeddedHeadSnippet,
+  validateManifest,
+  validateTarballFiles,
+} from "./release-check.mjs";
 
 const releasePackage = {
   directory: "packages/example",
@@ -135,5 +139,41 @@ describe("release package audit", () => {
         releasePackage.files,
       ),
     ).toEqual([expect.stringContaining("src/secret.ts")]);
+  });
+
+  test("requires copyable quickstarts to inline the packaged head snippet", () => {
+    const artifact =
+      "window.gtag = function () {};\n//# sourceMappingURL=head.js.map";
+    const validHtml = `<script>
+window.libreconsentConsentMode = { enabled: true };
+</script>
+<script data-libreconsent-head-artifact>
+window.gtag = function () {};
+</script>`;
+
+    expect(validateEmbeddedHeadSnippet(validHtml, artifact)).toEqual([]);
+    expect(
+      validateEmbeddedHeadSnippet(
+        validHtml.replace(
+          "window.gtag = function () {};",
+          "window.gtag = undefined;",
+        ),
+        artifact,
+      ),
+    ).toContain("inline head snippet differs from the packaged artifact");
+    expect(
+      validateEmbeddedHeadSnippet(
+        validHtml.replace(
+          /<script data-libreconsent-head-artifact>[\s\S]*?<\/script>/,
+          "<!-- LIBRECONSENT_HEAD_SNIPPET -->",
+        ),
+        artifact,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        "repository-only head-snippet placeholder remains",
+        "complete inline head snippet is missing",
+      ]),
+    );
   });
 });

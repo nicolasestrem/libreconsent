@@ -106,9 +106,11 @@ they are copied as files rather than imported as package subpaths.
 
 The quickstarts use local stand-ins for vendor loaders so automated tests make
 no third-party requests. Replace only the clearly marked local loader URLs in
-your deployment. The [local demo](examples/demo-site/index.html) demonstrates
-accept, reject, customize, gated local content, withdrawal, re-entry, and the
-current state without contacting any vendor.
+your deployment. The three Consent Mode pages already contain the complete
+inline head bootstrap; copying them does not require the repository example
+server or a preprocessing step. The [local demo](examples/demo-site/index.html)
+demonstrates accept, reject, customize, gated local content, withdrawal,
+re-entry, and the current state without contacting any vendor.
 
 ## Google implementation sources
 

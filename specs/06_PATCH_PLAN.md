@@ -83,6 +83,7 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 | P-070 | PR #14 review follow-up | LOG-1 | The exported remote-gate maximum-retention constant had no TSDoc despite the repository convention requiring documentation on every export. Document the boundary at its declaration. | minor | done | This PR |
 | P-071 | PR #14 review follow-up | TOOL-4, NFR-6 | The traceability completion marker advanced through Phase 9 before its definition-of-done release tag existed, allowing the phase-aware gate to report a completed release prematurely. Keep the marker at Phase 8 until `v1.0.0` is tagged, while retaining the release-candidate evidence. | blocker | done | This PR |
 | P-072 | PR #14 review follow-up | G-2, NFR-3, NFR-6 | The UI's public declarations import core types, but its manifest listed core only as a development dependency. Declare core `^1.0.0` as a required peer, clarify G-2's third-party dependency boundary, and make both the guardrail and release audit enforce the exact first-party peer contract. | major | done | D-059 |
+| P-073 | PR #14 review follow-up | CM-1, TOOL-5, NFR-6 | Three public quickstarts left the head bootstrap as a repository-only replacement marker, so copying them to an ordinary static host omitted `dataLayer`, `gtag`, and synchronous denied defaults. Embed the complete packaged bootstrap in each copyable page and make the release audit reject placeholders, missing copies, drift, or incorrect ordering. | major | done | This PR |
 
 **Severity:** `blocker` (phase gate violated / guardrail breach) · `major` (spec deviation, user-visible) · `minor` (docs, polish).
 **Status:** `open` → `planned` → `done` / `wontfix (log rationale in DECISION_LOG)`.
@@ -95,4 +96,4 @@ Tracks corrective work arising from 05_BUILD_REVIEW findings or field issues. Pa
 
 ## Open patches
 
-_None. P-061..P-072 were fixed and regression-tested._
+_None. P-061..P-073 were fixed and regression-tested._
