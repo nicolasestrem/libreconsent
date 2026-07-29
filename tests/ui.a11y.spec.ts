@@ -91,6 +91,47 @@ test("the settings button is accessible with its label revealed (UI-3, UI-5)", a
   expect(await blockingViolations(page)).toEqual([]);
 });
 
+test("the consent indicator survives forced colours (UI-3, UI-5)", async ({
+  page,
+}) => {
+  // Forced colours override author background and border, so an indicator
+  // distinguished only by theme tokens can collapse into one shape. Chromium
+  // currently maps these two to distinct system colours unaided; this pins that
+  // behaviour, because the state would otherwise be visible to everyone except
+  // the high contrast users most likely to depend on it.
+  await page.emulateMedia({ forcedColors: "active" });
+  await openFixture(page);
+  // Asserted, not assumed: if the emulation silently failed the comparison
+  // below would run in ordinary colours, where the two states already differ,
+  // and the test would pass while proving nothing.
+  expect(
+    await page.evaluate(() => matchMedia("(forced-colors: active)").matches),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Reject all" }).click();
+
+  const badge = () =>
+    page
+      .locator(".lc-fab-icon")
+      .evaluate((node) => getComputedStyle(node, "::after").backgroundColor);
+  const fab = page.getByRole("button", { name: "Cookie settings" });
+  await expect(fab).toHaveAttribute("data-lc-consent", "essential");
+  const essential = await badge();
+
+  await page.evaluate(() => {
+    (
+      window as typeof window & { __lcApi: { acceptAll(): void } }
+    ).__lcApi.acceptAll();
+  });
+  await expect(fab).toHaveAttribute("data-lc-consent", "extended");
+
+  expect(await badge()).not.toBe(essential);
+  // The name carries the state regardless of how the badge paints.
+  await expect(fab).toHaveAttribute(
+    "aria-label",
+    "Cookie settings. Optional cookies allowed",
+  );
+});
+
 test("reduced motion is honored on both layers (UI-3)", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openFixture(page);

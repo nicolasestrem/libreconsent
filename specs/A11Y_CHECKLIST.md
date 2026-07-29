@@ -56,6 +56,10 @@ Test with at least one of NVDA + Firefox, VoiceOver + Safari, or Narrator + Edge
       horizontal scrolling or clipped controls.
 - [ ] With `prefers-reduced-motion: reduce`, no transition or animation runs.
 - [ ] Nothing is conveyed by colour alone.
+- [ ] Under `forced-colors: active` every state that carries meaning stays
+      distinguishable. Forced colours override `background` and `border-color`,
+      so a distinction drawn with theme tokens alone collapses; system colours
+      such as `Canvas` and `CanvasText` are honoured instead.
 - [ ] In a right-to-left document the layout mirrors and remains usable.
 
 ## Integration

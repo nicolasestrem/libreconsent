@@ -1,6 +1,6 @@
 {
   "name": "@libreconsent/worker-log",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Optional consent receipt worker for libreconsent.",
   "license": "MIT",
   "author": "Nicolas Estrem",

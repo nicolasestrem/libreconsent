@@ -15,6 +15,6 @@ export default defineConfig({
   clean: true,
   globalName: "LibreConsentCore",
   banner: {
-    js: "/*! libreconsent v1.1.0 | MIT License | SPDX-License-Identifier: MIT */",
+    js: "/*! libreconsent v1.1.1 | MIT License | SPDX-License-Identifier: MIT */",
   },
 });
