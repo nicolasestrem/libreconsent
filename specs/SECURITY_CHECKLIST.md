@@ -48,7 +48,11 @@ budgets" for NFR-1, "E2E tests" for the CSP and network-silence fixtures):
       `HTMLScriptElement.prototype` patch is installed only when a blocklist is
       configured, is scoped to script elements, and is reverted by `reset()`.
 - [ ] No shipped source reads a configuration string into a DOM sink. Placeholder
-      and UI text reach the DOM through `textContent` only.
+      and UI text reach the DOM either as a text node or as a non-markup,
+      non-URL attribute value — `aria-label` is the only such attribute today
+      (`controller.ts`, `modal.ts`, `opt-out.ts`). Any new sink taking a
+      configured string, in particular `href`, `src`, `style` or `title`, is a
+      change to this contract rather than an instance of it.
 - [ ] Built `dist/` artifacts spot-checked after `pnpm build` for anything the
       source scan cannot see (the scan reads source because CI tests run before
       the build).

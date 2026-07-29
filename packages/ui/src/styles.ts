@@ -316,6 +316,20 @@ export const styles = `
   border-color: var(--lc-accent);
   background: var(--lc-accent);
 }
+/* Forced colours override author background and border alike, which collapses
+   both states into the same disc and leaves the indicator meaningless to the
+   high contrast users most likely to rely on it. System colours are honoured
+   rather than overridden, so filled against hollow survives. */
+@media (forced-colors: active) {
+  .lc-fab-icon::after {
+    background: Canvas;
+    border-color: CanvasText;
+  }
+  .lc-fab[data-lc-consent="extended"] .lc-fab-icon::after {
+    background: CanvasText;
+    border-color: CanvasText;
+  }
+}
 .lc-fab:hover, .lc-fab:focus-visible { opacity: 1; }
 .lc-fab:focus-visible .lc-fab-label { opacity: 1; }
 /* Only :hover is gated, so a coarse-pointer device with a keyboard attached

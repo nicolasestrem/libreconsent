@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-29
+
+### Fixed
+
+- The settings button's consent indicator was invisible as an indicator under
+  `forced-colors: active`: forced colours override author `background` and
+  `border-color` alike, so the filled and hollow states both painted as the same
+  disc. The high contrast users most likely to depend on a clear indicator were
+  the only ones who could not see it. The two states now resolve through the
+  `Canvas` and `CanvasText` system colours, which forced colours honour. The
+  accessible name already carried the state and is unchanged.
+
+### Changed
+
+- `examples/csp-site` now mounts `@libreconsent/ui` under a policy that includes
+  `style-src 'self'` with no `'unsafe-inline'`. The claim that the renderer needs
+  no `style-src` relaxation was true by inspection but had no test behind it: the
+  fixture set only `script-src` and never mounted the UI, so a regression in style
+  injection would have reached a release unnoticed — and an unstyled settings
+  button loses `position: fixed` and drops into the document flow. The test now
+  asserts the stylesheet actually applied rather than only counting violations.
+- `specs/SECURITY_CHECKLIST.md` no longer claims UI text reaches the DOM through
+  `textContent` only. Translated strings also reach `aria-label`, which is not a
+  markup, URL, or script sink; the item now names that boundary explicitly so a
+  future `href`, `src`, `style`, or `title` sink reads as a contract change.
+- `specs/A11Y_CHECKLIST.md` gains a forced-colours item. Its absence is why the
+  defect above shipped.
+
 ## [1.1.0] - 2026-07-29
 
 ### Added
@@ -377,6 +405,7 @@ All notable changes to this project are documented in this file.
 - Traceability verification evidence must reference a configured
   unit/E2E/accessibility test or a supported named CI gate.
 
-[Unreleased]: https://github.com/nicolasestrem/libreconsent/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/nicolasestrem/libreconsent/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/nicolasestrem/libreconsent/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/nicolasestrem/libreconsent/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nicolasestrem/libreconsent/releases/tag/v1.0.0

@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-lc-e2e-nonce'">
+    <!-- style-src omits 'unsafe-inline' deliberately: the renderer adopts a
+         constructable stylesheet, so mounting it under this policy is what
+         proves the claim that it needs no style-src relaxation (NFR-4). -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-lc-e2e-nonce'; style-src 'self'">
     <title>libreconsent CSP fixture</title>
     <script nonce="lc-e2e-nonce">
       window.__cspViolations = [];
@@ -28,6 +31,7 @@
       </script>
     </main>
     <script src="/dist/core.global.js"></script>
+    <script src="/dist/ui.global.js"></script>
     <script nonce="lc-e2e-nonce">
       window.__lcApi = LibreConsentCore.init({
         categories: [
@@ -48,6 +52,7 @@
           },
         },
       });
+      window.__lcUi = LibreConsentUi.mount(window.__lcApi);
     </script>
   </body>
 </html>

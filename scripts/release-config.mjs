@@ -2,7 +2,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const RELEASE_VERSION = "1.1.0";
+export const RELEASE_VERSION = "1.1.1";
 export const repositoryRoot = path.dirname(
   path.dirname(fileURLToPath(import.meta.url)),
 );

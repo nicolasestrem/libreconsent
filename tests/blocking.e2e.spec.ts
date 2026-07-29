@@ -146,6 +146,15 @@ test("re-created scripts carry a nonce and satisfy CSP (BLK-2)", async ({
     .poll(() => page.evaluate(executedScripts))
     .toEqual(["config-nonce", "element-nonce"]);
   expect(await page.evaluate(cspViolations)).toEqual([]);
+
+  // The fixture's policy carries no 'unsafe-inline' for style-src, so this is
+  // the assertion behind the claim that the renderer needs none: the stylesheet
+  // has to have actually applied. Counting violations alone would pass just as
+  // happily against a UI that never styled itself, and an unstyled settings
+  // button loses `position: fixed` and drops into the document flow (NFR-2).
+  const fab = page.locator(".lc-fab");
+  await expect(fab).toBeVisible();
+  await expect(fab).toHaveCSS("position", "fixed");
 });
 
 /**
