@@ -397,7 +397,7 @@ void [core, ui, config, fixed, mapping, options];
   );
   writeText(
     path.join(consumerRoot, "deep-import.ts"),
-    'import "@libreconsent/core/dist/index.js";\n',
+    'import type { ConsentCategory } from "@libreconsent/core/dist/index.js";\nvoid (null as unknown as ConsentCategory);\n',
   );
   writeText(
     path.join(consumerRoot, "runtime.mjs"),
