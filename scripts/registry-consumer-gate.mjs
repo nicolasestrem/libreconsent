@@ -222,11 +222,17 @@ export function validateApprovalManifest(manifest) {
       fail(`approval manifest package ${packageName} is incomplete`);
     }
   }
+  // Read from the release contract rather than repeated here: a peer range
+  // duplicated across files drifts silently, and this gate is the last thing
+  // standing between a wrong range and the registry.
+  const uiCorePeer = releasePackages.find(
+    (releasePackage) => releasePackage.name === "@libreconsent/ui",
+  )?.peerDependencies?.["@libreconsent/core"];
   if (
     typeof manifest.uiCorePeer !== "string" ||
-    manifest.uiCorePeer !== "^1.0.0"
+    manifest.uiCorePeer !== uiCorePeer
   ) {
-    fail("approval manifest must record the UI-to-core ^1.0.0 peer");
+    fail(`approval manifest must record the UI-to-core ${uiCorePeer} peer`);
   }
   if (!Array.isArray(manifest.browserArtifacts)) {
     fail("approval manifest must contain approved browser artifacts");
@@ -518,7 +524,9 @@ function verifyInstalledPackages(consumerRoot) {
     uiManifest.version !== RELEASE_VERSION ||
     bridgeManifest.version !== RELEASE_VERSION
   ) {
-    fail("installed core/UI/bridge versions are not exactly 1.0.0");
+    fail(
+      `installed core/UI/bridge versions are not exactly ${RELEASE_VERSION}`,
+    );
   }
   const coreDirectories = listInstalledCoreDirectories(consumerRoot);
   if (coreDirectories.length !== 1) {

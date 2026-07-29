@@ -44,8 +44,10 @@ export const OUTPUT_REQUIREMENT =
   "--output must be an absolute path to an existing empty directory outside " +
   "this repository and outside every Git worktree";
 
-const approvalSentence =
-  "I explicitly approve tagging this SHA as v1.0.0 and publishing exactly these four preserved tarballs in this order.";
+// Derived from the configured version: this is the sentence the owner signs,
+// so a pinned version would ask them to approve tagging a release other than
+// the one actually prepared.
+const approvalSentence = `I explicitly approve tagging this SHA as ${RELEASE_TAG} and publishing exactly these four preserved tarballs in this order.`;
 
 export const knownReleaseLimits = [
   "No production TCF or GPP implementation.",
