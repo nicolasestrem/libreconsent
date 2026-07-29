@@ -77,6 +77,20 @@ test("the persistent settings button is accessible (UI-3, UI-5)", async ({
   expect(await blockingViolations(page)).toEqual([]);
 });
 
+test("the settings button is accessible with its label revealed (UI-3, UI-5)", async ({
+  page,
+}) => {
+  await openFixture(page);
+  await page.getByRole("button", { name: "Accept all" }).click();
+  // The resting disc sits at reduced opacity and keeps its label hidden, so
+  // auditing it collapsed would never exercise the label's contrast.
+  const fab = page.getByRole("button", { name: "Cookie settings" });
+  await fab.hover();
+  await expect(page.locator(".lc-fab-label")).toHaveCSS("opacity", "1");
+
+  expect(await blockingViolations(page)).toEqual([]);
+});
+
 test("reduced motion is honored on both layers (UI-3)", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openFixture(page);

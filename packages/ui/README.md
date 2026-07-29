@@ -1,7 +1,7 @@
 # @libreconsent/ui
 
 Consent banner and preferences modal for
-[`@libreconsent/core`](https://github.com/nicolasestrem/libreconsent/tree/v1.0.0/packages/core#readme).
+[`@libreconsent/core`](https://github.com/nicolasestrem/libreconsent/tree/v1.1.0/packages/core#readme).
 
 Renders in a shadow root by default so host CSS cannot alter it, ships zero
 runtime dependencies, and loads no external asset or font. It only reads core
@@ -70,6 +70,7 @@ and `api.hide()` become operative from that point on.
 | `shadow` | `true` | Render inside a shadow root. `false` renders into the light DOM. |
 | `container` | `document.body` | Element the UI is appended to. |
 | `floatingButton` | `true` | Show the persistent settings button after a decision. |
+| `floatingButtonPosition` | `"bottom-start"` | Corner the settings button occupies: `bottom-start` or `bottom-end`. |
 | `locale` | — | Force a locale. Must be one of the configured locales, or `mount()` throws. |
 
 Invalid options throw synchronously with the offending path, e.g.
@@ -83,6 +84,34 @@ Three entry points, all equivalent:
 - any element carrying `data-cmp-open`, e.g.
   `<button type="button" data-cmp-open>Cookie preferences</button>`;
 - `api.showPreferences()` or the handle's `showPreferences()`.
+
+### The persistent settings button
+
+A 40 × 40 disc that appears once a decision exists, resting at reduced opacity so
+it recedes into the page. Hovering it or reaching it with the keyboard reveals its
+label; a touch device leaves it a plain disc, since there is no hover to reveal
+anything, but the label is still revealed on focus for anyone using a keyboard
+with one.
+
+`floatingButtonPosition` moves it between the bottom corners. The values are
+logical, so `bottom-end` is the bottom right of a left-to-right document and the
+bottom left of a right-to-left one. The bottom offset clears the iOS home
+indicator via `env(safe-area-inset-bottom)`, and `--libreconsent-fab-inset`
+adjusts it if the corner is already occupied by a control of your own:
+
+```css
+:root { --libreconsent-fab-inset: 5rem; }
+```
+
+The disc carries a small indicator of what is currently active: filled when
+anything beyond the necessary categories is allowed, a hollow ring when only the
+necessary ones are. The two states differ by shape rather than by colour, and
+neither is green or red, because an indicator that codes one outcome as good is a
+nudge (UI-7). The state is also part of the button's accessible name, which reads
+"Cookie settings. Optional cookies allowed" or "Cookie settings. Necessary cookies
+only" — the visible label stays the prefix, so voice control still responds to
+"click Cookie settings". Both halves come from the i18n layer
+(`ui.settings.extended`, `ui.settings.essential`).
 
 ## Theming
 
@@ -101,7 +130,8 @@ mount point inherits from, typically `:root`:
 
 Available tokens: `bg`, `fg`, `muted`, `surface`, `border`, `accent`,
 `accent-fg`, `overlay`, `focus`, `radius`, `space`, `z-index`, `font-family`,
-`font-size`, `max-width`, `shadow` — each prefixed with `--libreconsent-`.
+`font-size`, `max-width`, `shadow`, `fab-inset` — each prefixed with
+`--libreconsent-`.
 
 Dark mode follows `prefers-color-scheme` automatically. Pass
 `theme: "light"` or `theme: "dark"` to `mount()` to pin it instead, or define
@@ -124,7 +154,8 @@ then falling back to `i18n.default`. The resolved locale is written to the
 Keys this package adds beyond the core's `ui.acceptAll` / `ui.rejectAll` /
 `ui.customize` / `ui.save`: `ui.title`, `ui.description`,
 `ui.preferences.title`, `ui.preferences.description`, `ui.close`,
-`ui.settings`, `ui.alwaysOn`, `ui.cookies.show`, `ui.cookies.hide`,
+`ui.settings`, `ui.settings.extended`, `ui.settings.essential`,
+`ui.alwaysOn`, `ui.cookies.show`, `ui.cookies.hide`,
 `ui.cookies.name`, `ui.cookies.purpose`, `ui.cookies.provider`,
 `ui.cookies.duration`, `ui.cookies.type`, `ui.optOut.title`,
 `ui.optOut.description`, `ui.optOut.confirm`, `ui.optOut.done`.
@@ -151,7 +182,7 @@ Do Not Sell link are the entry points.
 
 WCAG 2.1 AA is a release gate: axe-core runs in CI against all three surfaces in
 light and dark themes, and the
-[accessibility checklist](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/A11Y_CHECKLIST.md)
+[accessibility checklist](https://github.com/nicolasestrem/libreconsent/blob/v1.1.0/specs/A11Y_CHECKLIST.md)
 covers the manual passes. Each is a dialog with labelled controls; preferences
 and the opt-out dialog trap focus, close on Escape and restore focus to
 whatever opened it. Transitions are suppressed under `prefers-reduced-motion`.
@@ -167,10 +198,18 @@ over the page instead of displacing it: mounting the UI contributes **zero** to
 Cumulative Layout Shift no matter when consent code finishes loading, and no
 space needs to be reserved for it.
 
+The settings button holds to this even as it reveals its label. The label is
+positioned out of flow rather than growing the disc, so nothing moves: were the
+disc to expand in place it would displace its own start position wherever its
+pinned edge is the far one — `bottom-end` in a left-to-right document, and
+`bottom-start` in a right-to-left one — and hover does not count as recent input,
+so those shifts would reach real Core Web Vitals unexcluded.
+
 `tests/hardening.e2e.spec.ts` enforces this with a buffered `layout-shift`
 PerformanceObserver installed before any page script, asserting no shift entry
-through banner paint and preferences open — alongside a companion test that
-displaces real content to prove the observer would catch a regression.
+through banner paint, preferences open, and the settings button appearing and
+revealing its label at either corner — alongside a companion test that displaces
+real content to prove the observer would catch a regression.
 
 The one exception is your own CSS: if you override the container to
 `position: static` or `relative`, or place the mount point inside a flow

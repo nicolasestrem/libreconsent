@@ -4,8 +4,23 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-29
+
 ### Added
 
+- `floatingButtonPosition` on `mount()`, moving the persistent settings button
+  between the bottom corners. The values are logical — `bottom-start` and
+  `bottom-end` — so the control still mirrors in a right-to-left document. The
+  default keeps its existing corner.
+- `--libreconsent-fab-inset`, which offsets the settings button when the corner
+  is already occupied by a control of your own. The bottom offset also clears the
+  iOS home indicator through `env(safe-area-inset-bottom)`.
+- A consent indicator on the settings button, filled when anything beyond the
+  necessary categories is allowed and a hollow ring when only the necessary ones
+  are. The two states differ by shape rather than colour and neither is green or
+  red, so the indicator reports rather than nudges. It reaches assistive
+  technology through the button's accessible name, from the new
+  `ui.settings.extended` and `ui.settings.essential` keys.
 - `examples/README.md`, which separates the copyable quickstarts and demo from
   the seven Playwright fixtures and documents how to serve each set.
 - CI, npm, bundle-size, and license badges on the root README, plus License,
@@ -15,6 +30,12 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- The persistent settings button is now a 40 × 40 disc that rests at reduced
+  opacity and reveals its label on hover or keyboard focus, in place of the
+  always-on text pill. The label is positioned out of flow rather than growing
+  the disc, so revealing it moves nothing and the zero-CLS guarantee holds at
+  either corner and in either writing direction. Its accessible name now carries
+  the consent state after the visible label, which remains the prefix.
 - Removed the stale "release candidate / not yet published" opening from the
   root README and from all four package READMEs. `@libreconsent/*@1.0.0` is on
   npm, so every install block is now the one that works today. The contract
@@ -356,5 +377,6 @@ All notable changes to this project are documented in this file.
 - Traceability verification evidence must reference a configured
   unit/E2E/accessibility test or a supported named CI gate.
 
-[Unreleased]: https://github.com/nicolasestrem/libreconsent/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/nicolasestrem/libreconsent/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/nicolasestrem/libreconsent/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nicolasestrem/libreconsent/releases/tag/v1.0.0

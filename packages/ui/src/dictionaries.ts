@@ -17,6 +17,8 @@ export const uiEn: Readonly<Dictionary> = Object.freeze({
     "Choose which categories and services may run. You can change this at any time.",
   "ui.close": "Close",
   "ui.settings": "Cookie settings",
+  "ui.settings.extended": "Optional cookies allowed",
+  "ui.settings.essential": "Necessary cookies only",
   "ui.alwaysOn": "Always on",
   "ui.optOut.title": "Do Not Sell or Share My Personal Information",
   "ui.optOut.description":
@@ -45,6 +47,8 @@ export const uiFr: Readonly<Dictionary> = Object.freeze({
     "Choisissez les catégories et services autorisés. Vous pouvez modifier ce choix à tout moment.",
   "ui.close": "Fermer",
   "ui.settings": "Réglages cookies",
+  "ui.settings.extended": "Cookies optionnels autorisés",
+  "ui.settings.essential": "Cookies nécessaires uniquement",
   "ui.alwaysOn": "Toujours actif",
   "ui.optOut.title": "Ne pas vendre ni partager mes informations personnelles",
   "ui.optOut.description":

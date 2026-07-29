@@ -279,6 +279,108 @@ test("re-entry reopens preferences after a decision (UI-5)", async ({
   await expect(page.locator("[data-lc-preferences]")).toBeVisible();
 });
 
+test("the settings button reveals its label without resizing (UI-5, NFR-2)", async ({
+  page,
+}) => {
+  await openFixture(page);
+  await page.getByRole("button", { name: "Accept all" }).click();
+  const fab = page.getByRole("button", { name: "Cookie settings" });
+  const label = page.locator(".lc-fab-label");
+  await expect(fab).toBeVisible();
+  await expect(label).toHaveCSS("opacity", "0");
+  const collapsed = await fab.boundingBox();
+
+  await fab.hover();
+  await expect(label).toHaveCSS("opacity", "1");
+
+  // The label is out of flow, so the disc's own box must be untouched. This is
+  // what keeps the control's zero-CLS guarantee true however it is anchored.
+  expect(await fab.boundingBox()).toEqual(collapsed);
+});
+
+test("the settings button reveals its label on keyboard focus (UI-3, UI-5)", async ({
+  page,
+}) => {
+  await openFixture(page);
+  await page.getByRole("button", { name: "Accept all" }).click();
+  const fab = page.getByRole("button", { name: "Cookie settings" });
+  await expect(fab).toBeVisible();
+
+  // Programmatic focus does not reliably match :focus-visible, so drive it
+  // from the keyboard the way a visitor tabbing through the page would. The
+  // name searched for is the full accessible name, which doubles as proof that
+  // the consent state is what assistive technology actually reads.
+  await tabUntil(page, "Cookie settings. Optional cookies allowed");
+  await expect(fab).toBeFocused();
+
+  await expect(page.locator(".lc-fab-label")).toHaveCSS("opacity", "1");
+});
+
+test("the settings button reflects the saved consent state (UI-5, UI-7)", async ({
+  page,
+}) => {
+  await openFixture(page);
+  await page.getByRole("button", { name: "Accept all" }).click();
+  const fab = page.getByRole("button", { name: "Cookie settings" });
+  await expect(fab).toHaveAttribute("data-lc-consent", "extended");
+
+  await fab.click();
+  await expect(page.locator("[data-lc-preferences]")).toBeVisible();
+  // Readonly categories render a badge rather than a control, so every
+  // checkbox present is one the visitor may actually turn off.
+  for (const box of await page
+    .locator("[data-lc-preferences] input[type=checkbox]")
+    .all()) {
+    await box.uncheck();
+  }
+  await page.getByRole("button", { name: "Save choices" }).click();
+
+  await expect(fab).toHaveAttribute("data-lc-consent", "essential");
+  await expect(fab).toHaveAttribute(
+    "aria-label",
+    "Cookie settings. Necessary cookies only",
+  );
+
+  // Neither state may be coded as good or bad, so the indicator must not reach
+  // for green or red in either direction (UI-7).
+  for (const state of ["essential", "extended"] as const) {
+    const colour = await fab.evaluate((node, level) => {
+      node.setAttribute("data-lc-consent", level);
+      return getComputedStyle(
+        node.querySelector(".lc-fab-icon") as Element,
+        "::after",
+      ).backgroundColor;
+    }, state);
+    const [red = 0, green = 0, blue = 0] = (colour.match(/\d+/g) ?? []).map(
+      Number,
+    );
+    expect(red === 255 && green < 128 && blue < 128).toBe(false);
+    expect(green === 255 && red < 128 && blue < 128).toBe(false);
+  }
+});
+
+test("the settings button mirrors in a right-to-left document (UI-5, UI-8)", async ({
+  page,
+}) => {
+  await openFixture(page);
+  await page.getByRole("button", { name: "Accept all" }).click();
+  const fab = page.getByRole("button", { name: "Cookie settings" });
+  await expect(fab).toBeVisible();
+
+  const viewport = page.viewportSize();
+  const inStart = await fab.boundingBox();
+  expect(inStart?.x).toBeLessThan((viewport?.width ?? 0) / 2);
+
+  await page.evaluate(() => {
+    document.documentElement.dir = "rtl";
+  });
+
+  // Logical insets, so the same option lands the control on the other side
+  // without a second stylesheet.
+  const mirrored = await fab.boundingBox();
+  expect(mirrored?.x).toBeGreaterThan((viewport?.width ?? 0) / 2);
+});
+
 test("the banner renders in a shadow root and honors theme tokens (UI-4, UI-6)", async ({
   page,
 }) => {

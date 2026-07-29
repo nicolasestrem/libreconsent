@@ -20,7 +20,7 @@ interface LayoutShift {
 declare global {
   interface Window {
     __layoutShifts?: LayoutShift[];
-    __lcApi?: { showPreferences(): void };
+    __lcApi?: { showPreferences(): void; acceptAll(): void };
   }
 }
 
@@ -95,6 +95,52 @@ test("banner and preferences injection shift no layout (NFR-2)", async ({
   await page.evaluate(settle);
 
   expect(await page.evaluate(layoutShifts)).toEqual([]);
+});
+
+test("the settings button appears and expands without shifting layout (UI-5, NFR-2)", async ({
+  page,
+}) => {
+  await page.addInitScript(recordLayoutShifts);
+  await page.goto("/basic-site/");
+  await expect(page.locator("[data-lc-banner]")).toBeVisible();
+
+  // Decided programmatically on purpose: clicking Accept all would set
+  // hadRecentInput on everything within half a second of it, and the assertion
+  // below would then pass whether or not the button displaced anything.
+  await page.evaluate(() => {
+    window.__lcApi?.acceptAll();
+  });
+  const fab = page.locator(".lc-fab");
+  const label = page.locator(".lc-fab-label");
+  await expect(fab).toBeVisible();
+  await page.evaluate(settle);
+
+  expect(await page.evaluate(layoutShifts)).toEqual([]);
+
+  // Hover never counts as recent input, so a control that grew its own box on
+  // reveal would be caught here. Both anchors are exercised: when the button
+  // sits inline-end its pinned edge is the far one, which is precisely where a
+  // grow-in-place pill moves its own start position.
+  for (const position of ["bottom-start", "bottom-end"] as const) {
+    await fab.evaluate((node, value) => {
+      node.setAttribute("data-lc-position", value);
+    }, position);
+    await page.evaluate(settle);
+    // Moving the button between corners is itself a move; only what the reveal
+    // does is under test here.
+    await page.evaluate(() => {
+      window.__layoutShifts = [];
+    });
+
+    await fab.hover();
+    await expect(label).toHaveCSS("opacity", "1");
+    await page.evaluate(settle);
+
+    expect(await page.evaluate(layoutShifts)).toEqual([]);
+
+    await page.mouse.move(0, 0);
+    await expect(label).toHaveCSS("opacity", "0");
+  }
 });
 
 test("the layout-shift observer would catch a shift if one happened", async ({

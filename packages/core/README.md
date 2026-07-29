@@ -198,7 +198,7 @@ are ignored, never retried, and cannot change state, persistence, events, or UI.
 With no endpoint the feature performs no fetch at all.
 
 The optional deployment is documented in
-[`@libreconsent/worker-log`](https://github.com/nicolasestrem/libreconsent/tree/v1.0.0/packages/worker-log#readme).
+[`@libreconsent/worker-log`](https://github.com/nicolasestrem/libreconsent/tree/v1.1.0/packages/worker-log#readme).
 A receipt proves that a
 record exists; it does not prove which UI was shown historically or that the UI
 complied with every legal requirement.
@@ -310,7 +310,7 @@ decision takes precedence over the signal: a visitor who explicitly chose on
 your site keeps that choice until it expires or is withdrawn, at which point GPC
 is honored again. The regulatory reasoning, and a conflict-notification nuance
 worth reviewing with counsel if you have substantial California traffic, are in
-[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/US_NOTES.md).
+[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.1.0/specs/US_NOTES.md).
 
 ### Do Not Sell or Share
 
@@ -366,7 +366,7 @@ configurable, and an ad signal may be fixed denied, so hardcoding `marketing`
 reports the wrong value for anyone who points the ad signals elsewhere.
 
 The sources behind this are recorded with retrieval dates in
-[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/US_NOTES.md).
+[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.1.0/specs/US_NOTES.md).
 
 ## Blocking
 
@@ -814,7 +814,7 @@ Rechecked 2026-07-29:
 Consulted for the US module (US-4) on 2026-07-27. The spec's original start URL,
 `support.google.com/adsense/answer/9561024`, returns HTTP 404; these are the
 live replacements. Full notes are in
-[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/US_NOTES.md).
+[`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.1.0/specs/US_NOTES.md).
 
 - [Helping advertisers comply with the U.S. states' privacy laws in Google Ads](https://support.google.com/google-ads/answer/9614122).
 - [Disable the collection of personalized advertising data](https://support.google.com/google-ads/answer/9606827).

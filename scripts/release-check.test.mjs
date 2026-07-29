@@ -9,6 +9,7 @@ import {
   validateQuickstartVendorAssets,
   validateTarballFiles,
 } from "./release-check.mjs";
+import { RELEASE_VERSION } from "./release-config.mjs";
 
 const releasePackage = {
   directory: "packages/example",
@@ -19,7 +20,9 @@ const releasePackage = {
 function validManifest() {
   return {
     name: releasePackage.name,
-    version: "1.0.0",
+    // Tracks the configured version: the audit under test compares against it,
+    // so a pinned fixture would fail on every bump for no real reason.
+    version: RELEASE_VERSION,
     description: "Example",
     license: "MIT",
     repository: {

@@ -21,6 +21,7 @@ describe("renderer option normalization (UI-1, UI-4, UI-5, UI-6, UI-8)", () => {
       shadow: true,
       container: null,
       floatingButton: true,
+      floatingButtonPosition: "bottom-start",
       locale: null,
     });
     expect(normalizeOptions({})).toEqual(normalizeOptions());
@@ -36,6 +37,7 @@ describe("renderer option normalization (UI-1, UI-4, UI-5, UI-6, UI-8)", () => {
         shadow: false,
         container,
         floatingButton: false,
+        floatingButtonPosition: "bottom-end",
         locale: "fr",
       }),
     ).toEqual({
@@ -44,6 +46,7 @@ describe("renderer option normalization (UI-1, UI-4, UI-5, UI-6, UI-8)", () => {
       shadow: false,
       container,
       floatingButton: false,
+      floatingButtonPosition: "bottom-end",
       locale: "fr",
     });
   });
@@ -59,6 +62,15 @@ describe("renderer option normalization (UI-1, UI-4, UI-5, UI-6, UI-8)", () => {
     "accepts the %s theme",
     (theme) => {
       expect(normalizeOptions({ theme }).theme).toBe(theme);
+    },
+  );
+
+  test.each(["bottom-start", "bottom-end"] as const)(
+    "accepts the %s floating button position",
+    (floatingButtonPosition) => {
+      expect(
+        normalizeOptions({ floatingButtonPosition }).floatingButtonPosition,
+      ).toBe(floatingButtonPosition);
     },
   );
 
@@ -82,6 +94,11 @@ describe("renderer option normalization (UI-1, UI-4, UI-5, UI-6, UI-8)", () => {
       name: "a non-boolean floatingButton",
       options: { floatingButton: 1 },
       path: "options.floatingButton",
+    },
+    {
+      name: "an unknown floatingButtonPosition",
+      options: { floatingButtonPosition: "top-start" },
+      path: "options.floatingButtonPosition",
     },
     {
       name: "a non-Element container",

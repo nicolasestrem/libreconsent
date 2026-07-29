@@ -78,7 +78,7 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 - **UI-2:** Second layer: per-category sections, per-service toggles, cookie tables, Save / Accept all / Reject all.
 - **UI-3:** WCAG 2.1 AA: `role="dialog"`, `aria-modal`, labelled controls, focus trap, ESC, focus restore, full keyboard operability, visible focus, `prefers-reduced-motion`. axe-core in CI + manual checklist in `specs/`.
 - **UI-4:** Theming via CSS custom properties (`--libreconsent-*`) only; dark mode via `prefers-color-scheme` + manual override; **zero external assets/network**.
-- **UI-5:** Persistent re-entry: floating settings button (config-removable) and `data-cmp-open` binding / `showPreferences()`.
+- **UI-5:** Persistent re-entry: floating settings button (config-removable, positionable to either bottom corner, reflecting the active consent state in its accessible name) and `data-cmp-open` binding / `showPreferences()`.
 - **UI-6:** Shadow DOM container by default (light-DOM fallback option) so site CSS can't break equal prominence.
 - **UI-7:** No dark patterns: in opt-in flows no pre-checked optional categories, no degraded reject styling in shipped themes, re-prompt only on expiry/revision. The pre-checked rule is specific to opt-in: where the US opt-out model applies (US-3) the visitor is consenting until they opt out, so the preferences layer must show that state truthfully.
 - **UI-8:** i18n dictionary-driven; `lang` attribute set; logical CSS properties for structural RTL readiness.
