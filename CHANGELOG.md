@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-29
+
 ### Fixed
 
 - Hardened repository automation: unused `/oc` and `/opencode` workflows are

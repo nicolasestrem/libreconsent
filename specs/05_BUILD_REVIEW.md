@@ -372,3 +372,39 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   Windows runner, one Firefox fixture teardown can time out after its assertion
   completes; the configured CI retry reran the affected test successfully, and
   all ten Firefox/WebKit compatibility smokes passed.
+
+### Phase 3D — release bookkeeping and controlled publication
+- **Date / branch:** 2026-07-29 · `codex/v1-release-bookkeeping` ·
+  **TRACEABILITY audit: PASS — 60/60 requirements through completed Phase 8**
+- **Scope:** NFR-5/NFR-6 release preparation, known-limit bookkeeping, and the
+  deferred public-registry consumer gate. The completed-phase marker remains
+  Phase 8. No tag, npm publication, registry query, GitHub Release, Cloudflare
+  change, secret mutation, or TrackerSync work is part of this PR.
+- **Verdict:** pass — `release:prepare` accepts only a clean detached approved
+  SHA and an empty external output directory, builds once, preserves four
+  tarballs, and writes fingerprinted JSON/Markdown approval records. The
+  separate registry gate accepts only that intact approval record, installs
+  public core/UI plus the bridge artifact package outside a Git worktree, and
+  proves root imports, denied defaults, one core installation, approved browser
+  artifacts, a pinned Vite/TypeScript build, and ordinary-static-server
+  coverage across Chromium, Firefox, and WebKit. It remains intentionally
+  unrun until publication.
+- **Verification:** `pnpm check` passed on 2026-07-29: workflow and
+  traceability checks through completed Phase 8 (60 requirements); 421
+  repository and 22 Worker tests; package builds; all four size limits (core
+  9.03/12 kB, core+UI 16.60/19 kB, bridge 3.08/4 kB, head snippet 1.06/1.5
+  kB); strict tarball inspection and publication dry-runs; 15
+  ordinary-static-server Chromium/Firefox/WebKit portability checks; 66
+  Chromium E2E tests; 20 accessibility tests; and 10 Firefox/WebKit
+  compatibility smokes.
+- **Findings:** P-079 and D-064 close the preparation gap. The v1 material is
+  frozen in `CHANGELOG.md` under 2026-07-29 while `[Unreleased]` is empty. The
+  known limits explicitly retain the no-production-TCF/GPP, non-certified
+  AdSense, opt-in-receipts, real-domain-bridge, and Safari 15.4 boundaries. A
+  tiny documentation-only PR may advance to Phase 9 only after all irreversible
+  release steps and the external registry gate have succeeded. PR #18's first
+  Linux CI run exposed a Windows-only test fixture; P-080 now derives its
+  absolute paths per platform and the full local gate is green. P-081 forces
+  public npm registry resolution and rejects any release/consumer output inside
+  another Git worktree, so a private mirror or sibling checkout cannot produce
+  misleading publication evidence.

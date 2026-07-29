@@ -5,9 +5,11 @@ Consent-mode-first, self-hosted consent infrastructure.
 ## v1.0.0 release candidate
 
 This repository contains all four packages as a verified `1.0.0` release
-candidate. npm publication is deliberately deferred: until a separate publish
-request succeeds, `@libreconsent/*@1.0.0` is not available from the registry.
-The repository root remains private and is never published.
+candidate. npm publication is deliberately deferred: until the controlled
+release sequence in the [release runbook](specs/09_RELEASE_RUNBOOK.md) has an
+explicit irreversible approval and succeeds, `@libreconsent/*@1.0.0` is not
+available from the registry. The repository root remains private and is never
+published.
 
 | Package | Purpose |
 |---|---|
@@ -178,6 +180,19 @@ size ceilings, strict tarball audits, temporary-consumer ESM/TypeScript/IIFE
 tests, parsed `npm publish --dry-run --access public --json` results, Chromium
 E2E/a11y, and focused Firefox/WebKit compatibility smoke. It does not publish,
 tag, deploy, or contact real vendors.
+
+After the Phase 3D PR is merged, release preparation must run only on a clean,
+detached approved SHA and write to an empty absolute directory outside this
+repository:
+
+```sh
+pnpm release:prepare -- --expected-sha <40-character-sha> --output <absolute-external-directory>
+```
+
+It preserves four tarballs and writes `release-manifest.json` plus
+`RELEASE_APPROVAL.md`; it still does not tag or publish. The later manual npm
+owner, publication, registry-consumer, and GitHub Release steps are deliberately
+kept in [the controlled release runbook](specs/09_RELEASE_RUNBOOK.md).
 
 See [the production specification](specs/03_MASTER_PRODUCTION_SPEC.md),
 [traceability](specs/TRACEABILITY.md), and [known gaps](specs/07_KNOWN_GAPS.md)
