@@ -182,6 +182,11 @@ describe("release preparation", () => {
     expect(approval).toContain("@libreconsent/core");
     expect(approval).toContain(manifest.packages[0].sha256);
     expect(approval).toContain(knownReleaseLimits[0]);
-    expect(approval).toContain("I explicitly approve tagging this SHA");
+    // Names the version deliberately: asserting only the sentence prefix let a
+    // pinned tag through, so the record asked the owner to approve tagging
+    // v1.0.0 while preparation had actually built v1.1.0.
+    expect(approval).toContain(
+      `I explicitly approve tagging this SHA as v${RELEASE_VERSION} and publishing`,
+    );
   });
 });

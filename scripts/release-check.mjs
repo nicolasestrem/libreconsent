@@ -238,7 +238,9 @@ export function validateReleaseCandidate() {
     rootManifest.private !== true ||
     rootManifest.license !== "MIT"
   ) {
-    fail("workspace root must be private, MIT-licensed, and version 1.0.0");
+    fail(
+      `workspace root must be private, MIT-licensed, and version ${RELEASE_VERSION}`,
+    );
   }
 
   const rootLicense = readFileSync(
