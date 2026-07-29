@@ -12,6 +12,15 @@ export type BannerLayout = "bar-bottom" | "box" | "modal";
 export type Theme = "auto" | "light" | "dark";
 
 /**
+ * Corner the persistent settings button occupies.
+ *
+ * The values are logical rather than physical, so `bottom-end` resolves to the
+ * bottom right of a left-to-right document and the bottom left of a
+ * right-to-left one (UI-8).
+ */
+export type FabPosition = "bottom-start" | "bottom-end";
+
+/**
  * Renderer options passed to `mount()`.
  *
  * These are deliberately separate from `CmpConfig`: presentation choices never
@@ -29,6 +38,8 @@ export interface UiOptions {
   container?: Element;
   /** Whether to show the persistent settings button. Defaults to `true`. */
   floatingButton?: boolean;
+  /** Corner the persistent settings button occupies. Defaults to `bottom-start`. */
+  floatingButtonPosition?: FabPosition;
   /** Locale override. Must be one of the configured locales. */
   locale?: string;
 }
@@ -40,11 +51,13 @@ export interface NormalizedUiOptions {
   shadow: boolean;
   container: Element | null;
   floatingButton: boolean;
+  floatingButtonPosition: FabPosition;
   locale: string | null;
 }
 
 const LAYOUTS: readonly BannerLayout[] = ["bar-bottom", "box", "modal"];
 const THEMES: readonly Theme[] = ["auto", "light", "dark"];
+const FAB_POSITIONS: readonly FabPosition[] = ["bottom-start", "bottom-end"];
 
 function fail(path: string, message: string): never {
   throw new Error(`${path}: ${message}`);
@@ -59,12 +72,22 @@ export function normalizeOptions(options: UiOptions = {}): NormalizedUiOptions {
     fail("options", "must be an object");
   }
 
-  const { layout = "bar-bottom", theme = "auto" } = options;
+  const {
+    layout = "bar-bottom",
+    theme = "auto",
+    floatingButtonPosition = "bottom-start",
+  } = options;
   if (!LAYOUTS.includes(layout)) {
     fail("options.layout", `must be one of ${LAYOUTS.join(", ")}`);
   }
   if (!THEMES.includes(theme)) {
     fail("options.theme", `must be one of ${THEMES.join(", ")}`);
+  }
+  if (!FAB_POSITIONS.includes(floatingButtonPosition)) {
+    fail(
+      "options.floatingButtonPosition",
+      `must be one of ${FAB_POSITIONS.join(", ")}`,
+    );
   }
 
   if (options.shadow !== undefined && typeof options.shadow !== "boolean") {
@@ -92,6 +115,7 @@ export function normalizeOptions(options: UiOptions = {}): NormalizedUiOptions {
     shadow: options.shadow ?? true,
     container: options.container ?? null,
     floatingButton: options.floatingButton ?? true,
+    floatingButtonPosition,
     locale: options.locale ?? null,
   };
 }
