@@ -1,0 +1,6 @@
+name: branch fixture
+
+steps:
+  - uses: actions/checkout@main
+    with:
+      persist-credentials: false

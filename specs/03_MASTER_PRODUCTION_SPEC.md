@@ -23,7 +23,7 @@ libreconsent/
 - **TOOL-1:** pnpm workspaces monorepo; Node LTS.
 - **TOOL-2:** TypeScript strict; `tsup` builds ESM + minified IIFE; target ES2020.
 - **TOOL-3:** Vitest (+ jsdom) unit; Playwright E2E against `examples/*`; `size-limit`; Biome (or ESLint+Prettier).
-- **TOOL-4:** GitHub Actions: typecheck → lint → unit → build → size → E2E → a11y; all required.
+- **TOOL-4:** GitHub Actions: immutable-action and credential-persistence guardrails → typecheck → lint → unit → build → size → E2E → a11y; all required.
 - **TOOL-5:** TSDoc on all exports; per-package README with copy-paste quickstart.
 
 ## 2. Configuration schema (`CmpConfig`)

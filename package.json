@@ -10,6 +10,7 @@
   },
   "scripts": {
     "traceability": "node scripts/check-traceability.mjs",
+    "workflows:check": "node scripts/check-workflows.mjs",
     "typecheck": "tsc --noEmit && pnpm --filter @libreconsent/worker-log typecheck",
     "lint": "biome check .",
     "test": "node scripts/run-vitest.mjs run && pnpm --filter @libreconsent/worker-log test",
@@ -25,7 +26,7 @@
     "compatibility": "playwright test --project=compat-firefox --project=compat-webkit",
     "release:check": "node scripts/release-check.mjs",
     "release:dry-run": "node scripts/release-dry-run.mjs",
-    "check": "pnpm traceability && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size && pnpm release:check && pnpm release:dry-run && pnpm quickstarts:portability && pnpm e2e && pnpm a11y && pnpm compatibility"
+    "check": "pnpm workflows:check && pnpm traceability && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size && pnpm release:check && pnpm release:dry-run && pnpm quickstarts:portability && pnpm e2e && pnpm a11y && pnpm compatibility"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

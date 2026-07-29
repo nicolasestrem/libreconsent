@@ -6,6 +6,9 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- Hardened repository automation: unused `/oc` and `/opencode` workflows are
+  removed; all remaining remote GitHub Actions are immutable SHA pins;
+  checkouts cannot persist credentials; and CI rejects regressions.
 - Made all four quickstarts portable on an ordinary static server. They now
   load tracked, byte-identical browser artifacts through relative URLs; the
   release audit rejects drift, all root-absolute local fixture paths, and

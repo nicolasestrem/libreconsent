@@ -314,3 +314,26 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   audit compares a fresh build with the committed mirror before any write can
   mask drift; the audit and browser assertion reject every root-absolute local
   `src` or `href` path.
+
+### Phase 3B — workflow hardening
+- **Date / branch:** 2026-07-29 · `codex/v1-workflow-hardening` ·
+  **TRACEABILITY audit: PASS — 60/60 requirements through completed Phase 8**
+- **Scope:** TOOL-4 workflow supply-chain hardening only. The completed-phase
+  marker remains Phase 8; no package API, secret, tag, deployment, or
+  publication state changes.
+- **Verdict:** pass — the unused OpenCode wrapper is removed; remaining remote
+  actions are exact SHAs; CI checkouts cannot retain credentials; and Claude's
+  read-only/OIDC boundary is explicit. The guardrail accepts local actions and
+  scans both YAML extensions while rejecting mutable references and missing
+  checkout credential settings.
+- **Verification:** `pnpm install --frozen-lockfile` and `pnpm check` passed on
+  2026-07-29: workflow guardrails first; traceability through completed Phase 8
+  (60 requirements); 385 repository and 22 Worker tests; package builds; all
+  four size limits (core 8.80/12 kB, core+UI 16.35/19 kB, bridge 3.08/4 kB,
+  head snippet 763 B/1.5 kB); strict tarball inspection and publication
+  dry-runs; 15 dedicated Chromium/Firefox/WebKit static-portability checks; 66
+  Chromium E2E tests; 20 accessibility tests; and 10 Firefox/WebKit
+  compatibility smokes.
+- **Findings:** P-076 closed. The now-unused `ZHIPU_API_KEY` secret was not
+  removed; that external mutation remains out of scope pending separate
+  explicit approval.
