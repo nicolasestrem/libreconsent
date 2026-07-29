@@ -1026,6 +1026,32 @@ describe("US opt-out dialog (US-1, US-2, US-3)", () => {
     expect(query('[data-lc-optout] [data-lc-action="opt-out"]')).toBeNull();
   });
 
+  test("treats fixed-denied ad signals as already opted out without fabricating categories", async () => {
+    const link = doNotSellLink();
+    const { api } = await render(
+      usConfig({
+        consentMode: {
+          mapping: {
+            ad_storage: { mode: "fixed", value: "denied" },
+            ad_user_data: { mode: "fixed", value: "denied" },
+            ad_personalization: { mode: "fixed", value: "denied" },
+          },
+        },
+      }),
+    );
+
+    link.click();
+
+    expect(find("[data-lc-optout] .lc-text").textContent).toContain(
+      "You have opted out",
+    );
+    expect(query('[data-lc-optout] [data-lc-action="opt-out"]')).toBeNull();
+    expect(Object.keys(api.getConsent()?.categories ?? {})).not.toContain(
+      "[object Object]",
+    );
+    expect(stored()).toBeNull();
+  });
+
   test("closes on Escape, restores focus, and stores nothing (UI-3, CORE-8)", async () => {
     const link = doNotSellLink();
     await render(usConfig());

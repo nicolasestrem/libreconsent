@@ -95,7 +95,8 @@ they are copied as files rather than imported as package subpaths.
 ## Four tested quickstarts
 
 - [Basic Consent Mode](examples/quickstarts/basic-consent-mode/index.html):
-  synchronous denied defaults followed by declaratively gated Google tags.
+  analytics-only consent: the analytics loader is declaratively gated while all
+  advertising Consent Mode signals remain fixed denied.
 - [GTM basic mode](examples/quickstarts/gtm-basic-mode/index.html): defaults
   precede the container initialization marker; the loader remains gated.
 - [AdSense / Google Privacy & messaging bridge](examples/quickstarts/adsense-bridge/index.html):
@@ -115,13 +116,13 @@ complete inline head bootstrap. The US example intentionally keeps
 `/api/region` as a deployment endpoint; on a static-only host its 404 resolves
 to `null` and the example fails closed. When a browser artifact changes, run
 `pnpm build` followed by `pnpm quickstarts:sync-assets` and commit the updated
-mirror; the release audit fails if a tracked mirror is stale. The [local demo](examples/demo-site/index.html)
+mirrors and inline head copies; the release audit fails if either is stale. The [local demo](examples/demo-site/index.html)
 demonstrates accept, reject, customize, gated local content, withdrawal,
 re-entry, and the current state without contacting any vendor.
 
 ## Google implementation sources
 
-The Google-specific quickstarts were rechecked on **2026-07-28** against:
+The Google-specific quickstarts were rechecked on **2026-07-29** against:
 
 - [Set up consent mode on websites](https://developers.google.com/tag-platform/security/guides/consent):
   defaults precede commands that send measurement data; later choices update

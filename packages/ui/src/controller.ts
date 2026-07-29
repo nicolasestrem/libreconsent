@@ -307,11 +307,13 @@ export class UiController {
    */
   private adCategoryIds(): string[] {
     const { mapping } = this.config.consentMode;
-    const mapped = new Set([
-      mapping.ad_storage,
-      mapping.ad_user_data,
-      mapping.ad_personalization,
-    ]);
+    const mapped = new Set(
+      [
+        mapping.ad_storage,
+        mapping.ad_user_data,
+        mapping.ad_personalization,
+      ].flatMap((value) => (typeof value === "string" ? [value] : [])),
+    );
     return this.config.categories
       .filter((category) => mapped.has(category.id) && !category.readonly)
       .map((category) => category.id);

@@ -20,6 +20,11 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- Consent Mode mappings now accept the exact fixed-denied form
+  `{ mode: "fixed", value: "denied" }`. Fixed signals never name or create a
+  category, remain denied through every lifecycle transition and regional
+  default, and let analytics be granted without enabling advertising.
+
 - MIT/SPDX licensing and publish-ready metadata for all four public packages,
   strict tarball allowlists, preserved JavaScript license banners, root-only
   export maps, and stable self-hosted IIFE/head-snippet artifacts.

@@ -666,7 +666,14 @@ export class ConsentLifecycle implements ConsentApi {
   /** Categories the three Google ad signals map to, deduplicated (US-1). */
   private adCategoryIds(): string[] {
     const mapping = this.config.consentMode.mapping;
-    return [...new Set(AD_SIGNALS.map((signal) => mapping[signal]))];
+    return [
+      ...new Set(
+        AD_SIGNALS.flatMap((signal) => {
+          const mapped = mapping[signal];
+          return typeof mapped === "string" ? [mapped] : [];
+        }),
+      ),
+    ];
   }
 
   /**

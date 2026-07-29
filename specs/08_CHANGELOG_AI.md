@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-29 | Codex | Phase 3C fixed-denied Consent Mode signals (CFG-3, CM-1, CM-2, US-1) | Added the exact fixed-denied mapping value across core, UI, head bootstrap, public types, quickstarts, and release audit. Fixed advertising signals never become categories or grants; Google Consent Mode guidance was rechecked 2026-07-29. D-063; P-077. |
 | 2026-07-29 | Codex | Phase 3B workflow hardening (TOOL-4) | Removed unused OpenCode automation, pinned remote actions to audited immutable SHAs, disabled persisted checkout credentials, retained and documented Claude OIDC, and added an early dependency-free workflow guardrail. D-062; P-076. |
 | 2026-07-29 | Codex | PR #15 review follow-up (NFR-6) | Wired the ordinary-static-server Chromium/Firefox/WebKit project into CI, made browser-mirror synchronization explicit so release audit detects stale committed files, and rejected every root-absolute local quickstart asset path. D-061; P-075. |
 | 2026-07-29 | Codex | Post-release-candidate portability (NFR-6) | Added byte-checked physical quickstart browser assets, relative references, and Chromium/Firefox/WebKit smoke coverage on an ordinary static server with no aliases, rewrites, or API behavior. D-060; P-074. |

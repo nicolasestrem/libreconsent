@@ -403,7 +403,12 @@ function validateTemporaryConsumer(tempRoot, tarballs) {
     cwd: consumerRoot,
   });
 
-  const typeConsumer = `import { init, type CmpConfig } from "@libreconsent/core";
+  const typeConsumer = `import {
+  init,
+  type CmpConfig,
+  type ConsentModeMappingValue,
+  type FixedDeniedConsentModeMapping,
+} from "@libreconsent/core";
 import { mount, type UiOptions } from "@libreconsent/ui";
 import { initBridge, type BridgeConfig } from "@libreconsent/bridge";
 import worker, { type WorkerLogModule } from "@libreconsent/worker-log";
@@ -412,9 +417,11 @@ const ui: typeof mount = mount;
 const bridge: typeof initBridge = initBridge;
 const handler: WorkerLogModule = worker;
 const config = {} as CmpConfig;
+const fixed: FixedDeniedConsentModeMapping = { mode: "fixed", value: "denied" };
+const mapping: ConsentModeMappingValue = fixed;
 const uiOptions = {} as UiOptions;
 const bridgeConfig = {} as BridgeConfig;
-void [core, ui, bridge, handler, config, uiOptions, bridgeConfig];
+void [core, ui, bridge, handler, config, fixed, mapping, uiOptions, bridgeConfig];
 `;
   writeFileSync(path.join(consumerRoot, "consumer.ts"), typeConsumer);
   const tscPath = path.join(

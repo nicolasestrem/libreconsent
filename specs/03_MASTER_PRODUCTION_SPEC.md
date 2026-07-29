@@ -32,7 +32,7 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 
 - **CFG-1 Categories:** ordered `{ id, label, description, readonly?, enabled?, services? }`; a `necessary` category with `readonly: true, enabled: true` always exists and is first (injected or reordered as needed). Readonly categories default enabled; non-readonly categories default disabled and reject configured `enabled: true`. *(labels/descriptions are i18n keys.)*
 - **CFG-2 Services:** nested per category `{ id, label, cookies?: CookieTableRow[], onlyRegions?: string[] }`; service IDs are globally unique because persisted service choices use one flat record. `CookieTableRow` is `{ name, purpose, provider?, duration?, type? }`; prose fields are i18n keys. Region codes normalize to uppercase.
-- **CFG-3 Consent Mode:** `consentMode: { enabled, mapping: Record<GoogleSignal, categoryId>, defaults: 'denied-everywhere' | { deniedRegions: string[] }, waitForUpdate?: number = 500, adsDataRedaction?: boolean, urlPassthrough?: boolean }`. Default mapping: `analytics_storage → analytics`; `ad_storage, ad_user_data, ad_personalization → marketing`.
+- **CFG-3 Consent Mode:** `consentMode: { enabled, mapping: Record<GoogleSignal, categoryId | { mode: 'fixed', value: 'denied' }>, defaults: 'denied-everywhere' | { deniedRegions: string[] }, waitForUpdate?: number = 500, adsDataRedaction?: boolean, urlPassthrough?: boolean }`. A string maps its signal to an existing category. The only object form is the exact fixed-denied object (no extra, inherited, missing, or alternate fields); it names no category and is denied in every state. Default mapping: `analytics_storage → analytics`; `ad_storage, ad_user_data, ad_personalization → marketing`.
 - **CFG-4 Storage:** `{ cookieName = 'libreconsent', domain?, expiresDays = 365 (max 395), sameSite = 'Lax' }`.
 - **CFG-5 Revision:** integer `revision = 1`; stored consent with lower revision → re-prompt (CORE-11).
 - **CFG-6 Validation:** synchronous, typed `ConsentError` with stable code and exact paths such as `categories[1].id`; never silent. Selection validation uses the same typed error with selection paths.
@@ -56,12 +56,12 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 
 ## 4. CM — Google Consent Mode v2 (`@libreconsent/core`)
 
-- **CM-1:** Documented **head snippet** (≤1.5 KB inline) ensures `dataLayer` + `gtag` stub exist and calls `gtag('consent','default', …)` **synchronously before any Google tag**, per CFG-3: all four v2 signals + `wait_for_update`, with `region` arrays for the `deniedRegions` strategy.
-- **CM-2:** On `consent`/`change`/GPC application: `gtag('consent','update', …)` per mapping.
+- **CM-1:** Documented **head snippet** (≤1.5 KB inline) ensures `dataLayer` + `gtag` stub exist and calls `gtag('consent','default', …)` **synchronously before any Google tag**, per CFG-3: all four v2 signals + `wait_for_update`, with `region` arrays for the `deniedRegions` strategy. Its global regional default grants only string-mapped signals; fixed-denied signals remain denied everywhere. It validates the same mapping shape as runtime initialization and fails closed on malformed standalone configuration.
+- **CM-2:** On `consent`/`change`/GPC application: `gtag('consent','update', …)` per mapping. Fixed-denied signals always update as `denied`, including accept, reject, withdrawal, restore, revision recovery, and reinitialization.
 - **CM-3:** `ads_data_redaction = true` while `ad_storage` denied (when configured); `url_passthrough` per config.
 - **CM-4:** Both deployment models are documented in Phase 2: **basic** (Google tags are gated via BLK, implemented in Phase 3) and **advanced** (gtag loads immediately, cookieless pings). Default docs stance: basic. Phase 2 does not claim to provide the basic-mode gate or its network-silence guarantee.
 - **CM-5:** GTM: document Consent Initialization trigger; `examples/gtm-site` proves defaults precede GTM consent-init. (Official GTM Community Template: post-v1.)
-- **CM-6 (research-at-implementation):** verify signal names/behavior against https://developers.google.com/tag-platform/security/guides/consent; record doc version in PR.
+- **CM-6 (research-at-implementation):** verify signal names/behavior against https://developers.google.com/tag-platform/security/guides/consent; record doc version in PR. Rechecked 2026-07-29 against the guide updated 2026-05-06: defaults precede measurement commands, later choices use updates, regional defaults are supported, and v2 includes all four shipped signals.
 
 ## 5. BLK — script & embed blocking (`@libreconsent/core`)
 
@@ -84,7 +84,7 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 
 ## 7. US — US state privacy (`@libreconsent/core` + UI hooks)
 
-- **US-1:** With `respectGPC` and `navigator.globalPrivacyControl === true`: auto-apply opt-out of sale/share for configured US regions — deny at minimum `ad_storage`/`ad_user_data`/`ad_personalization`, set `gpcApplied: true`, fire events. No banner shown for this. The signal is re-read on every page load and the resulting state is never persisted; an active stored decision takes precedence over it (D-044).
+- **US-1:** With `respectGPC` and `navigator.globalPrivacyControl === true`: auto-apply opt-out of sale/share for configured US regions — deny at minimum `ad_storage`/`ad_user_data`/`ad_personalization`, set `gpcApplied: true`, fire events. No banner shown for this. Fixed-denied mappings already remain denied and are neither treated as category IDs nor used to fabricate categories. The signal is re-read on every page load and the resulting state is never persisted; an active stored decision takes precedence over it (D-044).
 - **US-2:** "Do Not Sell/Share" link component via `doNotSellSelector`; opens minimal opt-out dialog (not the EU banner); persists like any consent state.
 - **US-3:** US regions are opt-out (no blocking wall); EU opt-in and US opt-out must coexist in one config (CFG-9 resolution). An undecided visitor in a configured US region receives an in-memory *implied grant* — optional categories behave as granted so gated tags run and Consent Mode is signaled — which is never persisted (CORE-8) and is replaced by any explicit decision (D-043).
 - **US-4 (research-at-implementation):** Google restricted-data-processing integration per current docs; findings → `specs/US_NOTES.md`. The original start URL (`support.google.com/adsense/answer/9561024`) returned HTTP 404 on 2026-07-27; the current guidance is at `support.google.com/google-ads/answer/9614122` (advertisers) and `support.google.com/admanager/answer/9561023` (publishers), both recorded in US_NOTES with retrieval dates.
