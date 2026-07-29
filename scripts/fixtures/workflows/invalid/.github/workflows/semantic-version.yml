@@ -1,0 +1,4 @@
+name: semantic version fixture
+
+steps:
+  - uses: anthropics/claude-code-action@v1.0.183

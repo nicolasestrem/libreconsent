@@ -1,0 +1,4 @@
+name: local action fixture
+
+steps:
+  - uses: ./actions/release

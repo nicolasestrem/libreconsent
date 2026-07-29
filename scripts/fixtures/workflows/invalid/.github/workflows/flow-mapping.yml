@@ -1,0 +1,4 @@
+name: flow mapping fixture
+
+steps:
+  - { uses: actions/checkout@v4, with: { persist-credentials: false } }

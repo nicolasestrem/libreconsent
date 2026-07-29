@@ -1,0 +1,6 @@
+name: short SHA fixture
+
+steps:
+  - uses: actions/checkout@11d5960
+    with:
+      persist-credentials: false

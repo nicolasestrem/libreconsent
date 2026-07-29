@@ -24,6 +24,20 @@ budgets" for NFR-1, "E2E tests" for the CSP and network-silence fixtures):
   `packages/core/src/receipt.ts`; any additional entry must be a reviewed diff
   naming the requirement that justifies it.
 
+## Workflow automation
+
+- [ ] `pnpm workflows:check` accepts every committed workflow: remote actions
+      use full immutable commit SHAs, local actions remain permitted, and every
+      `actions/checkout` use disables credential persistence directly under its
+      `with` map. Flow-style action steps are rejected so formatting cannot
+      hide a `uses:` reference from the dependency-free guardrail.
+- [ ] CI has only `contents: read`. Claude's separate `id-token: write` is
+      retained solely for the Claude Code Action's OIDC authentication; it does
+      not grant repository write access.
+- [ ] `/oc` and `/opencode` no longer trigger repository automation. Do not
+      remove the now-unused `ZHIPU_API_KEY` secret here: external secret
+      mutation needs separate explicit approval.
+
 ## Code and supply chain
 
 - [ ] `pnpm-lock.yaml` changes in this diff are intentional and every new

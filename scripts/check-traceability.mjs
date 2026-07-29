@@ -36,6 +36,7 @@ const VITEST_TEST_FILE_PATTERN =
   /^(?:packages\/[^/]+\/src\/.+\.test\.ts|scripts\/.+\.test\.mjs)$/;
 const PLAYWRIGHT_TEST_FILE_PATTERN = /^tests\/.+\.(?:e2e|a11y)\.spec\.ts$/;
 const SUPPORTED_CI_CHECKS = new Set([
+  "Workflow supply-chain guardrails",
   "Traceability",
   "Typecheck",
   "Lint",

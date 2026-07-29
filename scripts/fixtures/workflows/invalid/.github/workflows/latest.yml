@@ -1,0 +1,4 @@
+name: latest tag fixture
+
+steps:
+  - uses: anomalyco/opencode/github@latest
