@@ -3,7 +3,7 @@
 Required by **UI-3** (03 §6): axe-core runs in CI, and this checklist covers what
 automated scanning cannot judge. Run it against `examples/basic-site`, and the
 opt-out rows against `examples/us-only-site`, whenever `packages/ui` changes
-materially, and record the date and result in `specs/05_BUILD_REVIEW.md`.
+materially, and record the date and result in the pull request description.
 
 Automated coverage already enforced in CI (`pnpm a11y`, gate "Accessibility tests"):
 zero critical/serious axe violations on the banner, the preferences modal (with a

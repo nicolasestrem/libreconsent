@@ -36,7 +36,7 @@ Rules: one banner per domain, never two. Geo-splitting on mixed domains is done 
 
 - **orestbida/cookieconsent** (MIT) — closest existing project; its maintainer's TCF discussion is the reference explanation of FOSS-vs-TCF.
 - **Klaro** (BSD) — config-driven service toggles.
-- **tarteaucitron.js** (MIT) — richest library of per-service blocking recipes; mine for BLK-3 patterns.
+- **tarteaucitron.js** (MIT) — the broadest catalog of per-service blocking recipes; a useful reference for the range of embeds BLK-3 has to cover.
 - **c15t** — headless/React-first consent infra.
 
 Differentiators justifying a fresh build: consent-mode-first design, US-states module, and bridge mode giving one API across a mixed portfolio.

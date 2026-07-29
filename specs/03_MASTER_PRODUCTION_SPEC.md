@@ -1,13 +1,14 @@
 # 03 — Master Production Spec
 
-The buildable specification. Every requirement has an ID; every ID must map to ≥1 passing test in `specs/TRACEABILITY.md` (§11.5). Global guardrails G-1..G-6 are defined in 04_CLAUDE_CODE_BUILD_PROMPT.md and are part of this spec.
+The buildable specification. Every requirement has an ID; every ID must map to ≥1 passing test in `specs/TRACEABILITY.md` (§11.5). Global guardrails G-1..G-6 are defined in §13 and constrain every requirement below.
 
 ## 1. Repository layout & tooling
 
 ```
 libreconsent/
-├── CLAUDE.md
-├── specs/                  # this pack, copied into the repo + TRACEABILITY.md + NO_TCF.md
+├── AGENTS.md               # contributor and agent instructions
+├── RELEASING.md            # maintainer release procedure
+├── specs/                  # this specification + TRACEABILITY.md + NO_TCF.md
 ├── packages/
 │   ├── core/               # @libreconsent/core — state, storage, consent mode, blocking
 │   ├── ui/                 # @libreconsent/ui — banner + preferences modal
@@ -125,7 +126,7 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 
 | Phase | DoD |
 |---|---|
-| 0 | Monorepo builds; CI green incl. size on stubs; CLAUDE.md + specs/ committed |
+| 0 | Monorepo builds; CI green incl. size on stubs; AGENTS.md + specs/ committed |
 | 1 | Unit suite green; traceability rows for all CFG/CORE |
 | 2 | Head snippet documented; E2E asserts `default` precedes gtag |
 | 3 | Flagship 11.2 green with real gtag.js |
@@ -135,3 +136,25 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 | 7 | Bridge E2E green; fallback (BR-4) tested |
 | 8 | Receipt round-trip E2E on a test CF account; purge tested |
 | 9 | READMEs + 4 quickstarts + demo site; each quickstart runs with tracked relative browser artifacts on an ordinary static server; `v1.0.0` tagged; npm publish dry-run clean |
+
+## 13. Global guardrails
+
+Project-wide invariants. They outrank convenience, and a change to any of them
+is a spec change, not an implementation detail. Contributions that cross one of
+these lines are rejected on that ground alone.
+
+- **G-1 — No TCF.** Never emit a TC string, never provide `__tcfapi`, never
+  claim a CMP ID. Read-only `__tcfapi` *consumption* in `packages/bridge` is the
+  sole exception. Rationale: `specs/NO_TCF.md` and the certification economics in
+  01 §1.
+- **G-2 — Zero third-party runtime dependencies** in `core`, `ui` and `bridge`.
+  `@libreconsent/ui` requiring a compatible `@libreconsent/core` through peer
+  metadata is the only permitted package relationship (D-059).
+- **G-3 — Size budgets (NFR-1) are hard CI failures**, not advisory targets.
+  Raising one requires measurement and a DECISION_LOG entry.
+- **G-4 — Nothing is stored client-side before a user decision** (CORE-8). No
+  cookie, no `localStorage` key, no fingerprint.
+- **G-5 — Every user-facing string comes from the i18n layer** (CFG-7). No
+  hard-coded prose in rendering code.
+- **G-6 — No `eval`, `new Function`, or `innerHTML` fed with configuration
+  strings.** Consent surfaces are built with DOM APIs (NFR-4).
