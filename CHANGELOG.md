@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-29
+
 ### Added
 
 - `floatingButtonPosition` on `mount()`, moving the persistent settings button
@@ -375,5 +377,6 @@ All notable changes to this project are documented in this file.
 - Traceability verification evidence must reference a configured
   unit/E2E/accessibility test or a supported named CI gate.
 
-[Unreleased]: https://github.com/nicolasestrem/libreconsent/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/nicolasestrem/libreconsent/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/nicolasestrem/libreconsent/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nicolasestrem/libreconsent/releases/tag/v1.0.0

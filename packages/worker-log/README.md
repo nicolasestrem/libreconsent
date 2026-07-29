@@ -11,7 +11,7 @@ pnpm add -D wrangler
 
 Part of the [libreconsent](https://github.com/nicolasestrem/libreconsent)
 monorepo. It records the receipts that
-[`@libreconsent/core`](https://github.com/nicolasestrem/libreconsent/tree/v1.0.0/packages/core#readme)
+[`@libreconsent/core`](https://github.com/nicolasestrem/libreconsent/tree/v1.1.0/packages/core#readme)
 sends when `receiptEndpoint` is configured.
 
 ## What it accepts

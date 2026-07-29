@@ -1,7 +1,7 @@
 # @libreconsent/ui
 
 Consent banner and preferences modal for
-[`@libreconsent/core`](https://github.com/nicolasestrem/libreconsent/tree/v1.0.0/packages/core#readme).
+[`@libreconsent/core`](https://github.com/nicolasestrem/libreconsent/tree/v1.1.0/packages/core#readme).
 
 Renders in a shadow root by default so host CSS cannot alter it, ships zero
 runtime dependencies, and loads no external asset or font. It only reads core
@@ -182,7 +182,7 @@ Do Not Sell link are the entry points.
 
 WCAG 2.1 AA is a release gate: axe-core runs in CI against all three surfaces in
 light and dark themes, and the
-[accessibility checklist](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/A11Y_CHECKLIST.md)
+[accessibility checklist](https://github.com/nicolasestrem/libreconsent/blob/v1.1.0/specs/A11Y_CHECKLIST.md)
 covers the manual passes. Each is a dialog with labelled controls; preferences
 and the opt-out dialog trap focus, close on Escape and restore focus to
 whatever opened it. Transitions are suppressed under `prefers-reduced-motion`.

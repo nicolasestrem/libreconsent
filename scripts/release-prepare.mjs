@@ -196,11 +196,20 @@ export function parseReleaseNotes(changelog) {
     fail("CHANGELOG.md [Unreleased] must be empty before release preparation");
   }
 
+  // Derived from the configured version rather than pinned to one release, so
+  // a version bump cannot leave preparation quietly reading an older section's
+  // notes into a newer release.
+  const heading = RELEASE_VERSION.replace(/\./g, "\\.");
   const release = changelog.match(
-    /^## \[1\.0\.0\] - (\d{4}-\d{2}-\d{2})\r?\n([\s\S]*?)(?=^## \[|(?![\s\S]))/m,
+    new RegExp(
+      `^## \\[${heading}\\] - (\\d{4}-\\d{2}-\\d{2})\\r?\\n([\\s\\S]*?)(?=^## \\[|(?![\\s\\S]))`,
+      "m",
+    ),
   );
   if (!release || release[2].trim() === "") {
-    fail("CHANGELOG.md must contain a non-empty dated [1.0.0] section");
+    fail(
+      `CHANGELOG.md must contain a non-empty dated [${RELEASE_VERSION}] section`,
+    );
   }
   return { date: release[1], notes: release[2].trim() };
 }

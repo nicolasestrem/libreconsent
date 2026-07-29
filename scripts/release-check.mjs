@@ -17,8 +17,10 @@ import {
 } from "./release-config.mjs";
 
 const nodeCommand = process.execPath;
-const licenseBanner =
-  "/*! libreconsent v1.0.0 | MIT License | SPDX-License-Identifier: MIT */";
+// Derived from the configured version so a bump that misses a tsup banner
+// fails this gate loudly instead of shipping artifacts stamped with the
+// previous release.
+const licenseBanner = `/*! libreconsent v${RELEASE_VERSION} | MIT License | SPDX-License-Identifier: MIT */`;
 const sourceMappingComment = /\n?\/\/# sourceMappingURL=.*$/m;
 const copyableConsentModeQuickstarts = [
   "examples/quickstarts/basic-consent-mode/index.html",

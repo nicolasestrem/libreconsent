@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { UsageError } from "./cli-usage.mjs";
+import { RELEASE_VERSION } from "./release-config.mjs";
 import {
   candidateFingerprint,
   knownReleaseLimits,
@@ -109,8 +110,7 @@ describe("release preparation", () => {
   });
 
   test("moves non-empty release notes out of Unreleased before preparation", () => {
-    const ready =
-      "# Changelog\n\n## [Unreleased]\n\n## [1.0.0] - 2026-07-29\n\n### Added\n\n- Released.\n";
+    const ready = `# Changelog\n\n## [Unreleased]\n\n## [${RELEASE_VERSION}] - 2026-07-29\n\n### Added\n\n- Released.\n`;
     expect(parseReleaseNotes(ready)).toEqual({
       date: "2026-07-29",
       notes: "### Added\n\n- Released.",
@@ -118,6 +118,24 @@ describe("release preparation", () => {
     expect(() =>
       parseReleaseNotes("## [Unreleased]\n\n- Still pending\n"),
     ).toThrow("CHANGELOG.md [Unreleased] must be empty");
+  });
+
+  test("reads the configured version's section, not an older one", () => {
+    // The bug this guards: a hardcoded heading kept preparation reading 1.0.0's
+    // notes after the version moved on, so a release could ship the previous
+    // release's notes.
+    const superseded = `# Changelog\n\n## [Unreleased]\n\n## [${RELEASE_VERSION}] - 2026-07-30\n\n### Added\n\n- Current.\n\n## [1.0.0] - 2026-07-29\n\n### Added\n\n- Superseded.\n`;
+    expect(parseReleaseNotes(superseded)).toEqual({
+      date: "2026-07-30",
+      notes: "### Added\n\n- Current.",
+    });
+    expect(() =>
+      parseReleaseNotes(
+        "# Changelog\n\n## [Unreleased]\n\n## [0.9.0] - 2026-07-29\n\n- Old.\n",
+      ),
+    ).toThrow(
+      `CHANGELOG.md must contain a non-empty dated [${RELEASE_VERSION}] section`,
+    );
   });
 
   test("fingerprints approval content and renders the mandatory approval record", () => {

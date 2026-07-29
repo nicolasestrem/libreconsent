@@ -2,10 +2,17 @@
 
 Maintainer-facing. `$VERSION` below is the version being released and
 `$SHA` its full 40-character commit SHA. The version lives in
-`scripts/release-config.mjs` (`RELEASE_VERSION`) and in each package
-manifest; bump both, and add the dated `CHANGELOG.md` section, before
-preparing anything — `release:prepare` reads its release notes from that
-section and refuses a non-empty `[Unreleased]`.
+`scripts/release-config.mjs` (`RELEASE_VERSION`), in each package
+manifest, and in each package's `tsup.config.ts` license banner; bump all
+three, and add the dated `CHANGELOG.md` section, before preparing
+anything — `release:prepare` reads its release notes from that section
+and refuses a non-empty `[Unreleased]`.
+
+`release:check` derives both the expected banner and the expected
+manifest version from `RELEASE_VERSION`, so a missed bump fails there
+rather than reaching the registry. Package READMEs also carry
+`tree/v$VERSION` and `blob/v$VERSION` permalinks, which npm renders
+against the tag rather than the default branch.
 
 Everything up to and including `release:prepare` is reversible. Everything
 after the tag is not.

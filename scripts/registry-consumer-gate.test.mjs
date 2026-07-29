@@ -9,7 +9,7 @@ import {
   publicRegistryArgs,
   validateApprovalManifest,
 } from "./registry-consumer-gate.mjs";
-import { releasePackages } from "./release-config.mjs";
+import { RELEASE_VERSION, releasePackages } from "./release-config.mjs";
 import {
   candidateFingerprint,
   OUTPUT_REQUIREMENT,
@@ -29,13 +29,13 @@ function approvedManifest() {
       integrity: "sha512-approved",
       name: releasePackage.name,
       sha256: "b".repeat(64),
-      version: "1.0.0",
+      version: RELEASE_VERSION,
     })),
     publicationOrder: releasePackages.map(
       (releasePackage) => releasePackage.name,
     ),
     releaseNotes: "### Added\n\n- Released.",
-    tag: "v1.0.0",
+    tag: `v${RELEASE_VERSION}`,
     uiCorePeer: "^1.0.0",
   };
   return {
@@ -84,9 +84,9 @@ describe("registry consumer gate", () => {
     const manifest = approvedManifest();
     expect(validateApprovalManifest(manifest)).toBe(manifest);
 
-    const stale = { ...manifest, tag: "v1.0.1" };
+    const stale = { ...manifest, tag: "v0.0.1" };
     expect(() => validateApprovalManifest(stale)).toThrow(
-      "approval manifest tag must be v1.0.0",
+      `approval manifest tag must be v${RELEASE_VERSION}`,
     );
     const changedArtifact = {
       ...manifest,
