@@ -6,6 +6,7 @@ import type {
   CategoryConfig,
   CmpConfig,
   ConsentModeDefaults,
+  ConsentModeMappingValue,
   CookieTableRow,
   Dictionary,
   GoogleSignal,
@@ -33,7 +34,7 @@ export const AD_SIGNALS: GoogleSignal[] = [
   "ad_personalization",
 ];
 
-const DEFAULT_MAPPING: Record<GoogleSignal, string> = {
+const DEFAULT_MAPPING: Record<GoogleSignal, ConsentModeMappingValue> = {
   analytics_storage: "analytics",
   ad_storage: "marketing",
   ad_user_data: "marketing",
@@ -59,10 +60,53 @@ function requireNonEmptyString(
   }
 }
 
+function hasOwn(record: object, key: PropertyKey): boolean {
+  return Reflect.apply(Object.prototype.hasOwnProperty, record, [
+    key,
+  ]) as boolean;
+}
+
 function optionalBoolean(value: unknown, path: string): void {
   if (value !== undefined && typeof value !== "boolean") {
     invalid(path, "must be a boolean");
   }
+}
+
+function normalizeConsentModeMappingValue(
+  value: unknown,
+  path: string,
+): ConsentModeMappingValue {
+  if (typeof value === "string") {
+    requireNonEmptyString(value, path);
+    return value;
+  }
+
+  requireRecord(value, path);
+  const mapping = value as Record<string, unknown>;
+  if (!hasOwn(mapping, "mode")) {
+    invalid(`${path}.mode`, "is required");
+  }
+  if (mapping.mode !== "fixed") {
+    invalid(`${path}.mode`, 'must be "fixed"');
+  }
+  if (!hasOwn(mapping, "value")) {
+    invalid(`${path}.value`, "is required");
+  }
+  if (mapping.value !== "denied") {
+    invalid(`${path}.value`, 'must be "denied"');
+  }
+  for (const key of Reflect.ownKeys(mapping)) {
+    if (key !== "mode" && key !== "value") {
+      invalid(`${path}.${String(key)}`, "is not supported");
+    }
+  }
+  for (const key in mapping) {
+    if (!hasOwn(mapping, key) && key !== "mode" && key !== "value") {
+      invalid(`${path}.${key}`, "is not supported");
+    }
+  }
+
+  return { mode: "fixed", value: "denied" };
 }
 
 /**
@@ -506,16 +550,24 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
       );
     }
   }
-  const mapping = { ...DEFAULT_MAPPING };
+  const mapping: Record<GoogleSignal, ConsentModeMappingValue> = {
+    ...DEFAULT_MAPPING,
+  };
   for (const signal of SIGNALS) {
     const mapped = suppliedMapping[signal];
     if (mapped !== undefined) {
-      requireNonEmptyString(mapped, `consentMode.mapping.${signal}`);
-      mapping[signal] = mapped;
-      if (!categories.some((category) => category.id === mapped)) {
+      const normalized = normalizeConsentModeMappingValue(
+        mapped,
+        `consentMode.mapping.${signal}`,
+      );
+      mapping[signal] = normalized;
+      if (
+        typeof normalized === "string" &&
+        !categories.some((category) => category.id === normalized)
+      ) {
         invalid(
           `consentMode.mapping.${signal}`,
-          `references unknown category "${mapped}"`,
+          `references unknown category "${normalized}"`,
         );
       }
     }
@@ -534,7 +586,10 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
         : [];
   for (const signal of readSignals) {
     const mapped = mapping[signal];
-    if (!categories.some((category) => category.id === mapped)) {
+    if (
+      typeof mapped === "string" &&
+      !categories.some((category) => category.id === mapped)
+    ) {
       invalid(
         `consentMode.mapping.${signal}`,
         `references unknown category "${mapped}"`,
@@ -544,6 +599,9 @@ export function normalizeConfig(config: CmpConfig): NormalizedCmpConfig {
   if (usPrivacy.enabled) {
     for (const signal of AD_SIGNALS) {
       const mapped = mapping[signal];
+      if (typeof mapped !== "string") {
+        continue;
+      }
       const category = categories.find((entry) => entry.id === mapped);
       if (category?.readonly && category.enabled) {
         // An opt-out cannot deny a permanently granted category, so the module

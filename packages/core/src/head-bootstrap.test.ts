@@ -61,6 +61,11 @@ describe("Consent Mode head bootstrap (CM-1, CM-3)", () => {
       libreconsentConsentMode: {
         enabled: true,
         defaults: { deniedRegions: ["fr", "US-CA"] },
+        mapping: {
+          ad_storage: { mode: "fixed", value: "denied" },
+          ad_user_data: { mode: "fixed", value: "denied" },
+          ad_personalization: { mode: "fixed", value: "denied" },
+        },
         waitForUpdate: 750,
         adsDataRedaction: true,
         urlPassthrough: true,
@@ -87,9 +92,9 @@ describe("Consent Mode head bootstrap (CM-1, CM-3)", () => {
         "default",
         {
           analytics_storage: "granted",
-          ad_storage: "granted",
-          ad_user_data: "granted",
-          ad_personalization: "granted",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
         },
       ],
       ["set", "ads_data_redaction", true],
@@ -114,6 +119,46 @@ describe("Consent Mode head bootstrap (CM-1, CM-3)", () => {
         ad_personalization: "denied",
         wait_for_update: 500,
       },
+    ]);
+  });
+
+  test.each([
+    null,
+    [],
+    {},
+    { mode: "fixed" },
+    { value: "denied" },
+    { mode: "dynamic", value: "denied" },
+    { mode: "fixed", value: "granted" },
+    { mode: "fixed", value: "denied", extra: true },
+    Object.assign(Object.create({ inheritedExtra: true }), {
+      mode: "fixed",
+      value: "denied",
+    }),
+    { unknown_storage: "analytics" },
+  ])("fails closed for malformed fixed mappings (%j)", (mapping) => {
+    const target: TestWindow = {
+      libreconsentConsentMode: {
+        enabled: true,
+        defaults: { deniedRegions: ["FR"] },
+        mapping: { ad_storage: mapping },
+      },
+    };
+
+    installConsentModeDefaults(target);
+
+    expect(commands(target)).toEqual([
+      [
+        "consent",
+        "default",
+        {
+          analytics_storage: "denied",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+          wait_for_update: 500,
+        },
+      ],
     ]);
   });
 });

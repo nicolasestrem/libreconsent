@@ -57,6 +57,20 @@ export type GoogleSignal =
   | "ad_personalization";
 
 /**
+ * A Consent Mode signal that must remain denied independently of category
+ * choices. This exact object is the only supported fixed mapping form.
+ */
+export type FixedDeniedConsentModeMapping = {
+  readonly mode: "fixed";
+  readonly value: "denied";
+};
+
+/**
+ * A Consent Mode mapping either follows a category or remains fixed denied.
+ */
+export type ConsentModeMappingValue = string | FixedDeniedConsentModeMapping;
+
+/**
  * Consent Mode regional default behavior.
  */
 export type ConsentModeDefaults =
@@ -71,8 +85,8 @@ export type ConsentModeDefaults =
 export interface ConsentModeConfig {
   /** Whether Consent Mode integration is enabled. */
   enabled?: boolean;
-  /** Maps each Google signal to a libreconsent category ID. */
-  mapping?: Partial<Record<GoogleSignal, string>>;
+  /** Maps each Google signal to a libreconsent category ID or fixed denial. */
+  mapping?: Partial<Record<GoogleSignal, ConsentModeMappingValue>>;
   /** Global or regional denied-default strategy. */
   defaults?: ConsentModeDefaults;
   /** Milliseconds Google tags may wait for a consent update. */
@@ -242,8 +256,8 @@ export interface CmpConfig {
 export interface NormalizedConsentModeConfig {
   /** Whether Consent Mode integration is enabled. */
   enabled: boolean;
-  /** Complete Google signal-to-category mapping. */
-  mapping: Record<GoogleSignal, string>;
+  /** Complete Google signal-to-category or fixed-denial mapping. */
+  mapping: Record<GoogleSignal, ConsentModeMappingValue>;
   /** Normalized global or uppercase regional default strategy. */
   defaults: ConsentModeDefaults;
   /** Milliseconds Google tags may wait for a consent update. */

@@ -57,9 +57,9 @@ test("basic quickstart gates its loader and updates Consent Mode", async ({
     "update",
     {
       analytics_storage: "granted",
-      ad_storage: "granted",
-      ad_user_data: "granted",
-      ad_personalization: "granted",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
     },
   ]);
   expect(observed).toEqual({

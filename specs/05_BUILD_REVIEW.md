@@ -337,3 +337,38 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
 - **Findings:** P-076 closed. The now-unused `ZHIPU_API_KEY` secret was not
   removed; that external mutation remains out of scope pending separate
   explicit approval.
+
+### Phase 3C — fixed-denied Consent Mode signals
+- **Date / branch:** 2026-07-29 · `codex/v1-fixed-denied-consent-signals` ·
+  **TRACEABILITY audit: PASS — 60/60 requirements through completed Phase 8**
+- **Scope:** CFG-3, CM-1, CM-2, and US-1 clarification only. The completed
+  phase marker remains Phase 8; no tag, publication, deployment, secret, or
+  external service state changes.
+- **Verdict:** pass — public mappings now allow only the exact fixed-denied
+  policy object alongside legacy category strings. Runtime, UI, US/GPC, and the
+  synchronous head bootstrap keep fixed advertising signals denied without
+  creating categories; regional global defaults grant only string mappings.
+  The canonical basic quickstart grants analytics only, and its refreshed
+  checked artifacts and embedded bootstrap are byte-identical to the build.
+- **Verification:** `pnpm install --frozen-lockfile` and `pnpm check` passed on
+  2026-07-29: workflow and traceability checks through completed Phase 8 (60
+  requirements); 413 repository and 22 Worker tests; package builds; all four
+  size limits (core 9.03/12 kB, core+UI 16.60/19 kB, bridge 3.08/4 kB, head
+  snippet 1.06/1.5 kB); strict tarball inspection and publication dry-runs; 15
+  ordinary-static-server Chromium/Firefox/WebKit portability checks; 66
+  Chromium E2E tests; 20 accessibility tests; and 10 Firefox/WebKit
+  compatibility smokes.
+- **Research evidence:** Google’s [Set up consent mode on websites](https://developers.google.com/tag-platform/security/guides/consent)
+  was retrieved 2026-07-29 (page updated 2026-05-06). It confirms the four v2
+  signals, defaults before measurement commands, updates after visitor choices,
+  and regional defaults. The result is recorded under CM-6 without creating a
+  new requirement.
+- **Findings:** P-077 closed. Earlier fixed-entry behavior was unspecified;
+  D-063 fixes its exact shape and fail-closed semantics. The initial
+  quickstart-sync implementation mistook an already-current inline artifact for
+  a missing marker; its explicit marker check is now idempotent and covered by
+  the release audit. PR #17 review follow-up rejects both own and inherited
+  extra mapping fields in runtime and head-bootstrap validation. On this
+  Windows runner, one Firefox fixture teardown can time out after its assertion
+  completes; the configured CI retry reran the affected test successfully, and
+  all ten Firefox/WebKit compatibility smokes passed.

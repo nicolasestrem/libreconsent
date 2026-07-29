@@ -290,8 +290,10 @@ returns `null` or rejects, the visitor gets the opt-in banner (CFG-9).
 
 With `respectGPC` (the default) and a visitor in a configured region,
 `navigator.globalPrivacyControl === true` denies the categories your
-`consentMode.mapping` points the three ad signals at, sets `gpcApplied: true`,
-and emits `consent` — so Consent Mode receives the denial without any banner.
+string `consentMode.mapping` entries point the three ad signals at. Fixed-denied
+entries already require no category and stay denied; neither GPC nor the UI
+fabricates a category for them. GPC sets `gpcApplied: true` and emits `consent`
+— so Consent Mode receives the denial without any banner.
 `analytics_storage` is left granted: GPC is a do-not-sell-or-share signal, not a
 blanket opt-out. Map `analytics_storage` to a denied category if you take a
 stricter view.
@@ -314,9 +316,10 @@ from the document, so links added after mount work too.
 <a id="do-not-sell" href="#do-not-sell">Do Not Sell or Share My Personal Information</a>
 ```
 
-Opting out denies the ad-mapped categories and keeps everything else, and is
-persisted like any other decision. `api.showOptOut()` is the programmatic
-equivalent for applications that route their own clicks.
+Opting out denies string-mapped ad categories and keeps everything else; fixed
+ad signals are already denied. The resulting explicit choice is persisted like
+any other decision. `api.showOptOut()` is the programmatic equivalent for
+applications that route their own clicks.
 
 ### Restricted data processing
 
@@ -328,7 +331,7 @@ derive it from the same mapping the opt-out uses and apply it on every decision:
 
 ```ts
 const { mapping } = consent.getConfig().consentMode;
-const adCategories = [
+const adMappings = [
   mapping.ad_storage,
   mapping.ad_user_data,
   mapping.ad_personalization,
@@ -336,9 +339,10 @@ const adCategories = [
 
 const applyRdp = (state) => {
   gtag("config", "AW-CONVERSION_ID", {
-    // Any denied ad category means the visitor is opted out of sale or share.
-    restricted_data_processing: adCategories.some(
-      (id) => state.categories[id] !== true,
+    // A fixed mapping is already denied; strings follow their category.
+    restricted_data_processing: adMappings.some(
+      (mapped) =>
+        typeof mapped !== "string" || state.categories[mapped] !== true,
     ),
   });
 };
@@ -352,8 +356,8 @@ consent.on("change", applyRdp);
 ```
 
 Read the mapping rather than naming a category: `consentMode.mapping` is
-configurable, so hardcoding `marketing` reports the wrong value for anyone who
-points the ad signals elsewhere.
+configurable, and an ad signal may be fixed denied, so hardcoding `marketing`
+reports the wrong value for anyone who points the ad signals elsewhere.
 
 The sources behind this are recorded with retrieval dates in
 [`specs/US_NOTES.md`](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/US_NOTES.md).
@@ -552,6 +556,12 @@ what a script gate delivers. Keep the head placement described under
   window.libreconsentConsentMode = {
     enabled: true,
     defaults: "denied-everywhere",
+    mapping: {
+      analytics_storage: "analytics",
+      ad_storage: { mode: "fixed", value: "denied" },
+      ad_user_data: { mode: "fixed", value: "denied" },
+      ad_personalization: { mode: "fixed", value: "denied" },
+    },
     waitForUpdate: 500,
   };
 </script>
@@ -730,12 +740,20 @@ with the gated form under
 [Google tags in basic mode](#google-tags-in-basic-mode) for a basic deployment.
 
 For regional defaults, the artifact first denies the four v2 signals in the
-listed regions, then queues a global granted fallback for everyone else:
+listed regions, then queues a global granted fallback only for string-mapped
+signals. A fixed `{ mode: "fixed", value: "denied" }` signal remains denied
+everywhere and never names a category:
 
 ```js
 window.libreconsentConsentMode = {
   enabled: true,
   defaults: { deniedRegions: ["FR", "US-CA"] },
+  mapping: {
+    analytics_storage: "analytics",
+    ad_storage: { mode: "fixed", value: "denied" },
+    ad_user_data: { mode: "fixed", value: "denied" },
+    ad_personalization: { mode: "fixed", value: "denied" },
+  },
   waitForUpdate: 500,
 };
 ```
@@ -750,13 +768,13 @@ const consent = init({
 ```
 
 When enabled, the core subscribes once to replayed `consent` and subsequent
-`change` events, including restored consent and withdrawal. It sends every v2
-signal as `granted` or `denied` from the effective mapped category. Signaling
-failures never interrupt persistence or lifecycle events. With `enabled:
-false`, the adapter does not touch browser globals or subscribe to lifecycle
-events. A malformed standalone bootstrap value fails closed to a
-denied-everywhere default with a 500 ms wait; `init()` still rejects malformed
-configuration synchronously with `ConsentError`.
+`change` events, including restored consent and withdrawal. A string mapping
+sends `granted` or `denied` from its effective category; a fixed mapping always
+sends `denied`. Signaling failures never interrupt persistence or lifecycle
+events. With `enabled: false`, the adapter does not touch browser globals or
+subscribe to lifecycle events. A malformed standalone bootstrap value fails
+closed to a denied-everywhere default with a 500 ms wait; `init()` still rejects
+malformed configuration synchronously with `ConsentError`.
 
 `adsDataRedaction: true` queues Google’s redaction setting, which only takes
 effect while `ad_storage` is denied. `urlPassthrough: true` is queued before
@@ -778,7 +796,7 @@ network-silence guarantee comes from gating the tag itself, which
 
 ### Consulted Google documentation
 
-Rechecked 2026-07-28:
+Rechecked 2026-07-29:
 
 - [Set up consent mode on websites](https://developers.google.com/tag-platform/security/guides/consent), updated 2026-05-06.
 - [Google tag API reference](https://developers.google.com/tag-platform/gtagjs/reference), updated 2026-04-17.

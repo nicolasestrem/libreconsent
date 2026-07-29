@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: MIT
-import type { ConsentModeDefaults } from "./types";
+import type {
+  ConsentModeDefaults,
+  ConsentModeMappingValue,
+  GoogleSignal,
+} from "./types";
 
 /** Browser globals consumed by the inline Consent Mode head artifact. */
 export interface ConsentModeHeadWindow {
@@ -10,13 +14,29 @@ export interface ConsentModeHeadWindow {
 
 interface HeadConsentModeConfig {
   defaults: ConsentModeDefaults;
+  mapping: Record<GoogleSignal, ConsentModeMappingValue>;
   waitForUpdate: number;
   adsDataRedaction: boolean;
   urlPassthrough: boolean;
 }
 
+const SIGNALS: GoogleSignal[] = [
+  "analytics_storage",
+  "ad_storage",
+  "ad_user_data",
+  "ad_personalization",
+];
+
+const DEFAULT_MAPPING: Record<GoogleSignal, ConsentModeMappingValue> = {
+  analytics_storage: "analytics",
+  ad_storage: "marketing",
+  ad_user_data: "marketing",
+  ad_personalization: "marketing",
+};
+
 const deniedEverywhere: HeadConsentModeConfig = {
   defaults: "denied-everywhere",
+  mapping: DEFAULT_MAPPING,
   waitForUpdate: 500,
   adsDataRedaction: false,
   urlPassthrough: false,
@@ -36,6 +56,60 @@ function isRegionalDefaults(
       (region) => typeof region === "string" && region.trim() !== "",
     )
   );
+}
+
+function normalizeMappingValue(value: unknown): ConsentModeMappingValue | null {
+  if (typeof value === "string") {
+    return value.trim() === "" ? null : value;
+  }
+  if (!isRecord(value)) {
+    return null;
+  }
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length !== 2 ||
+    !keys.includes("mode") ||
+    !keys.includes("value") ||
+    value.mode !== "fixed" ||
+    value.value !== "denied"
+  ) {
+    return null;
+  }
+  for (const key in value) {
+    if (key !== "mode" && key !== "value") {
+      return null;
+    }
+  }
+  return { mode: "fixed", value: "denied" };
+}
+
+function normalizeMapping(
+  value: unknown,
+): Record<GoogleSignal, ConsentModeMappingValue> | null {
+  if (value === undefined) {
+    return { ...DEFAULT_MAPPING };
+  }
+  if (!isRecord(value)) {
+    return null;
+  }
+  for (const signal of Object.keys(value)) {
+    if (!SIGNALS.includes(signal as GoogleSignal)) {
+      return null;
+    }
+  }
+
+  const mapping: Record<GoogleSignal, ConsentModeMappingValue> = {
+    ...DEFAULT_MAPPING,
+  };
+  for (const signal of SIGNALS) {
+    if (value[signal] === undefined) continue;
+    const normalized = normalizeMappingValue(value[signal]);
+    if (normalized === null) {
+      return null;
+    }
+    mapping[signal] = normalized;
+  }
+  return mapping;
 }
 
 function normalizeStandaloneConfig(
@@ -58,12 +132,14 @@ function normalizeStandaloneConfig(
   const waitForUpdate = value.waitForUpdate ?? 500;
   const adsDataRedaction = value.adsDataRedaction ?? false;
   const urlPassthrough = value.urlPassthrough ?? false;
+  const mapping = normalizeMapping(value.mapping);
 
   if (
     (defaults !== "denied-everywhere" && !isRegionalDefaults(defaults)) ||
     typeof waitForUpdate !== "number" ||
     !Number.isInteger(waitForUpdate) ||
     waitForUpdate < 1 ||
+    mapping === null ||
     typeof adsDataRedaction !== "boolean" ||
     typeof urlPassthrough !== "boolean"
   ) {
@@ -79,6 +155,7 @@ function normalizeStandaloneConfig(
               region.trim().toUpperCase(),
             ),
           },
+    mapping,
     waitForUpdate,
     adsDataRedaction,
     urlPassthrough,
@@ -87,14 +164,19 @@ function normalizeStandaloneConfig(
 
 function consentDefault(
   value: "denied" | "granted",
+  mapping: Record<GoogleSignal, ConsentModeMappingValue>,
   waitForUpdate?: number,
   regions?: string[],
 ): Record<string, unknown> {
   return {
-    analytics_storage: value,
-    ad_storage: value,
-    ad_user_data: value,
-    ad_personalization: value,
+    ...Object.fromEntries(
+      SIGNALS.map((signal) => [
+        signal,
+        value === "granted" && typeof mapping[signal] !== "string"
+          ? "denied"
+          : value,
+      ]),
+    ),
     ...(waitForUpdate === undefined ? {} : { wait_for_update: waitForUpdate }),
     ...(regions === undefined ? {} : { region: regions }),
   };
@@ -126,7 +208,7 @@ export function installConsentModeDefaults(
     target.gtag(
       "consent",
       "default",
-      consentDefault("denied", config.waitForUpdate),
+      consentDefault("denied", config.mapping, config.waitForUpdate),
     );
   } else {
     target.gtag(
@@ -134,11 +216,16 @@ export function installConsentModeDefaults(
       "default",
       consentDefault(
         "denied",
+        config.mapping,
         config.waitForUpdate,
         config.defaults.deniedRegions,
       ),
     );
-    target.gtag("consent", "default", consentDefault("granted"));
+    target.gtag(
+      "consent",
+      "default",
+      consentDefault("granted", config.mapping),
+    );
   }
   if (config.adsDataRedaction) {
     target.gtag("set", "ads_data_redaction", true);

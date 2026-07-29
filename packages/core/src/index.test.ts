@@ -4,6 +4,7 @@ import {
   type CmpConfig,
   type ConsentApi,
   ConsentError,
+  type ConsentModeMappingValue,
   type ConsentState,
   en,
   fr,
@@ -72,6 +73,20 @@ function baseConfig(overrides: Partial<CmpConfig> = {}): CmpConfig {
       translations: { en: dictionary },
     },
     ...overrides,
+  };
+}
+
+function fixedDeniedMapping(): ConsentModeMappingValue {
+  return { mode: "fixed", value: "denied" };
+}
+
+function fixedAdMappings(): Partial<
+  Record<GoogleSignal, ConsentModeMappingValue>
+> {
+  return {
+    ad_storage: fixedDeniedMapping(),
+    ad_user_data: fixedDeniedMapping(),
+    ad_personalization: fixedDeniedMapping(),
   };
 }
 
@@ -322,6 +337,29 @@ describe("configuration (CFG-1..7)", () => {
     });
   });
 
+  test("normalizes and deeply freezes exact fixed-denied signal mappings", async () => {
+    const fixed = { mode: "fixed" as const, value: "denied" as const };
+    const api = start(
+      baseConfig({
+        consentMode: {
+          enabled: true,
+          mapping: { ad_storage: fixed },
+        },
+      }),
+    );
+    await waitForReady(api);
+
+    const mapping = api.getConfig().consentMode.mapping.ad_storage;
+    expect(mapping).toEqual({ mode: "fixed", value: "denied" });
+    expect(mapping).not.toBe(fixed);
+    expect(Object.isFrozen(mapping)).toBe(true);
+    expect(() => {
+      if (typeof mapping !== "string") {
+        (mapping as { value: string }).value = "granted";
+      }
+    }).toThrow(TypeError);
+  });
+
   test("readonly categories default enabled while optional categories cannot start enabled", async () => {
     const config = baseConfig();
     config.categories.push({
@@ -438,6 +476,54 @@ describe("configuration (CFG-1..7)", () => {
   ])("throws a typed synchronous error for $name", ({ config, path }) => {
     expectConsentError(
       () => start(config as CmpConfig),
+      "INVALID_CONFIG",
+      path,
+    );
+  });
+
+  test.each([
+    { value: null, path: "consentMode.mapping.ad_storage" },
+    { value: [], path: "consentMode.mapping.ad_storage" },
+    { value: {}, path: "consentMode.mapping.ad_storage.mode" },
+    {
+      value: { value: "denied" },
+      path: "consentMode.mapping.ad_storage.mode",
+    },
+    {
+      value: { mode: "dynamic", value: "denied" },
+      path: "consentMode.mapping.ad_storage.mode",
+    },
+    {
+      value: { mode: "fixed" },
+      path: "consentMode.mapping.ad_storage.value",
+    },
+    {
+      value: { mode: "fixed", value: "granted" },
+      path: "consentMode.mapping.ad_storage.value",
+    },
+    {
+      value: { mode: "fixed", value: "denied", extra: true },
+      path: "consentMode.mapping.ad_storage.extra",
+    },
+    {
+      value: Object.assign(Object.create({ inheritedExtra: true }), {
+        mode: "fixed",
+        value: "denied",
+      }),
+      path: "consentMode.mapping.ad_storage.inheritedExtra",
+    },
+  ])("rejects malformed fixed-denied mappings at $path", ({ value, path }) => {
+    expectConsentError(
+      () =>
+        start(
+          baseConfig({
+            consentMode: {
+              mapping: {
+                ad_storage: value as ConsentModeMappingValue,
+              },
+            },
+          }),
+        ),
       "INVALID_CONFIG",
       path,
     );
@@ -646,6 +732,68 @@ describe("Consent Mode validation and lifecycle signaling (CM-2, CM-3)", () => {
     ]);
   });
 
+  test("keeps fixed-denied ad signals denied through every user decision", async () => {
+    const gtag = vi.fn();
+    (window as typeof window & { gtag: typeof gtag }).gtag = gtag;
+    const api = start(
+      baseConfig({
+        consentMode: {
+          enabled: true,
+          mapping: fixedAdMappings(),
+        },
+      }),
+    );
+    await waitForReady(api);
+
+    api.setConsent({ services: { ga: true } });
+    api.acceptAll();
+    api.rejectAll();
+    api.withdraw();
+
+    expect(gtag.mock.calls).toEqual([
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "granted",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ],
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "granted",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ],
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "denied",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ],
+      [
+        "consent",
+        "update",
+        {
+          analytics_storage: "denied",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ],
+    ]);
+  });
+
   test("signals restored and queued decisions with custom category mappings", async () => {
     const restored = storedState({
       categories: { necessary: true, analytics: false, marketing: true },
@@ -723,6 +871,22 @@ describe("initialization, region resolution, and singleton behavior (CFG-9, CORE
     const second = start(baseConfig());
 
     expect(second).toBe(first);
+  });
+
+  test("treats independently allocated fixed-denied mappings as singleton-compatible", () => {
+    const first = start(
+      baseConfig({
+        consentMode: { enabled: true, mapping: fixedAdMappings() },
+      }),
+    );
+
+    expect(
+      start(
+        baseConfig({
+          consentMode: { enabled: true, mapping: fixedAdMappings() },
+        }),
+      ),
+    ).toBe(first);
   });
 
   test("includes resolver function identity in singleton compatibility", () => {
@@ -1539,6 +1703,53 @@ describe("storage, expiry, and revision handling (CORE-5, CORE-8..11)", () => {
     );
   });
 
+  test("keeps fixed-denied signals denied after restore, recovery, revision, and reinitialization", async () => {
+    const gtag = vi.fn();
+    (window as typeof window & { gtag: typeof gtag }).gtag = gtag;
+    const consentMode = {
+      enabled: true,
+      mapping: fixedAdMappings(),
+    };
+    const expected = {
+      analytics_storage: "granted",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+    };
+    const restored = storedState({
+      categories: { necessary: true, analytics: true, marketing: true },
+      services: { ga: true, amp: true, ads: true },
+    });
+
+    setDocumentCookie(`libreconsent=${encodeState(restored)}; Path=/`);
+    const first = start(baseConfig({ consentMode }));
+    await waitForReady(first);
+    expect(gtag).toHaveBeenLastCalledWith("consent", "update", expected);
+
+    first.reset();
+    gtag.mockClear();
+    setDocumentCookie("libreconsent=%E0%A4%A; Path=/");
+    window.localStorage.setItem("libreconsent", encodeState(restored));
+    const recovered = start(baseConfig({ consentMode }));
+    await waitForReady(recovered);
+    expect(gtag).toHaveBeenLastCalledWith("consent", "update", expected);
+
+    recovered.reset();
+    gtag.mockClear();
+    window.localStorage.setItem("libreconsent", encodeState(restored));
+    const revised = start(baseConfig({ consentMode, revision: 2 }));
+    await waitForReady(revised);
+    revised.acceptAll();
+    expect(gtag).toHaveBeenLastCalledWith("consent", "update", expected);
+
+    revised.reset();
+    gtag.mockClear();
+    const reinitialized = start(baseConfig({ consentMode }));
+    await waitForReady(reinitialized);
+    reinitialized.acceptAll();
+    expect(gtag).toHaveBeenLastCalledWith("consent", "update", expected);
+  });
+
   test("recovers from inaccessible cookie storage and never crashes on unavailable storage", async () => {
     const mirrorState = storedState();
     window.localStorage.setItem("libreconsent", encodeState(mirrorState));
@@ -2290,6 +2501,28 @@ describe("US state privacy configuration (CFG-8)", () => {
     ]);
   });
 
+  test("lets fixed-denied US signals bypass category and readonly validation", async () => {
+    const api = start({
+      categories: [
+        {
+          id: "analytics",
+          label: "category.analytics.label",
+          description: "category.analytics.description",
+        },
+      ],
+      i18n: { default: "en", translations: { en: dictionary } },
+      consentMode: { mapping: fixedAdMappings() },
+      usPrivacy: { enabled: true },
+    });
+
+    await waitForReady(api);
+
+    expect(api.getConfig().categories.map(({ id }) => id)).toEqual([
+      "necessary",
+      "analytics",
+    ]);
+  });
+
   test("still validates all four signals when Consent Mode is enabled", () => {
     expectConsentError(
       () =>
@@ -2406,6 +2639,34 @@ describe("US opt-out model and Global Privacy Control (US-1, US-3)", () => {
 
     expect(ready.consent).toMatchObject({
       categories: { analytics: true, marketing: true, functional: false },
+    });
+  });
+
+  test("does not fabricate categories for fixed-denied GPC mappings", async () => {
+    stubGpc(true);
+    const gtag = vi.fn();
+    (window as typeof window & { gtag: typeof gtag }).gtag = gtag;
+    const api = start(
+      usConfig({
+        consentMode: { enabled: true, mapping: fixedAdMappings() },
+      }),
+    );
+
+    const ready = await waitForReady(api);
+
+    expect(ready.consent).toMatchObject({
+      implied: true,
+      gpcApplied: true,
+      categories: { analytics: true, marketing: true },
+    });
+    expect(Object.keys(ready.consent?.categories ?? {})).not.toContain(
+      "[object Object]",
+    );
+    expect(gtag).toHaveBeenLastCalledWith("consent", "update", {
+      analytics_storage: "granted",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
     });
   });
 

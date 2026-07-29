@@ -28,7 +28,10 @@ function updateFor(
   return Object.fromEntries(
     SIGNALS.map((signal) => [
       signal,
-      state.categories[config.mapping[signal]] === true ? "granted" : "denied",
+      typeof config.mapping[signal] === "string" &&
+      state.categories[config.mapping[signal]] === true
+        ? "granted"
+        : "denied",
     ]),
   ) as GoogleConsentUpdate;
 }

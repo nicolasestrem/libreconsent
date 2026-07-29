@@ -171,6 +171,28 @@ for (const quickstart of quickstarts) {
       await expect(page.locator("#ads-status")).toHaveText("blocked");
     }
 
+    if (quickstart.path === "/quickstarts/basic-consent-mode/") {
+      await page.getByRole("button", { name: "Accept all" }).click();
+      expect(
+        await page.evaluate(() =>
+          (
+            window as typeof window & { dataLayer: ArrayLike<unknown>[] }
+          ).dataLayer
+            .map((entry) => Array.from(entry))
+            .find((entry) => entry[0] === "consent" && entry[1] === "update"),
+        ),
+      ).toEqual([
+        "consent",
+        "update",
+        {
+          analytics_storage: "granted",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        },
+      ]);
+    }
+
     const unexpectedConsoleErrors = observed.consoleErrors.filter(
       (message) =>
         quickstart.kind !== "us" ||
