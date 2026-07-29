@@ -131,6 +131,10 @@ describe("Consent Mode head bootstrap (CM-1, CM-3)", () => {
     { mode: "dynamic", value: "denied" },
     { mode: "fixed", value: "granted" },
     { mode: "fixed", value: "denied", extra: true },
+    Object.assign(Object.create({ inheritedExtra: true }), {
+      mode: "fixed",
+      value: "denied",
+    }),
     { unknown_storage: "analytics" },
   ])("fails closed for malformed fixed mappings (%j)", (mapping) => {
     const target: TestWindow = {

@@ -352,9 +352,9 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   checked artifacts and embedded bootstrap are byte-identical to the build.
 - **Verification:** `pnpm install --frozen-lockfile` and `pnpm check` passed on
   2026-07-29: workflow and traceability checks through completed Phase 8 (60
-  requirements); 411 repository and 22 Worker tests; package builds; all four
-  size limits (core 8.99/12 kB, core+UI 16.57/19 kB, bridge 3.08/4 kB, head
-  snippet 1.02/1.5 kB); strict tarball inspection and publication dry-runs; 15
+  requirements); 413 repository and 22 Worker tests; package builds; all four
+  size limits (core 9.03/12 kB, core+UI 16.60/19 kB, bridge 3.08/4 kB, head
+  snippet 1.06/1.5 kB); strict tarball inspection and publication dry-runs; 15
   ordinary-static-server Chromium/Firefox/WebKit portability checks; 66
   Chromium E2E tests; 20 accessibility tests; and 10 Firefox/WebKit
   compatibility smokes.
@@ -367,4 +367,8 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   D-063 fixes its exact shape and fail-closed semantics. The initial
   quickstart-sync implementation mistook an already-current inline artifact for
   a missing marker; its explicit marker check is now idempotent and covered by
-  the release audit.
+  the release audit. PR #17 review follow-up rejects both own and inherited
+  extra mapping fields in runtime and head-bootstrap validation. On this
+  Windows runner, one Firefox fixture teardown can time out after its assertion
+  completes; the configured CI retry reran the affected test successfully, and
+  all ten Firefox/WebKit compatibility smokes passed.

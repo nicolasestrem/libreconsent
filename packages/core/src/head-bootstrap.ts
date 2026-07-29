@@ -65,7 +65,7 @@ function normalizeMappingValue(value: unknown): ConsentModeMappingValue | null {
   if (!isRecord(value)) {
     return null;
   }
-  const keys = Object.keys(value);
+  const keys = Reflect.ownKeys(value);
   if (
     keys.length !== 2 ||
     !keys.includes("mode") ||
@@ -74,6 +74,11 @@ function normalizeMappingValue(value: unknown): ConsentModeMappingValue | null {
     value.value !== "denied"
   ) {
     return null;
+  }
+  for (const key in value) {
+    if (key !== "mode" && key !== "value") {
+      return null;
+    }
   }
   return { mode: "fixed", value: "denied" };
 }

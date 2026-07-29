@@ -95,8 +95,13 @@ function normalizeConsentModeMappingValue(
   if (mapping.value !== "denied") {
     invalid(`${path}.value`, 'must be "denied"');
   }
-  for (const key of Object.keys(mapping)) {
+  for (const key of Reflect.ownKeys(mapping)) {
     if (key !== "mode" && key !== "value") {
+      invalid(`${path}.${String(key)}`, "is not supported");
+    }
+  }
+  for (const key in mapping) {
+    if (!hasOwn(mapping, key) && key !== "mode" && key !== "value") {
       invalid(`${path}.${key}`, "is not supported");
     }
   }

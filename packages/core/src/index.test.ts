@@ -505,6 +505,13 @@ describe("configuration (CFG-1..7)", () => {
       value: { mode: "fixed", value: "denied", extra: true },
       path: "consentMode.mapping.ad_storage.extra",
     },
+    {
+      value: Object.assign(Object.create({ inheritedExtra: true }), {
+        mode: "fixed",
+        value: "denied",
+      }),
+      path: "consentMode.mapping.ad_storage.inheritedExtra",
+    },
   ])("rejects malformed fixed-denied mappings at $path", ({ value, path }) => {
     expectConsentError(
       () =>
