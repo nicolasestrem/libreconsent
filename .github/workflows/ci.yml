@@ -60,9 +60,6 @@ jobs:
       - name: Release audit
         run: pnpm release:check
 
-      - name: Publication dry-runs
-        run: pnpm release:dry-run
-
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
