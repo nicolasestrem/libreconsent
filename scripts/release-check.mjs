@@ -183,14 +183,16 @@ export function validateEmbeddedHeadSnippet(html, expectedSource) {
 }
 
 export function validateQuickstartAssetReferences(html) {
-  return [
-    ...html.matchAll(
-      /\b(?:src|href)\s*=\s*["'](\/(?:dist|quickstarts)\/[^"']*)/g,
-    ),
-  ].map(
+  return [...html.matchAll(/\b(?:src|href)\s*=\s*["'](\/(?!\/)[^"']*)/gi)].map(
     ([, reference]) =>
-      `root-absolute quickstart asset reference remains: ${reference}`,
+      `root-absolute local quickstart asset reference remains: ${reference}`,
   );
+}
+
+export function validateQuickstartAssetWorkflow(rootManifest) {
+  return rootManifest.scripts?.build?.includes("quickstarts:sync-assets")
+    ? ["package build must not synchronize tracked quickstart assets"]
+    : [];
 }
 
 export function validateQuickstartVendorAssets(
@@ -224,6 +226,11 @@ export function validateQuickstartVendorAssets(
 
 function validateMetadataAndArtifacts() {
   const rootManifest = readJson(path.join(repositoryRoot, "package.json"));
+  const quickstartWorkflowErrors =
+    validateQuickstartAssetWorkflow(rootManifest);
+  if (quickstartWorkflowErrors.length > 0) {
+    fail(quickstartWorkflowErrors.join("; "));
+  }
   if (
     rootManifest.version !== RELEASE_VERSION ||
     rootManifest.private !== true ||

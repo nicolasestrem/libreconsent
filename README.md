@@ -113,7 +113,9 @@ static server needs no aliases, rewrites, repository preprocessing, or
 Cloudflare-specific routing. The three Consent Mode pages already contain the
 complete inline head bootstrap. The US example intentionally keeps
 `/api/region` as a deployment endpoint; on a static-only host its 404 resolves
-to `null` and the example fails closed. The [local demo](examples/demo-site/index.html)
+to `null` and the example fails closed. When a browser artifact changes, run
+`pnpm build` followed by `pnpm quickstarts:sync-assets` and commit the updated
+mirror; the release audit fails if a tracked mirror is stale. The [local demo](examples/demo-site/index.html)
 demonstrates accept, reject, customize, gated local content, withdrawal,
 re-entry, and the current state without contacting any vendor.
 

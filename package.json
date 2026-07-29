@@ -14,7 +14,7 @@
     "lint": "biome check .",
     "test": "node scripts/run-vitest.mjs run && pnpm --filter @libreconsent/worker-log test",
     "test:worker-log:remote": "node scripts/test-worker-log-remote.mjs",
-    "build": "pnpm -r --if-present build && pnpm quickstarts:sync-assets",
+    "build": "pnpm -r --if-present build",
     "size": "size-limit",
     "examples:serve": "node scripts/serve-examples.mjs",
     "quickstarts:sync-assets": "node scripts/quickstart-assets.mjs",

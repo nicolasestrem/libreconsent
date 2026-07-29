@@ -5,6 +5,7 @@ import {
   validateEmbeddedHeadSnippet,
   validateManifest,
   validateQuickstartAssetReferences,
+  validateQuickstartAssetWorkflow,
   validateQuickstartVendorAssets,
   validateTarballFiles,
 } from "./release-check.mjs";
@@ -216,11 +217,22 @@ window.gtag = function () {};
     ).toEqual([]);
     expect(
       validateQuickstartAssetReferences(
-        '<script src="/dist/core.global.js"></script><script src="/quickstarts/basic-consent-mode/analytics.js"></script>',
+        '<script src="/dist/core.global.js"></script><script src="/quickstarts/basic-consent-mode/analytics.js"></script><script src="/vendor/libreconsent/core/index.global.js"></script>',
       ),
     ).toEqual([
-      "root-absolute quickstart asset reference remains: /dist/core.global.js",
-      "root-absolute quickstart asset reference remains: /quickstarts/basic-consent-mode/analytics.js",
+      "root-absolute local quickstart asset reference remains: /dist/core.global.js",
+      "root-absolute local quickstart asset reference remains: /quickstarts/basic-consent-mode/analytics.js",
+      "root-absolute local quickstart asset reference remains: /vendor/libreconsent/core/index.global.js",
     ]);
+    expect(
+      validateQuickstartAssetWorkflow({
+        scripts: { build: "pnpm -r --if-present build" },
+      }),
+    ).toEqual([]);
+    expect(
+      validateQuickstartAssetWorkflow({
+        scripts: { build: "pnpm build && pnpm quickstarts:sync-assets" },
+      }),
+    ).toEqual(["package build must not synchronize tracked quickstart assets"]);
   });
 });

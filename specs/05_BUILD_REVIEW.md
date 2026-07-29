@@ -308,3 +308,9 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   US resolver's expected 404 is reported as a console error in Chromium and
   WebKit but not Firefox; coverage accepts only that expected diagnostic while
   retaining zero-tolerance for every other console or page error.
+- **PR #15 review follow-up:** P-075 makes the CI `All gates` job execute the
+  dedicated portability project after installing all three browser engines.
+  Browser mirrors now update only through the explicit sync command, so release
+  audit compares a fresh build with the committed mirror before any write can
+  mask drift; the audit and browser assertion reject every root-absolute local
+  `src` or `href` path.

@@ -138,11 +138,7 @@ for (const quickstart of quickstarts) {
         .evaluateAll((scripts) =>
           scripts.map((script) => script.getAttribute("src")),
         ),
-    ).not.toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^\/(?:dist|quickstarts)\//),
-      ]),
-    );
+    ).not.toEqual(expect.arrayContaining([expect.stringMatching(/^\/(?!\/)/)]));
 
     if (quickstart.kind === "bridge") {
       await expect(page.locator("#bridge-state")).toContainText(
