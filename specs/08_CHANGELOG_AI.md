@@ -4,6 +4,9 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-29 | Codex | PR #18 bot review follow-up (NFR-5, NFR-6) | Pinned registry lookup and installation to the public npm registry, verified installed lockfile provenance, and rejected release output inside any Git worktree. P-081; D-065. |
+| 2026-07-29 | Codex | PR #18 CI follow-up (NFR-6) | Replaced a Windows-only absolute-path test fixture in the deferred registry consumer gate with `path.resolve()`, so the argument contract passes on Linux CI as well as Windows. P-080. |
+| 2026-07-29 | Codex | Phase 3D controlled release bookkeeping (NFR-5, NFR-6) | Added clean-detached, external-directory release preparation that preserves four exact tarballs and emits a fingerprinted approval manifest; added the post-publication external registry consumer gate and controlled release runbook. No tag, publication, registry query, or GitHub Release was performed. D-064; P-079. |
 | 2026-07-29 | Codex | PR #17 review follow-up (CFG-3, CM-1) | Rejected inherited and non-enumerable fixed-mapping extras in runtime and head validation, with paired fail-closed regression coverage. P-078. |
 | 2026-07-29 | Codex | Phase 3C fixed-denied Consent Mode signals (CFG-3, CM-1, CM-2, US-1) | Added the exact fixed-denied mapping value across core, UI, head bootstrap, public types, quickstarts, and release audit. Fixed advertising signals never become categories or grants; Google Consent Mode guidance was rechecked 2026-07-29. D-063; P-077. |
 | 2026-07-29 | Codex | Phase 3B workflow hardening (TOOL-4) | Removed unused OpenCode automation, pinned remote actions to audited immutable SHAs, disabled persisted checkout credentials, retained and documented Claude OIDC, and added an early dependency-free workflow guardrail. D-062; P-076. |

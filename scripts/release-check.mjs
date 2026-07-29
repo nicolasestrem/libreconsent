@@ -224,7 +224,7 @@ export function validateQuickstartVendorAssets(
   return errors;
 }
 
-function validateMetadataAndArtifacts() {
+export function validateReleaseCandidate() {
   const rootManifest = readJson(path.join(repositoryRoot, "package.json"));
   const quickstartWorkflowErrors =
     validateQuickstartAssetWorkflow(rootManifest);
@@ -532,7 +532,7 @@ for (const specifier of [
 }
 
 export function runReleaseCheck() {
-  validateMetadataAndArtifacts();
+  validateReleaseCandidate();
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), "libreconsent-release-"));
   try {
     const tarballs = packPackages(tempRoot);
