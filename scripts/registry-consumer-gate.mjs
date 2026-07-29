@@ -18,7 +18,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
-import { chromium, firefox, webkit } from "@playwright/test";
+import { chromium } from "@playwright/test";
 import { npmInvocation } from "./npm-invocation.mjs";
 import { quickstartAssetPaths } from "./quickstart-assets.mjs";
 import {
@@ -662,64 +662,55 @@ async function verifyStaticConsumer(consumerRoot) {
     path.join(consumerRoot, "dist"),
   );
   try {
-    for (const [name, browserType] of [
-      ["chromium", chromium],
-      ["firefox", firefox],
-      ["webkit", webkit],
-    ]) {
-      const browser = await browserType.launch();
-      try {
-        const page = await browser.newPage();
-        const pageErrors = [];
-        const vendorRequests = [];
-        page.on("pageerror", (error) => pageErrors.push(error.message));
-        page.on("request", (request) => {
-          if (request.url().includes("/vendor/libreconsent/")) {
-            vendorRequests.push(request.url());
-          }
-        });
-        const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
-        if (response?.status() !== 200) {
-          fail(`${name}: ordinary static consumer did not return index.html`);
+    const name = "chromium";
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage();
+      const pageErrors = [];
+      const vendorRequests = [];
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      page.on("request", (request) => {
+        if (request.url().includes("/vendor/libreconsent/")) {
+          vendorRequests.push(request.url());
         }
-        if (
-          (await page.locator("#app").textContent()) !==
-          "Installed package-root imports resolved."
-        ) {
-          fail(
-            `${name}: Vite consumer did not execute installed package imports`,
-          );
-        }
-        const defaults = await page.evaluate(() => window.dataLayer?.[0]?.[2]);
-        if (
-          ![
-            "ad_storage",
-            "analytics_storage",
-            "ad_user_data",
-            "ad_personalization",
-          ].every((signal) => defaults?.[signal] === "denied")
-        ) {
-          fail(`${name}: installed head bootstrap defaults are not denied`);
-        }
-        if (vendorRequests.length === 0) {
-          fail(
-            `${name}: ordinary static consumer did not load a relative vendor artifact`,
-          );
-        }
-        const obsolete = await page.request.get(
-          `${baseUrl}/dist/core.global.js`,
-        );
-        if (obsolete.status() !== 404) {
-          fail(
-            `${name}: obsolete /dist/core.global.js request must return 404`,
-          );
-        }
-        if (pageErrors.length > 0) {
-          fail(`${name}: browser page errors: ${pageErrors.join("; ")}`);
-        }
-      } finally {
-        await browser.close();
+      });
+      const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
+      if (response?.status() !== 200) {
+        fail(`${name}: ordinary static consumer did not return index.html`);
       }
+      if (
+        (await page.locator("#app").textContent()) !==
+        "Installed package-root imports resolved."
+      ) {
+        fail(
+          `${name}: Vite consumer did not execute installed package imports`,
+        );
+      }
+      const defaults = await page.evaluate(() => window.dataLayer?.[0]?.[2]);
+      if (
+        ![
+          "ad_storage",
+          "analytics_storage",
+          "ad_user_data",
+          "ad_personalization",
+        ].every((signal) => defaults?.[signal] === "denied")
+      ) {
+        fail(`${name}: installed head bootstrap defaults are not denied`);
+      }
+      if (vendorRequests.length === 0) {
+        fail(
+          `${name}: ordinary static consumer did not load a relative vendor artifact`,
+        );
+      }
+      const obsolete = await page.request.get(`${baseUrl}/dist/core.global.js`);
+      if (obsolete.status() !== 404) {
+        fail(`${name}: obsolete /dist/core.global.js request must return 404`);
+      }
+      if (pageErrors.length > 0) {
+        fail(`${name}: browser page errors: ${pageErrors.join("; ")}`);
+      }
+    } finally {
+      await browser.close();
     }
   } finally {
     await new Promise((resolve, reject) =>

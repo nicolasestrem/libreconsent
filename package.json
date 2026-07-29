@@ -23,12 +23,11 @@
     "quickstarts:portability": "playwright test -c playwright.quickstarts.config.ts",
     "e2e": "playwright test --project=e2e",
     "a11y": "playwright test --project=a11y",
-    "compatibility": "playwright test --project=compat-firefox --project=compat-webkit",
     "release:check": "node scripts/release-check.mjs",
     "release:dry-run": "node scripts/release-dry-run.mjs",
     "release:prepare": "node scripts/release-prepare.mjs",
     "registry:consumer-gate": "node scripts/registry-consumer-gate.mjs",
-    "check": "pnpm workflows:check && pnpm traceability && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size && pnpm release:check && pnpm release:dry-run && pnpm quickstarts:portability && pnpm e2e && pnpm a11y && pnpm compatibility"
+    "check": "pnpm workflows:check && pnpm traceability && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm size && pnpm release:check && pnpm release:dry-run && pnpm quickstarts:portability && pnpm e2e && pnpm a11y"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

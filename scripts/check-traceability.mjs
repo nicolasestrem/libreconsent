@@ -47,7 +47,6 @@ const SUPPORTED_CI_CHECKS = new Set([
   "Publication dry-runs",
   "E2E tests",
   "Accessibility tests",
-  "Firefox and WebKit compatibility smoke",
   "All gates",
 ]);
 

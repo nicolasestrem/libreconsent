@@ -387,8 +387,7 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   public core/UI plus the bridge artifact package outside a Git worktree, and
   proves root imports, denied defaults, one core installation, approved browser
   artifacts, a pinned Vite/TypeScript build, and ordinary-static-server
-  coverage across Chromium, Firefox, and WebKit. It remains intentionally
-  unrun until publication.
+  Chromium coverage. It remains intentionally unrun until publication.
 - **Verification:** `pnpm check` passed on 2026-07-29: workflow and
   traceability checks through completed Phase 8 (60 requirements); 421
   repository and 22 Worker tests; package builds; all four size limits (core
@@ -408,3 +407,16 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   public npm registry resolution and rejects any release/consumer output inside
   another Git worktree, so a private mirror or sibling checkout cannot produce
   misleading publication evidence.
+
+### Post-Phase 3 — browser test-gate simplification
+- **Date / branch:** 2026-07-29 · `codex/trim-browser-test-gates`
+- **Scope:** remove the Firefox/WebKit matrix from automatic checks and retain
+  Chromium as the sole browser smoke.
+- **Verdict:** Chromium direct-portability, E2E, and accessibility coverage
+  remains; raw release audits and dependency-free static-server tests retain
+  the artifact/path contract. Cross-browser automation is deferred until a
+  real user, reported defect, or browser-support commitment warrants it.
+- **Verification:** `pnpm check` passed on 2026-07-29: 421 repository and 22
+  Worker tests, five Chromium static-portability checks, 61 Chromium E2E
+  checks, and 20 accessibility checks. Firefox and WebKit are not installed or
+  executed by the required local or CI gate.

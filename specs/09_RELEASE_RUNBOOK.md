@@ -120,8 +120,8 @@ that external directory:
 - installed core/UI/bridge browser artifacts byte-match the Phase 3A hashes in
   the approved manifest; and
 - the built consumer works from a dependency-free ordinary static server in
-  Chromium, Firefox, and WebKit, loading its relative vendor artifact while an
-  obsolete `/dist/core.global.js` request returns 404.
+  Chromium, loading its relative vendor artifact while an obsolete
+  `/dist/core.global.js` request returns 404.
 
 The command writes `registry-consumer-evidence.json` beside the preserved
 external consumer. TrackerSync Phase 4 must not begin until this gate passes.

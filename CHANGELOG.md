@@ -14,7 +14,7 @@ All notable changes to this project are documented in this file.
 - Made all four quickstarts portable on an ordinary static server. They now
   load tracked, byte-identical browser artifacts through relative URLs; the
   release audit rejects drift, all root-absolute local fixture paths, and
-  missing assets. CI runs the dedicated Chromium, Firefox, and WebKit suite.
+  missing assets. CI runs a dedicated Chromium smoke only.
 - Made the Consent Mode, GTM, and US opt-out quickstarts directly copyable by
   embedding the complete synchronous head bootstrap instead of relying on the
   repository-only example server to replace a placeholder. The release audit
@@ -37,8 +37,7 @@ All notable changes to this project are documented in this file.
   installation of all four packed packages, public ESM and TypeScript imports,
   IIFE/head-bootstrap execution, and deep-import rejection.
 - `release:dry-run`: parsed `npm publish --dry-run --access public --json`
-  validation for every package, plus focused Firefox and Playwright WebKit
-  smoke coverage for all release examples.
+  validation for every package.
 - Phase 8 optional decision receipts: `receiptEndpoint` posts a persisted
   explicit decision with `keepalive`, while restored, revision-prefill,
   implied-US, and GPC-derived states remain silent. Delivery is off by default,
