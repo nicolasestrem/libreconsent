@@ -163,10 +163,9 @@ The Google-specific quickstarts were rechecked on **2026-07-29** against:
 ## Browser support
 
 The target is the last two evergreen Chrome, Edge, and Firefox releases plus
-Safari 15.4 and newer, with no legacy bundle. Chromium is the full browser
-gate; focused Firefox and Playwright WebKit smoke tests cover every release
-quickstart and the demo. WebKit automation is not proof of exact Safari 15.4
-behavior on Apple hardware, which remains an explicit launch limitation.
+Safari 15.4 and newer, with no legacy bundle. Chromium is the only automated
+browser smoke; Firefox and Safari compatibility are checked when the project
+has real adoption pressure.
 
 ## Release verification
 
@@ -177,9 +176,8 @@ git diff --check
 
 `pnpm check` includes traceability, types, lint, unit/runtime tests, builds,
 size ceilings, strict tarball audits, temporary-consumer ESM/TypeScript/IIFE
-tests, parsed `npm publish --dry-run --access public --json` results, Chromium
-E2E/a11y, and focused Firefox/WebKit compatibility smoke. It does not publish,
-tag, deploy, or contact real vendors.
+tests, parsed `npm publish --dry-run --access public --json` results, and
+Chromium E2E/a11y. It does not publish, tag, deploy, or contact real vendors.
 
 After the Phase 3D PR is merged, release preparation must run only on a clean,
 detached approved SHA and write to an empty absolute directory outside this

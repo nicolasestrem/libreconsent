@@ -24,15 +24,5 @@ export default defineConfig({
       testMatch: /quickstart-portability\.e2e\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
-    {
-      name: "quickstarts-firefox",
-      testMatch: /quickstart-portability\.e2e\.spec\.ts/,
-      use: { ...devices["Desktop Firefox"] },
-    },
-    {
-      name: "quickstarts-webkit",
-      testMatch: /quickstart-portability\.e2e\.spec\.ts/,
-      use: { ...devices["Desktop Safari"] },
-    },
   ],
 });

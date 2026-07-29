@@ -64,7 +64,7 @@ jobs:
         run: pnpm release:dry-run
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Static quickstart portability
         run: pnpm quickstarts:portability
@@ -74,9 +74,6 @@ jobs:
 
       - name: Accessibility tests
         run: pnpm a11y
-
-      - name: Firefox and WebKit compatibility smoke
-        run: pnpm compatibility
 
       - name: Upload Playwright artifacts
         if: failure()

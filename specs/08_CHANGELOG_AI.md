@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-29 | Codex | Browser test-gate simplification | Removed the Firefox/WebKit browser matrix from CI, `pnpm check`, and the deferred registry consumer gate. Chromium remains the sole automated smoke; cross-browser coverage is deferred until real adoption warrants it. D-066; P-082. |
 | 2026-07-29 | Codex | PR #18 bot review follow-up (NFR-5, NFR-6) | Pinned registry lookup and installation to the public npm registry, verified installed lockfile provenance, and rejected release output inside any Git worktree. P-081; D-065. |
 | 2026-07-29 | Codex | PR #18 CI follow-up (NFR-6) | Replaced a Windows-only absolute-path test fixture in the deferred registry consumer gate with `path.resolve()`, so the argument contract passes on Linux CI as well as Windows. P-080. |
 | 2026-07-29 | Codex | Phase 3D controlled release bookkeeping (NFR-5, NFR-6) | Added clean-detached, external-directory release preparation that preserves four exact tarballs and emits a fingerprinted approval manifest; added the post-publication external registry consumer gate and controlled release runbook. No tag, publication, registry query, or GitHub Release was performed. D-064; P-079. |

@@ -16,9 +16,9 @@ unsupported. Self-hosted browsers may copy `dist/index.global.js`
 The package is MIT-licensed, has no runtime dependencies, telemetry, or
 built-in vendor request, and persists nothing before a decision. Declarative
 gates are guaranteed; blocklist interception is best-effort. Browser support
-is the last two evergreen Chrome/Edge/Firefox releases and Safari 15.4+, but
-exact Safari 15.4 hardware validation is not yet proven. Default text and
-examples are not legal advice.
+targets the last two evergreen Chrome/Edge/Firefox releases and Safari 15.4+,
+but only Chromium is automated until real adoption warrants cross-browser
+coverage. Default text and examples are not legal advice.
 
 ## Quickstart
 

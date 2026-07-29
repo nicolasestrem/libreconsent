@@ -20,9 +20,9 @@ build, copy `dist/index.global.js` and use the `LibreConsentUi` global after
 
 The package is MIT-licensed, has zero third-party runtime dependencies,
 external assets, telemetry, or network requests. It supports the last two
-evergreen Chrome/Edge/Firefox releases and Safari 15.4+. Focused WebKit
-automation is not exact Safari 15.4 hardware validation. Default EN/FR strings
-are starting points, not legal advice.
+evergreen Chrome/Edge/Firefox releases and Safari 15.4+ as a target; only
+Chromium is automated until real adoption warrants cross-browser coverage.
+Default EN/FR strings are starting points, not legal advice.
 
 ## Quickstart
 

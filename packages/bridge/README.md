@@ -17,10 +17,10 @@ only. Self-hosted browsers may copy `dist/index.global.js` and use
 
 The MIT-licensed bridge has zero runtime dependencies, telemetry, storage, DOM
 output, or network activity of its own. It targets the last two evergreen
-Chrome/Edge/Firefox releases and Safari 15.4+; WebKit smoke is not exact Safari
-15.4 hardware proof. It is fixture-tested but has not been validated on a real
-AdSense domain using Google Privacy & messaging, so no production
-interoperability claim is made.
+Chrome/Edge/Firefox releases and Safari 15.4+, but only Chromium is automated
+until real adoption warrants cross-browser coverage. It is fixture-tested but
+has not been validated on a real AdSense domain using Google Privacy &
+messaging, so no production interoperability claim is made.
 
 ## Quick start
 
