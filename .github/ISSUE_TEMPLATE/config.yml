@@ -1,0 +1,23 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/nicolasestrem/libreconsent/security/advisories/new
+    about: >-
+      Vulnerabilities must not be filed as public issues. Use GitHub private
+      vulnerability reporting; see SECURITY.md for scope and expectations.
+  - name: Known limitations
+    url: https://github.com/nicolasestrem/libreconsent/blob/main/specs/07_KNOWN_GAPS.md
+    about: >-
+      Accepted limitations with recorded reasoning. Check here before filing a
+      bug, especially about dynamic script interception, withdrawal, or the
+      re-prompt after ignoring the banner.
+  - name: Why there is no TCF support
+    url: https://github.com/nicolasestrem/libreconsent/blob/main/specs/NO_TCF.md
+    about: >-
+      libreconsent never emits TC strings, provides __tcfapi, or claims a CMP
+      ID. This is permanent; the reasoning is documented here.
+  - name: Contributing guide
+    url: https://github.com/nicolasestrem/libreconsent/blob/main/CONTRIBUTING.md
+    about: >-
+      Toolchain, the eleven CI gates, commit conventions, and the project
+      rules that constrain what can be accepted.
