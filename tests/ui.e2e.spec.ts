@@ -351,7 +351,9 @@ test("the settings button reflects the saved consent state (UI-5, UI-7)", async 
         "::after",
       ).backgroundColor;
     }, state);
-    const [red, green, blue] = (colour.match(/\d+/g) ?? []).map(Number);
+    const [red = 0, green = 0, blue = 0] = (colour.match(/\d+/g) ?? []).map(
+      Number,
+    );
     expect(red === 255 && green < 128 && blue < 128).toBe(false);
     expect(green === 255 && red < 128 && blue < 128).toBe(false);
   }
