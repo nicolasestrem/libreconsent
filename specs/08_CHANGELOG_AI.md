@@ -4,6 +4,7 @@ Append-only log of AI-performed work on this spec pack and the build. Newest fir
 
 | Date | Actor | Scope | Summary |
 |------|-------|-------|---------|
+| 2026-07-29 | Codex | v1.0.0 controlled release completion | Created the annotated `v1.0.0` tag at the approved SHA, published the four preserved tarballs in order, verified public npm metadata against the approval manifest, passed the external registry consumer gate, and created the non-draft GitHub Release. The Phase 9 completed marker is now advanced. |
 | 2026-07-29 | Codex | Browser test-gate simplification | Removed the Firefox/WebKit browser matrix from CI, `pnpm check`, and the deferred registry consumer gate. Chromium remains the sole automated smoke; cross-browser coverage is deferred until real adoption warrants it. D-066; P-082. |
 | 2026-07-29 | Codex | PR #18 bot review follow-up (NFR-5, NFR-6) | Pinned registry lookup and installation to the public npm registry, verified installed lockfile provenance, and rejected release output inside any Git worktree. P-081; D-065. |
 | 2026-07-29 | Codex | PR #18 CI follow-up (NFR-6) | Replaced a Windows-only absolute-path test fixture in the deferred registry consumer gate with `path.resolve()`, so the argument contract passes on Linux CI as well as Windows. P-080. |
