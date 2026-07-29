@@ -43,14 +43,38 @@ function unquote(value) {
 }
 
 /**
- * Collect the job and step names the CI workflow actually declares.
+ * Read the gate scripts chained by the workspace `check` script.
  *
- * The names are read from the workflow rather than hard-coded so a row can
- * never cite a check that no longer runs, and so a renamed step fails the
- * gate instead of passing it unverified.
+ * @param {string} rootDirectory Directory containing the root `package.json`.
+ * @returns {Set<string>} Script names such as `lint` and `release:check`.
+ */
+function gateScriptNames(rootDirectory) {
+  const manifestPath = path.resolve(rootDirectory, "package.json");
+  if (!existsSync(manifestPath)) {
+    return new Set();
+  }
+
+  const check = JSON.parse(readFileSync(manifestPath, "utf8")).scripts?.check;
+  return new Set(
+    [...String(check ?? "").matchAll(/pnpm\s+([\w:-]+)/g)].map(
+      (match) => match[1],
+    ),
+  );
+}
+
+/**
+ * Collect the CI names a traceability row may cite as verification evidence.
+ *
+ * The names are derived from the workflow rather than hard-coded, so a row can
+ * never cite a check that no longer runs and a renamed step fails the gate
+ * instead of passing unverified. Only steps that run one of the workspace gate
+ * scripts qualify: setup and teardown steps such as `Check out repository`,
+ * `Install dependencies` and `Upload Playwright artifacts` prove nothing about
+ * a requirement, so accepting them would let an implemented requirement claim
+ * verification without a test.
  *
  * @param {string} rootDirectory Directory containing `.github/workflows`.
- * @returns {Set<string>} Job display names and step names.
+ * @returns {Set<string>} The job display name and every verifying step name.
  */
 export function ciWorkflowCheckNames(rootDirectory) {
   const workflowPath = path.resolve(rootDirectory, CI_WORKFLOW_REFERENCE);
@@ -58,11 +82,27 @@ export function ciWorkflowCheckNames(rootDirectory) {
     return new Set();
   }
 
+  const gateScripts = gateScriptNames(rootDirectory);
   const names = new Set();
+  let pendingStep;
+
   for (const line of readFileSync(workflowPath, "utf8").split(/\r?\n/)) {
     const step = line.match(/^\s*-\s+name:\s*(.+?)\s*$/);
     if (step?.[1] !== undefined) {
-      names.add(unquote(step[1]));
+      pendingStep = unquote(step[1]);
+      continue;
+    }
+
+    // A step qualifies only once its own `run:` names a gate script.
+    const run = line.match(/^\s*run:\s*(.+?)\s*$/);
+    if (run?.[1] !== undefined) {
+      if (pendingStep !== undefined) {
+        const invoked = unquote(run[1]).match(/^pnpm\s+([\w:-]+)/);
+        if (invoked?.[1] !== undefined && gateScripts.has(invoked[1])) {
+          names.add(pendingStep);
+        }
+        pendingStep = undefined;
+      }
       continue;
     }
 

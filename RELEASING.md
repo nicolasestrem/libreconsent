@@ -63,12 +63,17 @@ node -e 'const m=require("./release-manifest.json");
   for (const p of m.packages) console.log(p.name, p.integrity)'
 ```
 
-Once core and ui are public, run the consumer gate into a second empty
-absolute directory outside every Git worktree. It installs from
-`https://registry.npmjs.org/` only, never from workspace links, and writes
-`registry-consumer-evidence.json`:
+Once all four packages are public, run the consumer gate into a second
+empty absolute directory outside every Git worktree. The gate resolves
+core, ui **and** bridge from the registry, so it cannot run before bridge
+is published. It installs from `https://registry.npmjs.org/` only, never
+from workspace links, and writes `registry-consumer-evidence.json`.
+
+Run it from the repository, not from the artifact directory the publish
+step left you in:
 
 ```sh
+cd /path/to/libreconsent
 pnpm registry:consumer-gate -- \
   --approval /abs/path/release-out/release-manifest.json \
   --output /abs/path/consumer-out

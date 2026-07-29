@@ -8,7 +8,9 @@
 Consent-mode-first, self-hosted consent infrastructure. A GDPR/ePrivacy and
 US-state consent manager that blocks tags before a decision, speaks Google
 Consent Mode v2 as a first-class concern, ships zero third-party runtime
-dependencies, and makes no network request of its own.
+dependencies, and contacts no vendor, CDN, or telemetry endpoint. The only
+request it can make is an optional decision receipt, to an endpoint you
+configure and host yourself.
 
 | Package | Purpose |
 |---|---|

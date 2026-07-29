@@ -101,13 +101,31 @@ describe("phase-aware traceability", () => {
     );
   });
 
-  test("accepts every job and step the CI workflow declares", () => {
+  test("accepts the verifying steps the CI workflow declares", () => {
     const declared = [...ciWorkflowCheckNames(repositoryRoot)];
 
     expect(declared).toContain("All gates");
-    expect(declared).toContain("Install dependencies");
     expect(declared).toContain("Static quickstart portability");
     expect(declared).not.toContain("Publication dry-runs");
+
+    // Setup and teardown steps prove nothing about a requirement, so citing
+    // one must never satisfy the test-and-traceability invariant.
+    for (const setupStep of [
+      "Check out repository",
+      "Set up pnpm",
+      "Set up Node.js",
+      "Install dependencies",
+      "Install Playwright browsers",
+      "Upload Playwright artifacts",
+    ]) {
+      expect(declared).not.toContain(setupStep);
+      expect(
+        validateTraceability(
+          repositoryTable(`\`.github/workflows/ci.yml\` — \`${setupStep}\``),
+          repositoryRoot,
+        ).errors,
+      ).not.toEqual([]);
+    }
 
     for (const checkName of declared) {
       expect(

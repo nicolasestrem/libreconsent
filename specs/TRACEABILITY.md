@@ -9,7 +9,7 @@ a configured Vitest/Playwright test file or a supported named CI check.
 
 | Requirement ID | Implementation file(s) | Test file(s) | Status |
 |---|---|---|---|
-| TOOL-1 | `package.json`; `pnpm-workspace.yaml`; `packages/core/package.json`; `packages/ui/package.json`; `packages/bridge/package.json`; `packages/worker-log/package.json` | `.github/workflows/ci.yml` — `Install dependencies`, `Build`; `packages/core/src/index.test.ts`; `packages/ui/src/index.test.ts`; `packages/bridge/src/index.test.ts`; `packages/worker-log/src/index.test.ts` | Passing |
+| TOOL-1 | `package.json`; `pnpm-workspace.yaml`; `packages/core/package.json`; `packages/ui/package.json`; `packages/bridge/package.json`; `packages/worker-log/package.json` | `.github/workflows/ci.yml` — `Build`; `packages/core/src/index.test.ts`; `packages/ui/src/index.test.ts`; `packages/bridge/src/index.test.ts`; `packages/worker-log/src/index.test.ts` | Passing |
 | TOOL-2 | `tsconfig.json`; `packages/core/tsup.config.ts`; `packages/ui/tsup.config.ts`; `packages/bridge/tsup.config.ts`; `packages/worker-log/tsup.config.ts` | `.github/workflows/ci.yml` — `Typecheck`, `Build` | Passing |
 | TOOL-3 | `vitest.config.ts`; `playwright.config.ts`; `biome.json`; `package.json` | `.github/workflows/ci.yml` — `Lint`, `Unit tests`, `Size budgets`, `E2E tests`, `Accessibility tests`; `tests/fixtures.e2e.spec.ts`; `tests/fixtures.a11y.spec.ts` | Passing |
 | TOOL-4 | `.github/workflows/ci.yml`; `.github/workflows/claude.yml`; `package.json`; `scripts/check-traceability.mjs`; `scripts/check-workflows.mjs` | `.github/workflows/ci.yml` — `Workflow supply-chain guardrails`, `Traceability`, `All gates`; `scripts/check-traceability.test.mjs`; `scripts/check-workflows.test.mjs` | Passing |
