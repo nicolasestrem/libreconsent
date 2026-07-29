@@ -17,6 +17,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { failUsage, reportUsageError } from "./cli-usage.mjs";
 import { npmInvocation } from "./npm-invocation.mjs";
 import { quickstartAssetPairs } from "./quickstart-assets.mjs";
 import {
@@ -32,6 +33,17 @@ import {
 } from "./release-config.mjs";
 
 const RELEASE_TAG = `v${RELEASE_VERSION}`;
+
+/**
+ * The single contract every `--output` directory must satisfy. Both this
+ * script and the registry consumer gate report it verbatim, followed by the
+ * specific part that was not met, so an operator never has to reconcile
+ * several near-identical wordings.
+ */
+export const OUTPUT_REQUIREMENT =
+  "--output must be an absolute path to an existing empty directory outside " +
+  "this repository and outside every Git worktree";
+
 const approvalSentence =
   "I explicitly approve tagging this SHA as v1.0.0 and publishing exactly these four preserved tarballs in this order.";
 
@@ -116,6 +128,17 @@ export function hasGitWorktreeAncestor(directory) {
   }
 }
 
+/**
+ * Reject an `--output` value, always restating the whole contract before the
+ * part that was not met.
+ *
+ * @param {string} reason Clause naming what is wrong with the given path.
+ * @returns {never}
+ */
+export function failOutput(reason) {
+  failUsage(`${OUTPUT_REQUIREMENT}; ${reason}`);
+}
+
 export function parseReleasePrepareArgs(argv) {
   let expectedSha;
   let output;
@@ -129,37 +152,37 @@ export function parseReleasePrepareArgs(argv) {
       output = argv[++index];
       continue;
     }
-    fail(`unsupported argument: ${argument}`);
+    failUsage(`unsupported argument: ${argument}`);
   }
   if (typeof expectedSha !== "string" || !/^[0-9a-f]{40}$/i.test(expectedSha)) {
-    fail("--expected-sha must be a full 40-character commit SHA");
+    failUsage("--expected-sha must be a full 40-character commit SHA");
   }
   if (typeof output !== "string" || output.trim() === "") {
-    fail("--output must name an existing empty absolute directory");
+    failOutput("no directory was given");
   }
   return { expectedSha: expectedSha.toLowerCase(), output };
 }
 
 export function validateExternalEmptyOutput(output, root = repositoryRoot) {
   if (!path.isAbsolute(output)) {
-    fail("--output must be an absolute directory outside the repository");
+    failOutput("the given path is relative");
   }
   if (!existsSync(output)) {
-    fail("--output directory must already exist and be empty");
+    failOutput("the given directory does not exist");
   }
   const resolvedOutput = realpathSync(output);
   const resolvedRoot = realpathSync(root);
   if (!statSync(resolvedOutput).isDirectory()) {
-    fail("--output must be a directory");
+    failOutput("the given path is not a directory");
   }
   if (isInside(resolvedRoot, resolvedOutput)) {
-    fail("--output must be outside the repository");
+    failOutput("the given directory is inside this repository");
   }
   if (hasGitWorktreeAncestor(resolvedOutput)) {
-    fail("--output must be outside every Git worktree");
+    failOutput("the given directory is inside a Git worktree");
   }
   if (readdirSync(resolvedOutput).length > 0) {
-    fail("--output directory must be empty");
+    failOutput("the given directory is not empty");
   }
   return resolvedOutput;
 }
@@ -194,14 +217,18 @@ function isDetachedHead() {
 function assertCleanDetachedExpectedCommit(expectedSha) {
   const head = runGit(["rev-parse", "HEAD"]).trim().toLowerCase();
   if (head !== expectedSha) {
-    fail(`HEAD ${head} does not match --expected-sha ${expectedSha}`);
+    failUsage(`HEAD ${head} does not match --expected-sha ${expectedSha}`);
   }
   const status = runGit(["status", "--porcelain=v1", "--untracked-files=all"]);
   if (status.trim() !== "") {
-    fail("release preparation requires a clean tracked and untracked worktree");
+    failUsage(
+      "release preparation requires a clean tracked and untracked worktree",
+    );
   }
   if (!isDetachedHead()) {
-    fail("release preparation requires a detached HEAD at the approved SHA");
+    failUsage(
+      "release preparation requires a detached HEAD at the approved SHA",
+    );
   }
 }
 
@@ -401,7 +428,15 @@ export function prepareRelease({ expectedSha, output }) {
   }
 }
 
+const USAGE =
+  "Usage: pnpm release:prepare --expected-sha <40-character commit SHA> " +
+  "--output <absolute empty directory>";
+
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
 if (invokedPath === fileURLToPath(import.meta.url)) {
-  prepareRelease(parseReleasePrepareArgs(process.argv.slice(2)));
+  try {
+    prepareRelease(parseReleasePrepareArgs(process.argv.slice(2)));
+  } catch (error) {
+    reportUsageError(error, "Release preparation did not start:", USAGE);
+  }
 }

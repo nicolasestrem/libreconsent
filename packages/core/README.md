@@ -4,21 +4,27 @@ Consent state, validation, first-party persistence, lifecycle events,
 declarative script and embed blocking, and Google Consent Mode v2 signaling for
 libreconsent.
 
-## v1 release contract
+```sh
+pnpm add @libreconsent/core
+```
 
-`1.0.0` is prepared as a release candidate but is not yet published to npm.
-After publication, install with `pnpm add @libreconsent/core`. ESM and
-TypeScript consumers import only from `@libreconsent/core`; deep imports are
-unsupported. Self-hosted browsers may copy `dist/index.global.js`
-(`LibreConsentCore`) and the synchronous
-`dist/head-snippet.global.js` artifact to their own origin.
+Part of the [libreconsent](https://github.com/nicolasestrem/libreconsent)
+monorepo.
 
-The package is MIT-licensed, has no runtime dependencies, telemetry, or
-built-in vendor request, and persists nothing before a decision. Declarative
-gates are guaranteed; blocklist interception is best-effort. Browser support
-targets the last two evergreen Chrome/Edge/Firefox releases and Safari 15.4+,
-but only Chromium is automated until real adoption warrants cross-browser
-coverage. Default text and examples are not legal advice.
+## Contents
+
+- [Quickstart](#quickstart)
+- [Configuration](#configuration)
+- [Decisions and events](#decisions-and-events)
+- [State and persistence](#state-and-persistence)
+- [Optional decision receipts](#optional-decision-receipts)
+- [Region resolution](#region-resolution)
+- [US state privacy](#us-state-privacy)
+- [Blocking](#blocking)
+- [Google Consent Mode v2](#google-consent-mode-v2)
+- [Public API](#public-api)
+- [Guarantees and boundaries](#guarantees-and-boundaries)
+- [Build and test](#build-and-test)
 
 ## Quickstart
 
@@ -694,7 +700,7 @@ was injected. Such a script is never tracked as a gate, so withdrawing consent
 updates the signals and stops future injections but does not reload the page for
 it, whereas the same tag authored as declarative markup would.
 
-Treat the net as defence in depth for tags you cannot author, never as the thing
+Treat the net as defense in depth for tags you cannot author, never as the thing
 your compliance rests on. The guaranteed path is [markup](#markup), and it is
 what the pre-consent network-silence gate is proven against.
 
@@ -822,6 +828,23 @@ The package root exports `init`, `ConsentError`, the EN/FR dictionaries, and
 TSDoc-documented configuration, normalized configuration, state, selection,
 event, error-code, and cookie-row types. Imports from internal source files are
 not public API.
+
+## Guarantees and boundaries
+
+- MIT-licensed, with no third-party runtime dependencies, telemetry, or
+  built-in vendor request.
+- Nothing is written to cookie or localStorage before a user decision.
+- Declarative gates are the guaranteed blocking path; blocklist interception is
+  best-effort.
+- ESM and TypeScript consumers import only from `@libreconsent/core`. Deep
+  imports are unsupported and blocked by the export map. Self-hosted browsers
+  copy `dist/index.global.js` (`LibreConsentCore`) and the synchronous
+  `dist/head-snippet.global.js` artifact to their own origin.
+- Browser support targets the last two evergreen Chrome/Edge/Firefox releases
+  and Safari 15.4+. Only Chromium is automated until real adoption warrants
+  cross-browser coverage.
+- Default text and configuration examples are engineering starting points, not
+  legal advice.
 
 ## Build and test
 

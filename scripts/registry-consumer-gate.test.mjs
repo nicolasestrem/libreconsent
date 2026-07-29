@@ -2,6 +2,7 @@
 
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { UsageError } from "./cli-usage.mjs";
 import { quickstartAssetPaths } from "./quickstart-assets.mjs";
 import {
   parseRegistryConsumerArgs,
@@ -9,7 +10,10 @@ import {
   validateApprovalManifest,
 } from "./registry-consumer-gate.mjs";
 import { releasePackages } from "./release-config.mjs";
-import { candidateFingerprint } from "./release-prepare.mjs";
+import {
+  candidateFingerprint,
+  OUTPUT_REQUIREMENT,
+} from "./release-prepare.mjs";
 
 function approvedManifest() {
   const candidate = {
@@ -54,7 +58,16 @@ describe("registry consumer gate", () => {
     });
     expect(() =>
       parseRegistryConsumerArgs(["--approval", "relative.json"]),
-    ).toThrow("--approval must name an absolute release-manifest.json path");
+    ).toThrow(UsageError);
+    expect(() =>
+      parseRegistryConsumerArgs(["--approval", "relative.json"]),
+    ).toThrow("the given path is relative");
+    expect(() =>
+      parseRegistryConsumerArgs(["--approval", approval, "--output", "gate"]),
+    ).toThrow(`${OUTPUT_REQUIREMENT}; the given path is relative`);
+    expect(() => parseRegistryConsumerArgs(["--unknown"])).toThrow(
+      "unsupported argument: --unknown",
+    );
   });
 
   test("pins npm lookup and installation arguments to the public registry", () => {

@@ -1,15 +1,16 @@
 # libreconsent
 
-Consent-mode-first, self-hosted consent infrastructure.
+[![CI](https://github.com/nicolasestrem/libreconsent/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolasestrem/libreconsent/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@libreconsent/core)](https://www.npmjs.com/package/@libreconsent/core)
+[![core size](https://img.shields.io/badge/core-under%2012%20kB%20gzipped-blue)](.size-limit.cjs)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-## v1.0.0 release candidate
-
-This repository contains all four packages as a verified `1.0.0` release
-candidate. npm publication is deliberately deferred: until the controlled
-release sequence in the [release runbook](specs/09_RELEASE_RUNBOOK.md) has an
-explicit irreversible approval and succeeds, `@libreconsent/*@1.0.0` is not
-available from the registry. The repository root remains private and is never
-published.
+Consent-mode-first, self-hosted consent infrastructure. A GDPR/ePrivacy and
+US-state consent manager that blocks tags before a decision, speaks Google
+Consent Mode v2 as a first-class concern, ships zero third-party runtime
+dependencies, and contacts no vendor, CDN, or telemetry endpoint. The only
+request it can make is an optional decision receipt, to an endpoint you
+configure and host yourself.
 
 | Package | Purpose |
 |---|---|
@@ -18,20 +19,34 @@ published.
 | [`@libreconsent/bridge`](packages/bridge/README.md) | UI-less, storage-free, read-only observation of an external TCF CMP |
 | [`@libreconsent/worker-log`](packages/worker-log/README.md) | Optional Cloudflare Worker and D1 receipt trail |
 
+## Why
+
+Most "free" CMPs are freemium products shaped by certification economics.
+Publishers serving Google ads to visitors in the EEA, UK, or Switzerland must
+use a Google-certified CMP integrated with IAB TCF. Registration in that
+framework costs roughly €1,350–1,500 a year with annual recertification, and
+the TC string embeds a CMP ID validated against the paid registry. IAB holds
+the registered CMP-ID owner responsible for the behavior of every deployment,
+which is structurally incompatible with software anyone may fork and
+self-host. That is why no open-source CMP holds certification, and why the
+open-source options tend to be lead generators for a hosted tier.
+
+libreconsent does not try to be that certified banner and never will. It
+covers everything else: prior blocking, granular categories, an
+equal-prominence reject action, withdrawal, expiry, Google Consent Mode v2
+signaling for GA4/Ads/GTM, and the US opt-out model with Global Privacy
+Control. On the domains that genuinely require certified TCF consent, Google
+already ships a free certified banner of its own (Privacy & messaging);
+`@libreconsent/bridge` reads it read-only so one application API covers a
+mixed portfolio. The reasoning is recorded in
+[specs/NO_TCF.md](specs/NO_TCF.md).
+
 ## Install
 
-After registry publication:
+All four packages are published on npm at `1.0.0` under MIT.
 
 ```sh
 pnpm add @libreconsent/core @libreconsent/ui
-```
-
-For the current release candidate, clone this repository and run:
-
-```sh
-pnpm install
-pnpm build
-pnpm examples:serve
 ```
 
 ### ESM
@@ -94,6 +109,17 @@ imports are unsupported and blocked by package export maps. The named IIFE and
 head-snippet files above are stable self-hosted artifacts for the v1 line, but
 they are copied as files rather than imported as package subpaths.
 
+### From source
+
+Building from a checkout is for contributors and for anyone reproducing the
+published artifacts:
+
+```sh
+pnpm install
+pnpm build
+pnpm examples:serve
+```
+
 ## Four tested quickstarts
 
 - [Basic Consent Mode](examples/quickstarts/basic-consent-mode/index.html):
@@ -109,18 +135,26 @@ they are copied as files rather than imported as package subpaths.
 
 The quickstarts use local stand-ins for vendor loaders so automated tests make
 no third-party requests. Replace only the clearly marked local loader URLs in
-your deployment. To copy one, keep its complete `quickstarts/<name>/` directory
-and copy the shared `examples/vendor/libreconsent/` directory beside it. The
-pages load those exact browser files through relative URLs, so an ordinary
-static server needs no aliases, rewrites, repository preprocessing, or
-Cloudflare-specific routing. The three Consent Mode pages already contain the
-complete inline head bootstrap. The US example intentionally keeps
-`/api/region` as a deployment endpoint; on a static-only host its 404 resolves
-to `null` and the example fails closed. When a browser artifact changes, run
-`pnpm build` followed by `pnpm quickstarts:sync-assets` and commit the updated
-mirrors and inline head copies; the release audit fails if either is stale. The [local demo](examples/demo-site/index.html)
-demonstrates accept, reject, customize, gated local content, withdrawal,
-re-entry, and the current state without contacting any vendor.
+your deployment.
+
+To copy one, keep its complete `quickstarts/<name>/` directory and copy the
+shared `examples/vendor/libreconsent/` directory beside it. The pages load
+those exact browser files through relative URLs, so an ordinary static server
+needs no aliases, rewrites, repository preprocessing, or Cloudflare-specific
+routing.
+
+The three Consent Mode pages already contain the complete inline head
+bootstrap. The US example intentionally keeps `/api/region` as a deployment
+endpoint; on a static-only host its 404 resolves to `null` and the example
+fails closed.
+
+The [local demo](examples/demo-site/index.html) demonstrates accept, reject,
+customize, gated local content, withdrawal, re-entry, and the current state
+without contacting any vendor.
+
+[examples/README.md](examples/README.md) describes every directory under
+`examples/`, including which ones are Playwright fixtures rather than starting
+points to copy.
 
 ## Google implementation sources
 
@@ -167,31 +201,27 @@ Safari 15.4 and newer, with no legacy bundle. Chromium is the only automated
 browser smoke; Firefox and Safari compatibility are checked when the project
 has real adoption pressure.
 
-## Release verification
+## Specification
 
-```sh
-pnpm check
-git diff --check
-```
+The requirement-level specification, its traceability matrix, and the accepted
+limitations are tracked in
+[specs/03_MASTER_PRODUCTION_SPEC.md](specs/03_MASTER_PRODUCTION_SPEC.md),
+[specs/TRACEABILITY.md](specs/TRACEABILITY.md), and
+[specs/07_KNOWN_GAPS.md](specs/07_KNOWN_GAPS.md). The global guardrails
+G-1..G-6 that every change is held to live in the production specification.
 
-`pnpm check` includes traceability, types, lint, unit/runtime tests, builds,
-size ceilings, strict tarball audits, temporary-consumer ESM/TypeScript/IIFE
-tests, parsed `npm publish --dry-run --access public --json` results, and
-Chromium E2E/a11y. It does not publish, tag, deploy, or contact real vendors.
+## Contributing
 
-After the Phase 3D PR is merged, release preparation must run only on a clean,
-detached approved SHA and write to an empty absolute directory outside this
-repository:
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the local gates, the coding
+conventions, and the chores that are easy to forget — notably refreshing the
+mirrored quickstart assets after a browser artifact changes. Releases follow
+[RELEASING.md](RELEASING.md).
 
-```sh
-pnpm release:prepare -- --expected-sha <40-character-sha> --output <absolute-external-directory>
-```
+## Security
 
-It preserves four tarballs and writes `release-manifest.json` plus
-`RELEASE_APPROVAL.md`; it still does not tag or publish. The later manual npm
-owner, publication, registry-consumer, and GitHub Release steps are deliberately
-kept in [the controlled release runbook](specs/09_RELEASE_RUNBOOK.md).
+Report a suspected vulnerability privately as described in
+[SECURITY.md](SECURITY.md) rather than in a public issue.
 
-See [the production specification](specs/03_MASTER_PRODUCTION_SPEC.md),
-[traceability](specs/TRACEABILITY.md), and [known gaps](specs/07_KNOWN_GAPS.md)
-for the complete release contract.
+## License
+
+MIT. See [LICENSE](LICENSE).

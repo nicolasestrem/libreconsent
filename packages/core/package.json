@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Core state and consent infrastructure for libreconsent.",
   "license": "MIT",
+  "author": "Nicolas Estrem",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nicolasestrem/libreconsent.git",
@@ -14,9 +15,12 @@
   },
   "keywords": [
     "consent",
+    "consent-management",
     "consent-mode",
+    "cookie-consent",
     "privacy",
     "gdpr",
+    "ccpa",
     "gpc"
   ],
   "publishConfig": {

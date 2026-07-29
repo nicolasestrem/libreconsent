@@ -9,8 +9,8 @@ const range = (prefix, start, end) =>
   );
 
 /**
- * Requirement ownership follows the per-phase prompts in
- * specs/04_CLAUDE_CODE_BUILD_PROMPT.md.
+ * Requirement ownership follows the phase plan in
+ * specs/03_MASTER_PRODUCTION_SPEC.md.
  */
 export const PHASE_REQUIREMENTS = [
   range("TOOL", 1, 5),
@@ -35,20 +35,85 @@ const ROOT_FILE_PATTERN =
 const VITEST_TEST_FILE_PATTERN =
   /^(?:packages\/[^/]+\/src\/.+\.test\.ts|scripts\/.+\.test\.mjs)$/;
 const PLAYWRIGHT_TEST_FILE_PATTERN = /^tests\/.+\.(?:e2e|a11y)\.spec\.ts$/;
-const SUPPORTED_CI_CHECKS = new Set([
-  "Workflow supply-chain guardrails",
-  "Traceability",
-  "Typecheck",
-  "Lint",
-  "Unit tests",
-  "Build",
-  "Size budgets",
-  "Release audit",
-  "Publication dry-runs",
-  "E2E tests",
-  "Accessibility tests",
-  "All gates",
-]);
+const CI_WORKFLOW_REFERENCE = ".github/workflows/ci.yml";
+
+function unquote(value) {
+  const quoted = value.match(/^(['"])([\s\S]*)\1$/);
+  return quoted?.[2] ?? value;
+}
+
+/**
+ * Read the gate scripts chained by the workspace `check` script.
+ *
+ * @param {string} rootDirectory Directory containing the root `package.json`.
+ * @returns {Set<string>} Script names such as `lint` and `release:check`.
+ */
+function gateScriptNames(rootDirectory) {
+  const manifestPath = path.resolve(rootDirectory, "package.json");
+  if (!existsSync(manifestPath)) {
+    return new Set();
+  }
+
+  const check = JSON.parse(readFileSync(manifestPath, "utf8")).scripts?.check;
+  return new Set(
+    [...String(check ?? "").matchAll(/pnpm\s+([\w:-]+)/g)].map(
+      (match) => match[1],
+    ),
+  );
+}
+
+/**
+ * Collect the CI names a traceability row may cite as verification evidence.
+ *
+ * The names are derived from the workflow rather than hard-coded, so a row can
+ * never cite a check that no longer runs and a renamed step fails the gate
+ * instead of passing unverified. Only steps that run one of the workspace gate
+ * scripts qualify: setup and teardown steps such as `Check out repository`,
+ * `Install dependencies` and `Upload Playwright artifacts` prove nothing about
+ * a requirement, so accepting them would let an implemented requirement claim
+ * verification without a test.
+ *
+ * @param {string} rootDirectory Directory containing `.github/workflows`.
+ * @returns {Set<string>} The job display name and every verifying step name.
+ */
+export function ciWorkflowCheckNames(rootDirectory) {
+  const workflowPath = path.resolve(rootDirectory, CI_WORKFLOW_REFERENCE);
+  if (!existsSync(workflowPath) || !statSync(workflowPath).isFile()) {
+    return new Set();
+  }
+
+  const gateScripts = gateScriptNames(rootDirectory);
+  const names = new Set();
+  let pendingStep;
+
+  for (const line of readFileSync(workflowPath, "utf8").split(/\r?\n/)) {
+    const step = line.match(/^\s*-\s+name:\s*(.+?)\s*$/);
+    if (step?.[1] !== undefined) {
+      pendingStep = unquote(step[1]);
+      continue;
+    }
+
+    // A step qualifies only once its own `run:` names a gate script.
+    const run = line.match(/^\s*run:\s*(.+?)\s*$/);
+    if (run?.[1] !== undefined) {
+      if (pendingStep !== undefined) {
+        const invoked = unquote(run[1]).match(/^pnpm\s+([\w:-]+)/);
+        if (invoked?.[1] !== undefined && gateScripts.has(invoked[1])) {
+          names.add(pendingStep);
+        }
+        pendingStep = undefined;
+      }
+      continue;
+    }
+
+    const job = line.match(/^ {4}name:\s*(.+?)\s*$/);
+    if (job?.[1] !== undefined) {
+      names.add(unquote(job[1]));
+    }
+  }
+
+  return names;
+}
 
 function splitTableRow(line) {
   const trimmed = line.trim();
@@ -122,29 +187,40 @@ function ciCheckNames(cell) {
   );
 }
 
-function validateVerificationReferences(cell, lineNumber, errors) {
+function validateVerificationReferences(
+  cell,
+  lineNumber,
+  supportedCiChecks,
+  errors,
+) {
   const references = fileReferences(cell);
   const unsupportedReferences = references.filter(
     (reference) =>
-      !isRunnableTestFile(reference) &&
-      reference !== ".github/workflows/ci.yml",
+      !isRunnableTestFile(reference) && reference !== CI_WORKFLOW_REFERENCE,
   );
-  const supportedCiChecks = ciCheckNames(cell).filter((checkName) =>
-    SUPPORTED_CI_CHECKS.has(checkName),
+  const citedCiChecks = ciCheckNames(cell);
+  const unknownCiChecks = citedCiChecks.filter(
+    (checkName) => !supportedCiChecks.has(checkName),
   );
 
   if (unsupportedReferences.length > 0) {
     errors.push(
-      `Line ${lineNumber}: test file(s) contains evidence that is not a configured Vitest/Playwright test file: ${unsupportedReferences.join(", ")}.`,
+      `Line ${lineNumber}: verification evidence cites files that are not Vitest or Playwright test files: ${unsupportedReferences.join(", ")}.`,
     );
   }
 
   if (
-    references.includes(".github/workflows/ci.yml") &&
-    supportedCiChecks.length === 0
+    references.includes(CI_WORKFLOW_REFERENCE) &&
+    citedCiChecks.length === 0
   ) {
     errors.push(
-      `Line ${lineNumber}: .github/workflows/ci.yml verification evidence must name a supported CI check.`,
+      `Line ${lineNumber}: ${CI_WORKFLOW_REFERENCE} verification evidence must name at least one CI job or step.`,
+    );
+  }
+
+  if (unknownCiChecks.length > 0) {
+    errors.push(
+      `Line ${lineNumber}: verification evidence cites CI checks that ${CI_WORKFLOW_REFERENCE} does not declare: ${unknownCiChecks.join(", ")}.`,
     );
   }
 }
@@ -158,6 +234,7 @@ function validateVerificationReferences(cell, lineNumber, errors) {
  */
 export function validateTraceability(markdown, rootDirectory) {
   const errors = [];
+  const supportedCiChecks = ciWorkflowCheckNames(rootDirectory);
   const phaseMatches = [
     ...markdown.matchAll(/^Latest completed phase:\s*(\d+)\s*$/gim),
   ];
@@ -259,7 +336,12 @@ export function validateTraceability(markdown, rootDirectory) {
           rootDirectory,
           errors,
         );
-        validateVerificationReferences(verification, lineNumber, errors);
+        validateVerificationReferences(
+          verification,
+          lineNumber,
+          supportedCiChecks,
+          errors,
+        );
       }
 
       if (status === "") {

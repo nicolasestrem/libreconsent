@@ -8,21 +8,12 @@ runtime dependencies, and loads no external asset or font. It only reads core
 state and calls the core's public decision methods — nothing is written to
 storage before the visitor decides.
 
-## v1 release contract
+```sh
+pnpm add @libreconsent/core @libreconsent/ui
+```
 
-`1.0.0` is a release candidate and is not yet available from npm. After
-publication, install with
-`pnpm add @libreconsent/core @libreconsent/ui`. Import ESM and types only from
-the two package roots. Core `^1.0.0` is a required peer dependency of the UI,
-so package managers can enforce that compatible pair. For a self-hosted browser
-build, copy `dist/index.global.js` and use the `LibreConsentUi` global after
-`LibreConsentCore`.
-
-The package is MIT-licensed, has zero third-party runtime dependencies,
-external assets, telemetry, or network requests. It supports the last two
-evergreen Chrome/Edge/Firefox releases and Safari 15.4+ as a target; only
-Chromium is automated until real adoption warrants cross-browser coverage.
-Default EN/FR strings are starting points, not legal advice.
+Part of the [libreconsent](https://github.com/nicolasestrem/libreconsent)
+monorepo.
 
 ## Quickstart
 
@@ -159,10 +150,11 @@ Do Not Sell link are the entry points.
 ## Accessibility
 
 WCAG 2.1 AA is a release gate: axe-core runs in CI against all three surfaces in
-light and dark themes, and `specs/A11Y_CHECKLIST.md` covers the manual passes.
-Each is a dialog with labelled controls; preferences and the opt-out dialog trap
-focus, close on Escape and restore focus to whatever opened it. Transitions are
-suppressed under `prefers-reduced-motion`.
+light and dark themes, and the
+[accessibility checklist](https://github.com/nicolasestrem/libreconsent/blob/v1.0.0/specs/A11Y_CHECKLIST.md)
+covers the manual passes. Each is a dialog with labelled controls; preferences
+and the opt-out dialog trap focus, close on Escape and restore focus to
+whatever opened it. Transitions are suppressed under `prefers-reduced-motion`.
 
 Layout uses logical properties throughout, so a right-to-left document mirrors
 structurally without a second stylesheet.
@@ -192,6 +184,21 @@ container you have styled, layout stability becomes your responsibility.
   the configured revision increased.
 - Write to storage. Only the core persists, and only after a decision.
 - Fetch anything. No fonts, no icons, no telemetry.
+
+## Guarantees and boundaries
+
+- MIT-licensed, with no third-party runtime dependencies, external assets,
+  telemetry, or network requests.
+- Core `^1.0.0` is a required peer dependency, so package managers enforce the
+  compatible pair.
+- ESM and TypeScript consumers import only from the two package roots. Deep
+  imports are unsupported and blocked by the export map. Self-hosted browsers
+  copy `dist/index.global.js` and use the `LibreConsentUi` global after
+  `LibreConsentCore`.
+- Browser support targets the last two evergreen Chrome/Edge/Firefox releases
+  and Safari 15.4+. Only Chromium is automated until real adoption warrants
+  cross-browser coverage.
+- Default EN/FR strings are engineering starting points, not legal advice.
 
 ## Build and test
 

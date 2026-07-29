@@ -1,10 +1,10 @@
 # SECURITY — manual security and privacy checklist
 
-Required by **NFR-3** and **NFR-4** (03 §10) and guardrails G-1, G-2, G-6 (04 §2).
-`scripts/guardrails.test.mjs` enforces the mechanical half on every CI run; this
-checklist covers what a static scan cannot judge. Run it whenever a shipped
-package changes materially, and record the date and result in
-`specs/05_BUILD_REVIEW.md`.
+Required by **NFR-3** and **NFR-4** (03 §10) and guardrails G-1, G-2, G-6
+(03 §13). `scripts/guardrails.test.mjs` enforces the mechanical half on every CI
+run; this checklist covers what a static scan cannot judge. Run it whenever a
+shipped package changes materially, and record the date and result in the pull
+request description.
 
 Automated coverage already enforced in CI (gate "Unit tests" for the scan, "Size
 budgets" for NFR-1, "E2E tests" for the CSP and network-silence fixtures):

@@ -10,6 +10,6 @@ Use Google Privacy & messaging for AdSense, Ad Manager, or AdMob sites that requ
 
 ## Bridge exception
 
-`@libreconsent/bridge` may eventually read an external CMP's `__tcfapi` to expose a consistent, read-only application API. It will never provide that API, write external CMP storage, emit TC strings, or send consent signals.
+`@libreconsent/bridge` reads an external CMP's `__tcfapi` to expose a consistent, read-only application API. It never provides that API, writes external CMP storage, emits TC strings, or sends consent signals.
 
-See [Project Context §1–4](01_PROJECT_CONTEXT.md) and guardrail G-1 in [the execution protocol](04_CLAUDE_CODE_BUILD_PROMPT.md).
+See [Project Context §1–4](01_PROJECT_CONTEXT.md) and guardrail G-1 in [the master production spec §13](03_MASTER_PRODUCTION_SPEC.md).

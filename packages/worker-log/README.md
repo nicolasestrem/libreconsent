@@ -1,29 +1,18 @@
 # @libreconsent/worker-log
 
 Optional Cloudflare Worker and D1 audit trail for explicit libreconsent
-decisions. It has no shipped runtime npm dependencies, is not required by core,
-and stores no IP address, user agent, request header, region, fingerprint, or
-service-level choice.
-
-## v1 release contract
-
-`1.0.0` is a release candidate and is not yet published. After publication,
-install with:
+decisions. It stores no IP address, user agent, request header, region,
+fingerprint, or service-level choice.
 
 ```sh
 pnpm add @libreconsent/worker-log
 pnpm add -D wrangler
 ```
 
-The package-root ESM/default export and public TypeScript declarations are the
-only module API; deep imports are unsupported.
-
-The packaged example deploys the built `dist/index.js`, and `prepack` rebuilds
-that artifact. The tarball includes only the ESM bundle, declarations,
-migration, example Wrangler configuration, README, LICENSE, and package
-manifest. It includes no account-specific Wrangler file, test, spec, or secret.
-This is a Cloudflare Worker module rather than browser code, so it intentionally
-ships no IIFE global and has no browser-support contract.
+Part of the [libreconsent](https://github.com/nicolasestrem/libreconsent)
+monorepo. It records the receipts that
+[`@libreconsent/core`](https://github.com/nicolasestrem/libreconsent/tree/v1.0.0/packages/core#readme)
+sends when `receiptEndpoint` is configured.
 
 ## What it accepts
 
@@ -164,6 +153,20 @@ the configured remote D1 database. The migration command targets that binding,
 so custom test database names work. It invokes Wrangler's scheduled-handler
 test route with a future `time` and proves the deployed retrieval endpoint is
 empty. There is no test-only purge HTTP route.
+
+## Guarantees and boundaries
+
+- MIT-licensed, with no shipped runtime npm dependencies, and not required by
+  core. Consent management works exactly the same without it.
+- The package-root ESM/default export and public TypeScript declarations are
+  the only module API; deep imports are unsupported.
+- The packaged example deploys the built `dist/index.js`, and `prepack`
+  rebuilds that artifact. The tarball includes only the ESM bundle,
+  declarations, migration, example Wrangler configuration, README, LICENSE, and
+  package manifest. It includes no account-specific Wrangler file, test, spec,
+  or secret.
+- This is a Cloudflare Worker module rather than browser code, so it
+  intentionally ships no IIFE global and has no browser-support contract.
 
 ## Security, privacy, and support
 

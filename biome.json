@@ -12,7 +12,8 @@
       "!test-results",
       "!pnpm-lock.yaml",
       "!tests/vendor",
-      "!.remember"
+      "!.remember",
+      "!.private"
     ]
   },
   "formatter": {

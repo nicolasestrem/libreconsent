@@ -1,0 +1,135 @@
+name: Bug report
+description: Report incorrect behavior in a libreconsent package.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities here. Use
+        [the security policy](https://github.com/nicolasestrem/libreconsent/blob/main/SECURITY.md)
+        instead.
+
+  - type: checkboxes
+    id: known-gaps
+    attributes:
+      label: Known limitations
+      description: >-
+        Several behaviors that look like defects are accepted limitations
+        with recorded reasoning — best-effort dynamic script interception
+        (KG-1), withdrawal not un-executing scripts that already ran (KG-3),
+        and the re-prompt caused by storing nothing before a decision (KG-11).
+      options:
+        - label: >-
+            I have read specs/07_KNOWN_GAPS.md and this is not one of the
+            documented accepted limitations.
+          required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Affected package
+      description: Select every package involved.
+      multiple: true
+      options:
+        - "@libreconsent/core"
+        - "@libreconsent/ui"
+        - "@libreconsent/bridge"
+        - "@libreconsent/worker-log"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >-
+        Version of each affected package, or the commit SHA if you built from
+        source.
+      placeholder: "@libreconsent/core 1.0.0, @libreconsent/ui 1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: integration
+    attributes:
+      label: Integration mode
+      options:
+        - Full (core plus UI)
+        - Core only
+        - Bridge (external TCF CMP observation)
+        - Worker-log (receipt endpoint)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: distribution
+    attributes:
+      label: How the code is loaded
+      options:
+        - npm package, ESM import
+        - Self-hosted IIFE browser artifact
+        - Built from a checkout of this repository
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: Leave blank if the problem is not browser-specific.
+      placeholder: "Chrome 141 on Windows 11"
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >-
+        The most useful report is a modified quickstart from
+        examples/quickstarts/. Link to a repository or gist, or paste the
+        minimal configuration and markup needed to see the problem, then list
+        the steps.
+      placeholder: |
+        1. Start from examples/quickstarts/basic-consent-mode with this change: ...
+        2. Load the page and click Reject.
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: >-
+        Include console errors, the relevant network requests, and the stored
+        consent cookie value if they are part of the problem.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: gates
+    attributes:
+      label: Did you run `pnpm check` against a checkout?
+      description: >-
+        Not required to file a report. If you did run it, say whether the
+        problem shows up as a failing gate.
+      options:
+        - "No, I did not build from source"
+        - "Yes, and `pnpm check` passes despite the bug"
+        - "Yes, and a gate fails"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: >-
+        Relevant configuration, CSP, region resolver behavior, or third-party
+        tags on the page.

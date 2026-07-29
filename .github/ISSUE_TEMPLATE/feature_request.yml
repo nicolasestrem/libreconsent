@@ -1,0 +1,94 @@
+name: Feature request
+description: Propose a capability or a change to existing behavior.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem before the solution. The constraints that shape
+        this library — zero third-party runtime dependencies, hard size
+        budgets, nothing stored before a decision — mean the obvious
+        implementation is often not the one that can ship.
+
+  - type: checkboxes
+    id: no-tcf
+    attributes:
+      label: Scope
+      description: >-
+        libreconsent never emits a TC string or a GPP string, never provides
+        `__tcfapi`, and never claims a CMP ID. This is permanent and is
+        explained in specs/NO_TCF.md; requests to change it are closed without
+        further discussion. Read-only observation of an external CMP in
+        @libreconsent/bridge is the one exception and already exists.
+      options:
+        - label: >-
+            This request does not ask libreconsent to emit TCF or GPP strings,
+            provide a CMP API, or obtain CMP certification.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: >-
+        What are you trying to achieve, and what stops you today? Describe the
+        deployment: the tags you need to gate, the jurisdictions involved, and
+        what currently goes wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: >-
+        What are you doing instead, and why is it inadequate? Say so plainly
+        if there is no workaround.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: >-
+        The behavior or API you have in mind. Sketch the configuration or the
+        call site if that makes it concrete.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Which package would this affect?
+      multiple: true
+      options:
+        - "@libreconsent/core"
+        - "@libreconsent/ui"
+        - "@libreconsent/bridge"
+        - "@libreconsent/worker-log"
+        - "Examples, quickstarts, or documentation"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: >-
+        If you have thought about it: would this need a third-party runtime
+        dependency, add meaningfully to the gzipped bundle, require storage
+        before a user decision, or change behavior that Google documents?
+        Those are the questions that decide whether a proposal is viable.
+
+  - type: dropdown
+    id: contribution
+    attributes:
+      label: Would you be willing to implement this?
+      options:
+        - "Yes, with guidance on the approach"
+        - "Yes, I have a working branch already"
+        - "No"
+    validations:
+      required: true

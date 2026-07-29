@@ -10,11 +10,11 @@
 2. **Compatibility with Google services**, scoped to: Google Analytics 4, Google Ads tags, and GTM via **Google Consent Mode v2**.
 3. Support **multi-domain deployments where AdSense is served on some domains** and audiences vary per domain: some domains have EEA/UK/CH visitors, others do not.
 4. Regulatory baseline is **EEA-wide GDPR/ePrivacy**; member-state-specific guidance (e.g., CNIL) is treated as good practice rather than a requirement (see 01_PROJECT_CONTEXT §3).
-5. Development mode: **specs-first**. The specification pack is authored before implementation; the build is executed phase-by-phase per 04_CLAUDE_CODE_BUILD_PROMPT.md.
+5. Development mode: **specs-first**. The specification is authored before implementation, and the build is executed one phase at a time against the definitions of done in 03_MASTER_PRODUCTION_SPEC.md §12.
 
 ## Constraints
 
-- **C-1:** €0 recurring cost across the entire portfolio. This excludes IAB TCF registration (~€1,350–1,500/yr) and therefore excludes building a certified CMP.
+- **C-1:** €0 recurring cost for an operator running libreconsent, on any number of sites. This excludes IAB TCF registration (~€1,350–1,500/yr) and therefore excludes building a certified CMP.
 - **C-2:** Open source, freely forkable. This structurally excludes TCF certification (CMP-ID liability model).
 - **C-3:** Must not endanger AdSense revenue on EEA/UK/CH-audience domains → those domains use Google's own free certified CMP ("Privacy & messaging"); libreconsent takes a bridge role there.
 - **C-4:** One integration API across all domains regardless of which banner runs (bridge mode).
@@ -39,11 +39,11 @@ No TCF (permanent, by design). No paid/hosted service. libreconsent is never the
 | File | Purpose |
 |---|---|
 | 01_PROJECT_CONTEXT.md | Regulatory & Google landscape, per-domain strategy, prior art |
-| 02_STRATEGIC_PLAN.md | Scope, roadmap, phases, risks |
-| 03_MASTER_PRODUCTION_SPEC.md | Full buildable technical specification (requirement IDs) |
-| 04_CLAUDE_CODE_BUILD_PROMPT.md | Execution protocol, CLAUDE.md, per-phase prompts |
-| 05_BUILD_REVIEW.md | Review checklist/template, filled after each phase |
-| 06_PATCH_PLAN.md | Patch tracking arising from reviews |
+| 03_MASTER_PRODUCTION_SPEC.md | Full buildable technical specification (requirement IDs, global guardrails) |
 | 07_KNOWN_GAPS.md | Accepted limitations & open technical risks |
-| 08_CHANGELOG_AI.md | AI-maintained change log for the spec pack |
+| A11Y_CHECKLIST.md | Manual accessibility checks that automated scanning cannot judge |
 | DECISION_LOG.md | Numbered decisions with rationale and status |
+| NO_TCF.md | Why TCF is permanently out of scope, and what the bridge does instead |
+| SECURITY_CHECKLIST.md | Manual security and privacy checks |
+| TRACEABILITY.md | Requirement ID → implementation → test mapping, enforced in CI |
+| US_NOTES.md | US state privacy research record behind the US module |

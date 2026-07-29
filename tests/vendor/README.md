@@ -25,6 +25,6 @@ curl -sS -L -o tests/vendor/gtag.js "https://www.googletagmanager.com/gtag/js?id
 sha256sum tests/vendor/gtag.js
 ```
 
-Update the table above (and note it in `specs/08_CHANGELOG_AI.md`) whenever the
-file is refreshed, so a behavior change in the flagship test is traceable to a
-loader change rather than to libreconsent.
+Update the table above whenever the file is refreshed, and record the refresh
+in `CHANGELOG.md` or in the pull request description, so a behavior change in
+the flagship test is traceable to a loader change rather than to libreconsent.

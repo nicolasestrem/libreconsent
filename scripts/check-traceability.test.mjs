@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import {
   checkTraceabilityFile,
+  ciWorkflowCheckNames,
   validateTraceability,
 } from "./check-traceability.mjs";
 
@@ -14,6 +15,27 @@ const fixturesDirectory = path.join(
   "fixtures",
   "traceability",
 );
+
+/**
+ * Build a single-phase table whose rows all carry the same verification cell,
+ * resolved against the real repository so CI evidence is checked against the
+ * workflow this repository actually runs. The first row is always line 7.
+ */
+function repositoryTable(verification) {
+  return [
+    "# Repository-rooted traceability fixture",
+    "",
+    "Latest completed phase: 0",
+    "",
+    "| Requirement ID | Implementation file(s) | Test file(s) | Status |",
+    "|---|---|---|---|",
+    ...["TOOL-1", "TOOL-2", "TOOL-3", "TOOL-4", "TOOL-5"].map(
+      (requirementId) =>
+        `| ${requirementId} | \`package.json\` | ${verification} | Passing |`,
+    ),
+    "",
+  ].join("\n");
+}
 
 describe("phase-aware traceability", () => {
   test("accepts a complete valid fixture", () => {
@@ -45,11 +67,11 @@ describe("phase-aware traceability", () => {
     );
 
     expect(result.errors).toContain(
-      "Line 7: test file(s) contains evidence that is not a configured Vitest/Playwright test file: README.md.",
+      "Line 7: verification evidence cites files that are not Vitest or Playwright test files: README.md.",
     );
   });
 
-  test("rejects CI evidence that does not name a supported CI check", () => {
+  test("rejects CI evidence that names no CI check at all", () => {
     const fixtureDirectory = path.join(fixturesDirectory, "valid");
     const validMarkdown = readFileSync(
       path.join(fixtureDirectory, "TRACEABILITY.md"),
@@ -58,14 +80,61 @@ describe("phase-aware traceability", () => {
     const result = validateTraceability(
       validMarkdown.replace(
         "`packages/core/src/verification.test.ts`",
-        "`.github/workflows/ci.yml` — `Install dependencies`",
+        "`.github/workflows/ci.yml`",
       ),
       fixtureDirectory,
     );
 
     expect(result.errors).toContain(
-      "Line 7: .github/workflows/ci.yml verification evidence must name a supported CI check.",
+      "Line 7: .github/workflows/ci.yml verification evidence must name at least one CI job or step.",
     );
+  });
+
+  test("rejects a CI check the workflow does not declare", () => {
+    const result = validateTraceability(
+      repositoryTable("`.github/workflows/ci.yml` — `Nonexistent gate`"),
+      repositoryRoot,
+    );
+
+    expect(result.errors).toContain(
+      "Line 7: verification evidence cites CI checks that .github/workflows/ci.yml does not declare: Nonexistent gate.",
+    );
+  });
+
+  test("accepts the verifying steps the CI workflow declares", () => {
+    const declared = [...ciWorkflowCheckNames(repositoryRoot)];
+
+    expect(declared).toContain("All gates");
+    expect(declared).toContain("Static quickstart portability");
+    expect(declared).not.toContain("Publication dry-runs");
+
+    // Setup and teardown steps prove nothing about a requirement, so citing
+    // one must never satisfy the test-and-traceability invariant.
+    for (const setupStep of [
+      "Check out repository",
+      "Set up pnpm",
+      "Set up Node.js",
+      "Install dependencies",
+      "Install Playwright browsers",
+      "Upload Playwright artifacts",
+    ]) {
+      expect(declared).not.toContain(setupStep);
+      expect(
+        validateTraceability(
+          repositoryTable(`\`.github/workflows/ci.yml\` — \`${setupStep}\``),
+          repositoryRoot,
+        ).errors,
+      ).not.toEqual([]);
+    }
+
+    for (const checkName of declared) {
+      expect(
+        validateTraceability(
+          repositoryTable(`\`.github/workflows/ci.yml\` — \`${checkName}\``),
+          repositoryRoot,
+        ).errors,
+      ).toEqual([]);
+    }
   });
 
   test("reports duplicate, empty, malformed, failing, missing, and nonexistent entries", () => {
@@ -145,7 +214,7 @@ describe("phase-aware traceability", () => {
     );
 
     expect(result.errors).toEqual([]);
-    expect(result.latestCompletedPhase).toBe(8);
-    expect(result.requiredCount).toBe(60);
+    expect(result.latestCompletedPhase).toBe(9);
+    expect(result.requiredCount).toBe(62);
   });
 });

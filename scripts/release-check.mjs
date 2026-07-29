@@ -527,7 +527,9 @@ for (const specifier of [
     headCommand[1] !== "default" ||
     headCommand[2]?.ad_user_data !== "denied"
   ) {
-    fail("core: packaged head snippet did not synchronously queue v2 defaults");
+    fail(
+      "core: packaged head snippet did not synchronously queue Google Consent Mode v2 defaults",
+    );
   }
 }
 
