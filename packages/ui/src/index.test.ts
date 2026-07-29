@@ -786,7 +786,100 @@ describe("persistent re-entry (UI-5)", () => {
 
     api.acceptAll();
 
+    // A contract, not an incidental assertion: the consent state travels in
+    // `aria-label`, so it must never reach the DOM as text. Rendering it as a
+    // visually hidden span would break this and double-announce for screen
+    // reader users.
     expect(find(".lc-fab").textContent).toBe("Cookie settings");
+    expect(find(".lc-fab .lc-fab-label").textContent).toBe("Cookie settings");
+  });
+
+  test("names the button with its visible label as the prefix", async () => {
+    const { api } = await render();
+
+    api.acceptAll();
+
+    // WCAG 2.5.3: the accessible name has to start with the visible label so
+    // that "click Cookie settings" works for voice control.
+    expect(find(".lc-fab").getAttribute("aria-label")).toBe(
+      "Cookie settings. Optional cookies allowed",
+    );
+  });
+
+  test("reports an optional grant as extended", async () => {
+    const { api } = await render();
+
+    api.acceptAll();
+
+    expect(find(".lc-fab").getAttribute("data-lc-consent")).toBe("extended");
+  });
+
+  test("reports an all-denied decision as essential", async () => {
+    const { api } = await render();
+
+    api.rejectAll();
+
+    const fab = find(".lc-fab");
+    expect(fab.getAttribute("data-lc-consent")).toBe("essential");
+    expect(fab.getAttribute("aria-label")).toBe(
+      "Cookie settings. Necessary cookies only",
+    );
+  });
+
+  test("retracks the consent state after a later change", async () => {
+    const { api } = await render();
+    api.rejectAll();
+    expect(find(".lc-fab").getAttribute("data-lc-consent")).toBe("essential");
+
+    api.setConsent({ categories: { analytics: true } });
+
+    const fab = find(".lc-fab");
+    expect(fab.getAttribute("data-lc-consent")).toBe("extended");
+    expect(fab.getAttribute("aria-label")).toBe(
+      "Cookie settings. Optional cookies allowed",
+    );
+  });
+
+  test("treats a granted service inside a denied category as extended", async () => {
+    const { api } = await render();
+    api.rejectAll();
+
+    api.setConsent({ services: { ga: true } });
+
+    expect(find(".lc-fab").getAttribute("data-lc-consent")).toBe("extended");
+  });
+
+  test("creates the button once across repeated decisions", async () => {
+    const { api } = await render();
+
+    api.acceptAll();
+    api.rejectAll();
+
+    expect(findAll(".lc-fab")).toHaveLength(1);
+    // The click listener is bound only on creation, so a button that survived
+    // the second decision must still open preferences.
+    find<HTMLButtonElement>(".lc-fab").click();
+    expect(query("[data-lc-preferences]")).not.toBeNull();
+  });
+
+  test("renders the button at the configured position", async () => {
+    const { api } = await render(baseConfig(), {
+      floatingButtonPosition: "bottom-end",
+    });
+
+    api.acceptAll();
+
+    expect(find(".lc-fab").getAttribute("data-lc-position")).toBe("bottom-end");
+  });
+
+  test("defaults the button to the inline-start corner", async () => {
+    const { api } = await render();
+
+    api.acceptAll();
+
+    expect(find(".lc-fab").getAttribute("data-lc-position")).toBe(
+      "bottom-start",
+    );
   });
 
   test("suppresses the floating settings button when it is turned off", async () => {
@@ -980,6 +1073,14 @@ describe("US opt-out dialog (US-1, US-2, US-3)", () => {
     expect(query("[data-lc-banner]")).toBeNull();
     expect(query(".lc-fab")).not.toBeNull();
     expect(stored()).toBeNull();
+  });
+
+  test("reports the implied US grant on the re-entry button (US-3, UI-5)", async () => {
+    await render(usConfig());
+
+    // Under the opt-out model the visitor is consenting until they say
+    // otherwise, so "allowed" is the honest reading of the implied state.
+    expect(find(".lc-fab").getAttribute("data-lc-consent")).toBe("extended");
   });
 
   test("opens from a click inside the configured link (US-2)", async () => {
