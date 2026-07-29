@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `examples/README.md`, which separates the copyable quickstarts and demo from
+  the seven Playwright fixtures and documents how to serve each set.
+- CI, npm, bundle-size, and license badges on the root README, plus License,
+  Contributing, Security, and Specification sections.
+- A table of contents for the 800-line `@libreconsent/core` README.
+- Version comparison links at the bottom of this changelog.
+
+### Changed
+
+- Removed the stale "release candidate / not yet published" opening from the
+  root README and from all four package READMEs. `@libreconsent/*@1.0.0` is on
+  npm, so every install block is now the one that works today. The contract
+  details those sections carried — MIT licensing, zero runtime dependencies, no
+  telemetry or external assets, root-only imports, the browser-support target
+  and its Chromium-only automation, and the "not legal advice" boundary — are
+  preserved under a consistent "Guarantees and boundaries" heading in each
+  package.
+- Reordered the root README to lead with what the project is and why it exists
+  rather than with release bookkeeping. Maintainer-only release-preparation
+  instructions moved out to `RELEASING.md` and `CONTRIBUTING.md`.
+- Made the package READMEs readable on npm, where relative links do not
+  resolve. Cross-references are absolute permalinks, `@libreconsent/ui` links
+  to the accessibility checklist instead of naming an unclickable path, and
+  `@libreconsent/worker-log` links back to the repository and to core.
+- Normalized the bridge README's "Quick start" heading to "Quickstart", so all
+  four packages open the same way.
+
 ## [1.0.0] - 2026-07-29
 
 ### Fixed
@@ -326,3 +355,6 @@ All notable changes to this project are documented in this file.
   now remains side-effect-free, matching the public configuration default.
 - Traceability verification evidence must reference a configured
   unit/E2E/accessibility test or a supported named CI gate.
+
+[Unreleased]: https://github.com/nicolasestrem/libreconsent/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/nicolasestrem/libreconsent/releases/tag/v1.0.0

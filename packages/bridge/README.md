@@ -8,21 +8,14 @@ libreconsent-compatible read and event methods. It never provides or assigns
 `__tcfapi`, returns a TC string, renders a consent surface, writes storage,
 loads a network resource, or emits Google consent signals.
 
-## v1 release contract
+```sh
+pnpm add @libreconsent/bridge
+```
 
-`1.0.0` is prepared but not yet published. After publication, install with
-`pnpm add @libreconsent/bridge`; ESM and TypeScript imports are package-root
-only. Self-hosted browsers may copy `dist/index.global.js` and use
-`LibreConsentBridge`.
+Part of the [libreconsent](https://github.com/nicolasestrem/libreconsent)
+monorepo.
 
-The MIT-licensed bridge has zero runtime dependencies, telemetry, storage, DOM
-output, or network activity of its own. It targets the last two evergreen
-Chrome/Edge/Firefox releases and Safari 15.4+, but only Chromium is automated
-until real adoption warrants cross-browser coverage. It is fixture-tested but
-has not been validated on a real AdSense domain using Google Privacy &
-messaging, so no production interoperability claim is made.
-
-## Quick start
+## Quickstart
 
 ```ts
 import { initBridge } from "@libreconsent/bridge";
@@ -245,6 +238,22 @@ makes libreconsent certified.
 
 Listener registration and removal follow the current official
 [IAB CMP API v2 specification](https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/TCFv2/IAB%20Tech%20Lab%20-%20CMP%20API%20v2.md).
+
+## Guarantees and boundaries
+
+- MIT-licensed, with no third-party runtime dependencies, telemetry, storage,
+  DOM output, or network activity of its own.
+- ESM and TypeScript consumers import only from `@libreconsent/bridge`. Deep
+  imports are unsupported and blocked by the export map. Self-hosted browsers
+  copy `dist/index.global.js` and use `LibreConsentBridge`.
+- Browser support targets the last two evergreen Chrome/Edge/Firefox releases
+  and Safari 15.4+. Only Chromium is automated until real adoption warrants
+  cross-browser coverage.
+- The bridge is fixture-tested but has **not** been validated on a real AdSense
+  domain running Google Privacy & messaging, so no production-interoperability
+  claim is made.
+- Nothing here is legal advice. Whether an external CMP's purpose consents map
+  to your categories the way this package's defaults assume is your call.
 
 ## Build and test
 
