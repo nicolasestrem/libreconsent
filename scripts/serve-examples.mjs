@@ -10,6 +10,18 @@ const headSnippetPath = resolve(
     "packages/core/dist/head-snippet.global.js",
 );
 const headSnippetMarker = "<!-- LIBRECONSENT_HEAD_SNIPPET -->";
+
+/**
+ * Every compiled artifact this server needs is reported the same way, so a
+ * missing build always reads as one instruction rather than four wordings.
+ *
+ * @param {string} artifact Name of the artifact that could not be read.
+ * @returns {string} Plain-text response body.
+ */
+function missingArtifactMessage(artifact) {
+  return `${artifact} is unavailable. Run pnpm build first.`;
+}
+
 // Fixtures load the built IIFE bundles the same way a host page would.
 const artifactRoutes = new Map([
   [
@@ -20,8 +32,7 @@ const artifactRoutes = new Map([
         process.env.LIBRECONSENT_BRIDGE_ARTIFACT_PATH ??
           "packages/bridge/dist/index.global.js",
       ),
-      missingMessage:
-        "Bridge browser artifact is unavailable. Run pnpm build first.",
+      missingMessage: missingArtifactMessage("Bridge browser artifact"),
     },
   ],
   [
@@ -32,8 +43,7 @@ const artifactRoutes = new Map([
         process.env.LIBRECONSENT_CORE_ARTIFACT_PATH ??
           "packages/core/dist/index.global.js",
       ),
-      missingMessage:
-        "Core browser artifact is unavailable. Run pnpm build first.",
+      missingMessage: missingArtifactMessage("Core browser artifact"),
     },
   ],
   [
@@ -44,8 +54,7 @@ const artifactRoutes = new Map([
         process.env.LIBRECONSENT_UI_ARTIFACT_PATH ??
           "packages/ui/dist/index.global.js",
       ),
-      missingMessage:
-        "UI browser artifact is unavailable. Run pnpm build first.",
+      missingMessage: missingArtifactMessage("UI browser artifact"),
     },
   ],
 ]);
@@ -176,7 +185,7 @@ const server = createServer(async (request, response) => {
     sendText(
       response,
       500,
-      "Consent Mode head artifact is unavailable. Run pnpm build first.",
+      missingArtifactMessage("Consent Mode head artifact"),
     );
     return;
   }

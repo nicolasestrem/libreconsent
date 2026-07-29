@@ -9,8 +9,8 @@ const range = (prefix, start, end) =>
   );
 
 /**
- * Requirement ownership follows the per-phase prompts in
- * specs/04_CLAUDE_CODE_BUILD_PROMPT.md.
+ * Requirement ownership follows the phase plan in
+ * specs/03_MASTER_PRODUCTION_SPEC.md.
  */
 export const PHASE_REQUIREMENTS = [
   range("TOOL", 1, 5),
@@ -35,20 +35,45 @@ const ROOT_FILE_PATTERN =
 const VITEST_TEST_FILE_PATTERN =
   /^(?:packages\/[^/]+\/src\/.+\.test\.ts|scripts\/.+\.test\.mjs)$/;
 const PLAYWRIGHT_TEST_FILE_PATTERN = /^tests\/.+\.(?:e2e|a11y)\.spec\.ts$/;
-const SUPPORTED_CI_CHECKS = new Set([
-  "Workflow supply-chain guardrails",
-  "Traceability",
-  "Typecheck",
-  "Lint",
-  "Unit tests",
-  "Build",
-  "Size budgets",
-  "Release audit",
-  "Publication dry-runs",
-  "E2E tests",
-  "Accessibility tests",
-  "All gates",
-]);
+const CI_WORKFLOW_REFERENCE = ".github/workflows/ci.yml";
+
+function unquote(value) {
+  const quoted = value.match(/^(['"])([\s\S]*)\1$/);
+  return quoted?.[2] ?? value;
+}
+
+/**
+ * Collect the job and step names the CI workflow actually declares.
+ *
+ * The names are read from the workflow rather than hard-coded so a row can
+ * never cite a check that no longer runs, and so a renamed step fails the
+ * gate instead of passing it unverified.
+ *
+ * @param {string} rootDirectory Directory containing `.github/workflows`.
+ * @returns {Set<string>} Job display names and step names.
+ */
+export function ciWorkflowCheckNames(rootDirectory) {
+  const workflowPath = path.resolve(rootDirectory, CI_WORKFLOW_REFERENCE);
+  if (!existsSync(workflowPath) || !statSync(workflowPath).isFile()) {
+    return new Set();
+  }
+
+  const names = new Set();
+  for (const line of readFileSync(workflowPath, "utf8").split(/\r?\n/)) {
+    const step = line.match(/^\s*-\s+name:\s*(.+?)\s*$/);
+    if (step?.[1] !== undefined) {
+      names.add(unquote(step[1]));
+      continue;
+    }
+
+    const job = line.match(/^ {4}name:\s*(.+?)\s*$/);
+    if (job?.[1] !== undefined) {
+      names.add(unquote(job[1]));
+    }
+  }
+
+  return names;
+}
 
 function splitTableRow(line) {
   const trimmed = line.trim();
@@ -122,29 +147,40 @@ function ciCheckNames(cell) {
   );
 }
 
-function validateVerificationReferences(cell, lineNumber, errors) {
+function validateVerificationReferences(
+  cell,
+  lineNumber,
+  supportedCiChecks,
+  errors,
+) {
   const references = fileReferences(cell);
   const unsupportedReferences = references.filter(
     (reference) =>
-      !isRunnableTestFile(reference) &&
-      reference !== ".github/workflows/ci.yml",
+      !isRunnableTestFile(reference) && reference !== CI_WORKFLOW_REFERENCE,
   );
-  const supportedCiChecks = ciCheckNames(cell).filter((checkName) =>
-    SUPPORTED_CI_CHECKS.has(checkName),
+  const citedCiChecks = ciCheckNames(cell);
+  const unknownCiChecks = citedCiChecks.filter(
+    (checkName) => !supportedCiChecks.has(checkName),
   );
 
   if (unsupportedReferences.length > 0) {
     errors.push(
-      `Line ${lineNumber}: test file(s) contains evidence that is not a configured Vitest/Playwright test file: ${unsupportedReferences.join(", ")}.`,
+      `Line ${lineNumber}: verification evidence cites files that are not Vitest or Playwright test files: ${unsupportedReferences.join(", ")}.`,
     );
   }
 
   if (
-    references.includes(".github/workflows/ci.yml") &&
-    supportedCiChecks.length === 0
+    references.includes(CI_WORKFLOW_REFERENCE) &&
+    citedCiChecks.length === 0
   ) {
     errors.push(
-      `Line ${lineNumber}: .github/workflows/ci.yml verification evidence must name a supported CI check.`,
+      `Line ${lineNumber}: ${CI_WORKFLOW_REFERENCE} verification evidence must name at least one CI job or step.`,
+    );
+  }
+
+  if (unknownCiChecks.length > 0) {
+    errors.push(
+      `Line ${lineNumber}: verification evidence cites CI checks that ${CI_WORKFLOW_REFERENCE} does not declare: ${unknownCiChecks.join(", ")}.`,
     );
   }
 }
@@ -158,6 +194,7 @@ function validateVerificationReferences(cell, lineNumber, errors) {
  */
 export function validateTraceability(markdown, rootDirectory) {
   const errors = [];
+  const supportedCiChecks = ciWorkflowCheckNames(rootDirectory);
   const phaseMatches = [
     ...markdown.matchAll(/^Latest completed phase:\s*(\d+)\s*$/gim),
   ];
@@ -259,7 +296,12 @@ export function validateTraceability(markdown, rootDirectory) {
           rootDirectory,
           errors,
         );
-        validateVerificationReferences(verification, lineNumber, errors);
+        validateVerificationReferences(
+          verification,
+          lineNumber,
+          supportedCiChecks,
+          errors,
+        );
       }
 
       if (status === "") {

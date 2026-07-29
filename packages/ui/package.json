@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Consent banner and preferences UI for libreconsent.",
   "license": "MIT",
+  "author": "Nicolas Estrem",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nicolasestrem/libreconsent.git",
@@ -15,7 +16,11 @@
   "keywords": [
     "consent",
     "consent-banner",
+    "consent-management",
+    "cookie-consent",
     "privacy",
+    "gdpr",
+    "ccpa",
     "accessibility",
     "shadow-dom"
   ],

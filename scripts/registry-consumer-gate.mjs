@@ -19,6 +19,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { chromium } from "@playwright/test";
+import { failUsage, reportUsageError } from "./cli-usage.mjs";
 import { npmInvocation } from "./npm-invocation.mjs";
 import { quickstartAssetPaths } from "./quickstart-assets.mjs";
 import {
@@ -28,6 +29,7 @@ import {
 } from "./release-config.mjs";
 import {
   candidateFingerprint,
+  failOutput,
   hasGitWorktreeAncestor,
   validateExternalEmptyOutput,
 } from "./release-prepare.mjs";
@@ -47,6 +49,29 @@ const mimeTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".map": "application/json; charset=utf-8",
 };
+
+/**
+ * The single contract every `--approval` value must satisfy, restated in full
+ * before whichever part was not met.
+ */
+const APPROVAL_REQUIREMENT =
+  "--approval must be an absolute path to the release-manifest.json written " +
+  "by release:prepare, stored outside this repository and outside every Git " +
+  "worktree";
+
+const USAGE =
+  "Usage: pnpm registry:consumer-gate --approval <absolute " +
+  "release-manifest.json path> --output <absolute empty directory>";
+
+/**
+ * Reject an `--approval` value.
+ *
+ * @param {string} reason Clause naming what is wrong with the given path.
+ * @returns {never}
+ */
+function failApproval(reason) {
+  failUsage(`${APPROVAL_REQUIREMENT}; ${reason}`);
+}
 
 function fail(message) {
   throw new Error(message);
@@ -115,7 +140,7 @@ function assertFailed(command, args, options, label) {
   } catch {
     return;
   }
-  fail(`${label} unexpectedly succeeded`);
+  fail(`${label} was expected to fail, but it succeeded`);
 }
 
 export function publicRegistryArgs(args) {
@@ -140,13 +165,19 @@ export function parseRegistryConsumerArgs(argv) {
       output = argv[++index];
       continue;
     }
-    fail(`unsupported argument: ${argument}`);
+    failUsage(`unsupported argument: ${argument}`);
   }
-  if (typeof approval !== "string" || !path.isAbsolute(approval)) {
-    fail("--approval must name an absolute release-manifest.json path");
+  if (typeof approval !== "string") {
+    failApproval("no path was given");
   }
-  if (typeof output !== "string" || !path.isAbsolute(output)) {
-    fail("--output must name an absolute empty directory outside repositories");
+  if (!path.isAbsolute(approval)) {
+    failApproval("the given path is relative");
+  }
+  if (typeof output !== "string") {
+    failOutput("no directory was given");
+  }
+  if (!path.isAbsolute(output)) {
+    failOutput("the given path is relative");
   }
   return { approval, output };
 }
@@ -154,7 +185,7 @@ export function parseRegistryConsumerArgs(argv) {
 export function validateRegistryGateOutput(output) {
   const directory = validateExternalEmptyOutput(output);
   if (hasGitWorktreeAncestor(directory)) {
-    fail("--output must be outside every Git worktree");
+    failOutput("the given directory is inside a Git worktree");
   }
   return directory;
 }
@@ -222,7 +253,7 @@ export function validateApprovalManifest(manifest) {
     approvedBrowserArtifactDestinations.slice().sort().join("\n")
   ) {
     fail(
-      "approval manifest browser artifacts differ from the Phase 3A contract",
+      "approval manifest browser artifacts differ from the approved release contract",
     );
   }
   if (
@@ -251,14 +282,14 @@ export function validateApprovalManifest(manifest) {
 
 function readApprovedManifest(approvalPath) {
   if (!existsSync(approvalPath) || !statSync(approvalPath).isFile()) {
-    fail("--approval must name an existing release-manifest.json file");
+    failApproval("the given path is not an existing file");
   }
   const resolvedApproval = realpathSync(approvalPath);
   if (isInside(realpathSync(repositoryRoot), resolvedApproval)) {
-    fail("--approval must be outside the release repository");
+    failApproval("the given file is inside this repository");
   }
   if (hasGitWorktreeAncestor(path.dirname(resolvedApproval))) {
-    fail("--approval must be outside every Git worktree");
+    failApproval("the given file is inside a Git worktree");
   }
   return validateApprovalManifest(readJson(resolvedApproval));
 }
@@ -584,7 +615,7 @@ function installApprovedBrowserArtifacts(consumerRoot, manifest) {
       sha256(installedPath) !== artifact.sha256
     ) {
       fail(
-        `${artifact.destination}: installed browser artifact differs from the approved Phase 3A copy`,
+        `${artifact.destination}: installed browser artifact differs from the approved copy`,
       );
     }
     const destination = path.join(
@@ -702,9 +733,16 @@ async function verifyStaticConsumer(consumerRoot) {
           `${name}: ordinary static consumer did not load a relative vendor artifact`,
         );
       }
-      const obsolete = await page.request.get(`${baseUrl}/dist/core.global.js`);
-      if (obsolete.status() !== 404) {
-        fail(`${name}: obsolete /dist/core.global.js request must return 404`);
+      // The consumer must reach every browser artifact through its relative
+      // ./vendor/libreconsent/ copy, so no root-absolute /dist/ path may serve
+      // one.
+      const rootAbsolute = await page.request.get(
+        `${baseUrl}/dist/core.global.js`,
+      );
+      if (rootAbsolute.status() !== 404) {
+        fail(
+          `${name}: /dist/core.global.js must return 404; browser artifacts are served only from ./vendor/libreconsent/`,
+        );
       }
       if (pageErrors.length > 0) {
         fail(`${name}: browser page errors: ${pageErrors.join("; ")}`);
@@ -778,7 +816,11 @@ export async function runRegistryConsumerGate({ approval, output }) {
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
 if (invokedPath === fileURLToPath(import.meta.url)) {
-  await runRegistryConsumerGate(
-    parseRegistryConsumerArgs(process.argv.slice(2)),
-  );
+  try {
+    await runRegistryConsumerGate(
+      parseRegistryConsumerArgs(process.argv.slice(2)),
+    );
+  } catch (error) {
+    reportUsageError(error, "Registry consumer gate did not start:", USAGE);
+  }
 }

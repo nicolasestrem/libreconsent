@@ -4,9 +4,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
+import { UsageError } from "./cli-usage.mjs";
 import {
   candidateFingerprint,
   knownReleaseLimits,
+  OUTPUT_REQUIREMENT,
   parseReleaseNotes,
   parseReleasePrepareArgs,
   renderApprovalManifest,
@@ -53,6 +55,19 @@ describe("release preparation", () => {
     ).toThrow("--expected-sha must be a full 40-character commit SHA");
   });
 
+  test("reports operator mistakes as usage errors, not as defects", () => {
+    expect(() => parseReleasePrepareArgs(["--unknown"])).toThrow(UsageError);
+    expect(() => parseReleasePrepareArgs(["--unknown"])).toThrow(
+      "unsupported argument: --unknown",
+    );
+    expect(() =>
+      parseReleasePrepareArgs([
+        "--expected-sha",
+        "0123456789abcdef0123456789abcdef01234567",
+      ]),
+    ).toThrow(`${OUTPUT_REQUIREMENT}; no directory was given`);
+  });
+
   test("accepts only an existing empty directory outside the repository", () => {
     const sandbox = temporaryDirectory();
     const repository = path.join(sandbox, "repository");
@@ -62,15 +77,20 @@ describe("release preparation", () => {
 
     expect(validateExternalEmptyOutput(output, repository)).toBe(output);
     expect(() =>
+      validateExternalEmptyOutput("release-output", repository),
+    ).toThrow(`${OUTPUT_REQUIREMENT}; the given path is relative`);
+    expect(() =>
       validateExternalEmptyOutput(path.join(repository, "inside"), repository),
-    ).toThrow("--output directory must already exist and be empty");
+    ).toThrow(`${OUTPUT_REQUIREMENT}; the given directory does not exist`);
     mkdirSync(path.join(repository, "inside"));
     expect(() =>
       validateExternalEmptyOutput(path.join(repository, "inside"), repository),
-    ).toThrow("--output must be outside the repository");
+    ).toThrow(
+      `${OUTPUT_REQUIREMENT}; the given directory is inside this repository`,
+    );
     writeFileSync(path.join(output, "unexpected.txt"), "not empty");
     expect(() => validateExternalEmptyOutput(output, repository)).toThrow(
-      "--output directory must be empty",
+      `${OUTPUT_REQUIREMENT}; the given directory is not empty`,
     );
   });
 
@@ -84,7 +104,7 @@ describe("release preparation", () => {
     mkdirSync(output);
 
     expect(() => validateExternalEmptyOutput(output, repository)).toThrow(
-      "--output must be outside every Git worktree",
+      `${OUTPUT_REQUIREMENT}; the given directory is inside a Git worktree`,
     );
   });
 

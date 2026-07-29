@@ -1,4 +1,16 @@
 // SPDX-License-Identifier: MIT
+
+/**
+ * Validate what `npm publish` would upload for every release package.
+ *
+ * This is deliberately not part of `pnpm check` or of CI. `npm publish
+ * --dry-run` asks the public registry whether the version is publishable, so
+ * it fails with "cannot publish over the previously published versions" for
+ * any version that is already on npm. Run it while preparing a version that
+ * has not been published yet; `pnpm release:check` covers the packaged
+ * contents at every other time, without contacting the registry.
+ */
+
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { npmInvocation } from "./npm-invocation.mjs";

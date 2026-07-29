@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Optional consent receipt worker for libreconsent.",
   "license": "MIT",
+  "author": "Nicolas Estrem",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nicolasestrem/libreconsent.git",
@@ -14,7 +15,10 @@
   },
   "keywords": [
     "consent",
+    "consent-management",
+    "cookie-consent",
     "privacy",
+    "gdpr",
     "cloudflare-workers",
     "d1",
     "audit-log"
