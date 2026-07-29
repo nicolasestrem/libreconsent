@@ -26,6 +26,7 @@ export const styles = `
   --lc-z: var(--libreconsent-z-index, 2147483000);
   --lc-font: var(--libreconsent-font-family, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
   --lc-max: var(--libreconsent-max-width, 64rem);
+  --lc-fab-inset: var(--libreconsent-fab-inset, var(--lc-space));
 }
 @media (prefers-color-scheme: dark) {
   .lc-root {
@@ -238,21 +239,94 @@ export const styles = `
 .lc-fab {
   position: fixed;
   z-index: var(--lc-z);
-  inset-block-end: var(--lc-space);
-  inset-inline-start: var(--lc-space);
+  /* Declared twice on purpose: an engine without env() drops the whole max()
+     declaration, and inset-block-end would fall back to auto — which un-pins
+     a fixed element and would cost the zero-CLS guarantee (NFR-2). */
+  inset-block-end: var(--lc-fab-inset);
+  inset-block-end: max(var(--lc-fab-inset), env(safe-area-inset-bottom, 0px));
+  inset-inline-start: var(--lc-fab-inset);
+  display: grid;
+  place-items: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
   cursor: pointer;
   border-radius: 999px;
-  padding: 0.5rem 0.875rem;
   font-size: 0.8125rem;
   font-weight: 600;
+  opacity: 0.72;
   background: var(--lc-bg);
   color: var(--lc-fg);
   border: 1px solid var(--lc-border);
   box-shadow: var(--libreconsent-shadow, 0 6px 28px rgba(0, 0, 0, 0.18));
 }
+.lc-fab[data-lc-position="bottom-end"] {
+  inset-inline-start: auto;
+  inset-inline-end: var(--lc-fab-inset);
+}
+/* Out of flow, and never a pointer target: revealing the label cannot resize
+   the disc, so nothing moves however the button is anchored or the document is
+   directed (NFR-2), and the disc's own :hover cannot flicker as the pointer
+   crosses the label. */
+.lc-fab-label {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(100% + 0.375rem);
+  display: grid;
+  align-items: center;
+  padding-inline: 0.875rem;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--lc-bg);
+  border: 1px solid var(--lc-border);
+  box-shadow: var(--libreconsent-shadow, 0 6px 28px rgba(0, 0, 0, 0.18));
+  opacity: 0;
+  pointer-events: none;
+}
+.lc-fab[data-lc-position="bottom-end"] .lc-fab-label {
+  inset-inline-start: auto;
+  inset-inline-end: calc(100% + 0.375rem);
+}
+.lc-fab-icon {
+  position: relative;
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+}
+.lc-fab-icon::before, .lc-fab-icon::after { content: ""; position: absolute; border-radius: 50%; }
+.lc-fab-icon::before {
+  inset-block-start: 0.1875rem;
+  inset-inline-start: 0.1875rem;
+  inline-size: 0.1875rem;
+  block-size: 0.1875rem;
+  background: currentColor;
+  box-shadow: 0.4375rem 0.125rem 0 currentColor, 0.0625rem 0.4375rem 0 currentColor;
+}
+/* Neither state may read as good or bad, so what separates them is a shape —
+   filled disc against hollow ring — and neither colour is green or red (UI-7). */
+.lc-fab-icon::after {
+  inset-block-end: -0.25rem;
+  inset-inline-end: -0.3125rem;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border: 1.5px solid var(--lc-muted);
+  background: var(--lc-bg);
+}
+.lc-fab[data-lc-consent="extended"] .lc-fab-icon::after {
+  border-color: var(--lc-accent);
+  background: var(--lc-accent);
+}
+.lc-fab:hover, .lc-fab:focus-visible { opacity: 1; }
+.lc-fab:focus-visible .lc-fab-label { opacity: 1; }
+/* Only :hover is gated, so a coarse-pointer device with a keyboard attached
+   still reveals the label on focus. */
+@media (hover: hover) {
+  .lc-fab:hover .lc-fab-label { opacity: 1; }
+}
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: no-preference) {
-  .lc-btn, .lc-close, .lc-fab, .lc-disclose { transition: opacity 120ms ease, background-color 120ms ease; }
+  .lc-btn, .lc-close, .lc-disclose { transition: opacity 120ms ease, background-color 120ms ease; }
+  .lc-fab, .lc-fab-label { transition: opacity 120ms ease; }
 }
 @media (max-width: 30rem) {
   .lc-btn { flex: 1 1 100%; }

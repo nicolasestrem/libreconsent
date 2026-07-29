@@ -149,8 +149,10 @@ export class UiController {
         this.region = payload.region;
         this.prefill = payload.prefill ?? null;
         this.decided = payload.consent !== null;
-        if (this.decided) {
-          this.renderFab();
+        // Branching on the field rather than `this.decided` is what narrows
+        // `ConsentState | null` for the button's consent indicator.
+        if (payload.consent) {
+          this.renderFab(payload.consent);
         } else {
           this.openBanner();
         }
@@ -162,7 +164,7 @@ export class UiController {
       this.closeBanner();
       this.closePreferences(false);
       this.closeOptOut(false);
-      this.renderFab();
+      this.renderFab(state);
     };
     this.teardown.push(this.api.on("consent", onDecision));
     this.teardown.push(this.api.on("change", onDecision));
@@ -424,15 +426,63 @@ export class UiController {
     this.optOutTrap = null;
   }
 
-  private renderFab(): void {
-    if (this.disposed || !this.options.floatingButton || this.fab) {
+  /**
+   * Whether the state grants anything beyond the readonly categories.
+   *
+   * Services are checked too: a saved selection can grant one service inside a
+   * category whose own box is off, and reporting "necessary only" for that
+   * state would misrepresent the decision back to the visitor (UI-7).
+   */
+  private consentLevel(state: ConsentState): "extended" | "essential" {
+    return this.config.categories.some(
+      (category) =>
+        !category.readonly &&
+        (state.categories[category.id] === true ||
+          category.services.some(
+            (service) => state.services[service.id] === true,
+          )),
+    )
+      ? "extended"
+      : "essential";
+  }
+
+  /**
+   * Creates the persistent settings button on the first decision and keeps its
+   * consent indicator in step with every later one (UI-5).
+   *
+   * The state reaches assistive technology through `aria-label` rather than
+   * through text, so the accessible name keeps the visible label as its prefix
+   * (WCAG 2.5.3) and the button's `textContent` stays the label alone.
+   */
+  private renderFab(state: ConsentState): void {
+    if (this.disposed || !this.options.floatingButton) {
       return;
     }
-    const button = el(
-      "button",
-      { type: "button", class: "lc-fab", "data-lc-action": "settings" },
-      [this.context.t("ui.settings")],
+    const level = this.consentLevel(state);
+    const label = this.context.t("ui.settings");
+    const button =
+      this.fab ??
+      el(
+        "button",
+        {
+          type: "button",
+          class: "lc-fab",
+          "data-lc-action": "settings",
+          "data-lc-position": this.options.floatingButtonPosition,
+        },
+        [
+          el("span", { class: "lc-fab-icon" }),
+          el("span", { class: "lc-fab-label" }, [label]),
+        ],
+      );
+    button.setAttribute("data-lc-consent", level);
+    button.setAttribute(
+      "aria-label",
+      `${label}. ${this.context.t(`ui.settings.${level}`)}`,
     );
+    if (this.fab) {
+      return;
+    }
     button.addEventListener("click", () => this.showPreferences());
     this.fab = button;
     this.root.append(button);
