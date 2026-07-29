@@ -124,7 +124,8 @@ then falling back to `i18n.default`. The resolved locale is written to the
 Keys this package adds beyond the core's `ui.acceptAll` / `ui.rejectAll` /
 `ui.customize` / `ui.save`: `ui.title`, `ui.description`,
 `ui.preferences.title`, `ui.preferences.description`, `ui.close`,
-`ui.settings`, `ui.alwaysOn`, `ui.cookies.show`, `ui.cookies.hide`,
+`ui.settings`, `ui.settings.extended`, `ui.settings.essential`,
+`ui.alwaysOn`, `ui.cookies.show`, `ui.cookies.hide`,
 `ui.cookies.name`, `ui.cookies.purpose`, `ui.cookies.provider`,
 `ui.cookies.duration`, `ui.cookies.type`, `ui.optOut.title`,
 `ui.optOut.description`, `ui.optOut.confirm`, `ui.optOut.done`.
