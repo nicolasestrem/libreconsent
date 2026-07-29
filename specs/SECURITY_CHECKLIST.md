@@ -28,7 +28,9 @@ budgets" for NFR-1, "E2E tests" for the CSP and network-silence fixtures):
 
 - [ ] `pnpm workflows:check` accepts every committed workflow: remote actions
       use full immutable commit SHAs, local actions remain permitted, and every
-      `actions/checkout` use disables credential persistence.
+      `actions/checkout` use disables credential persistence directly under its
+      `with` map. Flow-style action steps are rejected so formatting cannot
+      hide a `uses:` reference from the dependency-free guardrail.
 - [ ] CI has only `contents: read`. Claude's separate `id-token: write` is
       retained solely for the Claude Code Action's OIDC authentication; it does
       not grant repository write access.

@@ -328,7 +328,7 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   checkout credential settings.
 - **Verification:** `pnpm install --frozen-lockfile` and `pnpm check` passed on
   2026-07-29: workflow guardrails first; traceability through completed Phase 8
-  (60 requirements); 385 repository and 22 Worker tests; package builds; all
+  (60 requirements); 387 repository and 22 Worker tests; package builds; all
   four size limits (core 8.80/12 kB, core+UI 16.35/19 kB, bridge 3.08/4 kB,
   head snippet 763 B/1.5 kB); strict tarball inspection and publication
   dry-runs; 15 dedicated Chromium/Firefox/WebKit static-portability checks; 66

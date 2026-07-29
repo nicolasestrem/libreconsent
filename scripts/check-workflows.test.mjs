@@ -51,6 +51,17 @@ describe("workflow supply-chain guardrails", () => {
     ]);
   });
 
+  test("rejects flow-style step mappings with action references", () => {
+    expect(
+      validateWorkflow(
+        invalidFixtureSource("flow-mapping.yml"),
+        ".github/workflows/flow-mapping.yml",
+      ),
+    ).toEqual([
+      ".github/workflows/flow-mapping.yml:4: flow-style step mappings with uses are not allowed; use block YAML",
+    ]);
+  });
+
   test("rejects a checkout that does not disable credential persistence", () => {
     expect(
       validateWorkflow(
@@ -59,6 +70,17 @@ describe("workflow supply-chain guardrails", () => {
       ),
     ).toEqual([
       ".github/workflows/missing-credentials.yml:4: actions/checkout must set persist-credentials: false",
+    ]);
+  });
+
+  test("rejects a credential setting nested outside checkout inputs", () => {
+    expect(
+      validateWorkflow(
+        invalidFixtureSource("nested-credentials.yml"),
+        ".github/workflows/nested-credentials.yml",
+      ),
+    ).toEqual([
+      ".github/workflows/nested-credentials.yml:4: actions/checkout must set persist-credentials: false",
     ]);
   });
 

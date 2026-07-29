@@ -13,6 +13,10 @@ function leadingSpaces(line) {
   return line.length - line.trimStart().length;
 }
 
+function isContentLine(line) {
+  return line.trim().length > 0 && !line.trimStart().startsWith("#");
+}
+
 function stepIndentFor(lines, usesLine) {
   for (let index = usesLine; index >= 0; index -= 1) {
     if (/^\s*-\s+/.test(lines[index] ?? "")) {
@@ -23,15 +27,78 @@ function stepIndentFor(lines, usesLine) {
   return leadingSpaces(lines[usesLine] ?? "");
 }
 
-function checkoutDisablesCredentialPersistence(lines, usesLine) {
-  const stepIndent = stepIndentFor(lines, usesLine);
-
+function stepEndFor(lines, usesLine, stepIndent) {
   for (let index = usesLine + 1; index < lines.length; index += 1) {
     const line = lines[index] ?? "";
     if (/^\s*-\s+/.test(line) && leadingSpaces(line) === stepIndent) {
+      return index;
+    }
+  }
+
+  return lines.length;
+}
+
+function childIndentFor(lines, start, end, parentIndent) {
+  let childIndent = Number.POSITIVE_INFINITY;
+  for (let index = start; index < end; index += 1) {
+    const line = lines[index] ?? "";
+    if (!isContentLine(line)) continue;
+    const indent = leadingSpaces(line);
+    if (indent > parentIndent) childIndent = Math.min(childIndent, indent);
+  }
+
+  return Number.isFinite(childIndent) ? childIndent : undefined;
+}
+
+function checkoutDisablesCredentialPersistence(lines, usesLine) {
+  const stepIndent = stepIndentFor(lines, usesLine);
+  const stepEnd = stepEndFor(lines, usesLine, stepIndent);
+  const stepChildIndent = childIndentFor(
+    lines,
+    usesLine + 1,
+    stepEnd,
+    stepIndent,
+  );
+
+  if (stepChildIndent === undefined) return false;
+
+  let withLine;
+  for (let index = usesLine + 1; index < stepEnd; index += 1) {
+    const line = lines[index] ?? "";
+    if (
+      leadingSpaces(line) === stepChildIndent &&
+      /^\s*with\s*:\s*(?:#.*)?$/.test(line)
+    ) {
+      withLine = index;
       break;
     }
-    if (/^\s*persist-credentials\s*:\s*false\s*(?:#.*)?$/i.test(line)) {
+  }
+
+  if (withLine === undefined) return false;
+
+  let withEnd = stepEnd;
+  for (let index = withLine + 1; index < stepEnd; index += 1) {
+    const line = lines[index] ?? "";
+    if (isContentLine(line) && leadingSpaces(line) <= stepChildIndent) {
+      withEnd = index;
+      break;
+    }
+  }
+
+  const withChildIndent = childIndentFor(
+    lines,
+    withLine + 1,
+    withEnd,
+    stepChildIndent,
+  );
+  if (withChildIndent === undefined) return false;
+
+  for (let index = withLine + 1; index < withEnd; index += 1) {
+    const line = lines[index] ?? "";
+    if (
+      leadingSpaces(line) === withChildIndent &&
+      /^\s*persist-credentials\s*:\s*false\s*(?:#.*)?$/i.test(line)
+    ) {
       return true;
     }
   }
@@ -51,6 +118,13 @@ export function validateWorkflow(source, file) {
   const lines = source.split(/\r?\n/);
 
   for (const [index, line] of lines.entries()) {
+    if (/^\s*(?:-\s*)?\{[^#]*\buses\s*:/i.test(line)) {
+      errors.push(
+        `${file}:${index + 1}: flow-style step mappings with uses are not allowed; use block YAML`,
+      );
+      continue;
+    }
+
     const uses = line.match(/^\s*(?:-\s*)?uses\s*:\s*([^\s#]+)(?:\s*#.*)?$/);
     if (!uses) continue;
 
