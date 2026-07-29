@@ -4,6 +4,9 @@ import { npmInvocation } from "./npm-invocation.mjs";
 import {
   validateEmbeddedHeadSnippet,
   validateManifest,
+  validateQuickstartAssetReferences,
+  validateQuickstartAssetWorkflow,
+  validateQuickstartVendorAssets,
   validateTarballFiles,
 } from "./release-check.mjs";
 
@@ -175,5 +178,61 @@ window.gtag = function () {};
         "complete inline head snippet is missing",
       ]),
     );
+  });
+
+  test("requires exact vendored browser assets and relative quickstart paths", () => {
+    const sourcePath = "packages/core/dist/index.global.js";
+    const destinationPath = "examples/vendor/libreconsent/core/index.global.js";
+    const files = new Map([
+      [sourcePath, Buffer.from("built browser asset")],
+      [destinationPath, Buffer.from("built browser asset")],
+    ]);
+    const readBuffer = (filePath) => {
+      const content = files.get(filePath);
+      if (!content) throw new Error("missing");
+      return content;
+    };
+    const assets = [
+      {
+        destination: destinationPath,
+        destinationPath,
+        source: sourcePath,
+        sourcePath,
+      },
+    ];
+
+    expect(validateQuickstartVendorAssets(assets, readBuffer)).toEqual([]);
+    files.set(destinationPath, Buffer.from("stale browser asset"));
+    expect(validateQuickstartVendorAssets(assets, readBuffer)).toEqual([
+      `${destinationPath}: differs from byte-identical built asset ${sourcePath}`,
+    ]);
+    files.delete(destinationPath);
+    expect(validateQuickstartVendorAssets(assets, readBuffer)).toEqual([
+      `${destinationPath}: tracked browser asset is missing`,
+    ]);
+    expect(
+      validateQuickstartAssetReferences(
+        '<script src="../../vendor/libreconsent/core/index.global.js"></script>',
+      ),
+    ).toEqual([]);
+    expect(
+      validateQuickstartAssetReferences(
+        '<script src="/dist/core.global.js"></script><script src="/quickstarts/basic-consent-mode/analytics.js"></script><script src="/vendor/libreconsent/core/index.global.js"></script>',
+      ),
+    ).toEqual([
+      "root-absolute local quickstart asset reference remains: /dist/core.global.js",
+      "root-absolute local quickstart asset reference remains: /quickstarts/basic-consent-mode/analytics.js",
+      "root-absolute local quickstart asset reference remains: /vendor/libreconsent/core/index.global.js",
+    ]);
+    expect(
+      validateQuickstartAssetWorkflow({
+        scripts: { build: "pnpm -r --if-present build" },
+      }),
+    ).toEqual([]);
+    expect(
+      validateQuickstartAssetWorkflow({
+        scripts: { build: "pnpm build && pnpm quickstarts:sync-assets" },
+      }),
+    ).toEqual(["package build must not synchronize tracked quickstart assets"]);
   });
 });

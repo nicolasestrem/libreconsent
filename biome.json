@@ -4,6 +4,7 @@
     "includes": [
       "**",
       "!**/dist",
+      "!examples/vendor/libreconsent",
       "!**/.wrangler",
       "!**/.wrangler-dry-run",
       "!**/worker-configuration.d.ts",

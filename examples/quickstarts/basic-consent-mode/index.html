@@ -36,7 +36,7 @@
       async
       type="text/plain"
       data-cmp-category="analytics"
-      src="/quickstarts/basic-consent-mode/analytics.js"
+      src="./analytics.js"
     ></script>
   </head>
   <body>
@@ -49,8 +49,8 @@
       <p>Local analytics loader: <output id="analytics-status">blocked</output></p>
       <p><button type="button" data-cmp-open>Privacy preferences</button></p>
     </main>
-    <script src="/dist/core.global.js"></script>
-    <script src="/dist/ui.global.js"></script>
+    <script src="../../vendor/libreconsent/core/index.global.js"></script>
+    <script src="../../vendor/libreconsent/ui/index.global.js"></script>
     <script>
       window.__quickstartApi = LibreConsentCore.init({
         categories: [

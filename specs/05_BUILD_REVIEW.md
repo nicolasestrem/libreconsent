@@ -287,3 +287,30 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   and regression-tested. No implementation blocker or major finding remains
   open; the required `v1.0.0` tag is the sole outstanding Phase 9
   definition-of-done item.
+
+### Post-release-candidate — quickstart portability
+- **Date / branch:** 2026-07-29 · `codex/v1-quickstart-portability` · **TRACEABILITY audit: PASS — 60/60 requirements through completed Phase 8**
+- **Scope:** NFR-6 release-example hardening only. The completed-phase marker
+  remains Phase 8; no package API, publication state, tag, deployment, or
+  release claim changes.
+- **Verdict:** pass — all four quickstarts load copied relative browser assets
+  from a static server with no aliases, rewrites, preprocessing, or API
+  emulation. The US example preserves `/api/region` as a production endpoint
+  and fails closed when a static host returns 404.
+- **Verification:** `pnpm check` passed on 2026-07-29: traceability through
+  completed Phase 8 (60 requirements); 377 repository and 22 Worker tests;
+  package builds; all four size limits (core 8.80/12 kB, core+UI 16.35/19 kB,
+  bridge 3.08/4 kB, head snippet 763 B/1.5 kB); strict tarball inspection and
+  publication dry-runs; 15 dedicated Chromium/Firefox/WebKit static-portability
+  checks; 66 Chromium E2E tests; 20 accessibility tests; and 10 existing
+  Firefox/WebKit compatibility smokes.
+- **Findings:** P-074 closed. The first static suite correctly exposed that the
+  US resolver's expected 404 is reported as a console error in Chromium and
+  WebKit but not Firefox; coverage accepts only that expected diagnostic while
+  retaining zero-tolerance for every other console or page error.
+- **PR #15 review follow-up:** P-075 makes the CI `All gates` job execute the
+  dedicated portability project after installing all three browser engines.
+  Browser mirrors now update only through the explicit sync command, so release
+  audit compares a fresh build with the committed mirror before any write can
+  mask drift; the audit and browser assertion reject every root-absolute local
+  `src` or `href` path.

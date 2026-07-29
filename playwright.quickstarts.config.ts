@@ -10,32 +10,28 @@ export default defineConfig({
   ...(isCi ? { workers: 1 } : {}),
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL: "http://127.0.0.1:4174",
     trace: "on-first-retry",
   },
   webServer: {
-    command: "pnpm examples:serve",
-    url: "http://127.0.0.1:4173",
+    command: "pnpm quickstarts:serve",
+    url: "http://127.0.0.1:4174",
     reuseExistingServer: !isCi,
   },
   projects: [
     {
-      name: "e2e",
-      testIgnore: /quickstart-portability\.e2e\.spec\.ts/,
-      testMatch: /.*\.e2e\.spec\.ts/,
+      name: "quickstarts-chromium",
+      testMatch: /quickstart-portability\.e2e\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
     },
     {
-      name: "a11y",
-      testMatch: /.*\.a11y\.spec\.ts/,
-    },
-    {
-      name: "compat-firefox",
-      testMatch: /release-compat\.e2e\.spec\.ts/,
+      name: "quickstarts-firefox",
+      testMatch: /quickstart-portability\.e2e\.spec\.ts/,
       use: { ...devices["Desktop Firefox"] },
     },
     {
-      name: "compat-webkit",
-      testMatch: /release-compat\.e2e\.spec\.ts/,
+      name: "quickstarts-webkit",
+      testMatch: /quickstart-portability\.e2e\.spec\.ts/,
       use: { ...devices["Desktop Safari"] },
     },
   ],
