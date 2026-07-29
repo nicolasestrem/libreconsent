@@ -408,6 +408,21 @@ Filled by Claude Code after each phase (protocol: 04 §1.5). One section per pha
   another Git worktree, so a private mirror or sibling checkout cannot produce
   misleading publication evidence.
 
+### Phase 9 — v1.0.0 controlled release completion
+- **Date:** 2026-07-29 · **TRACEABILITY audit: PASS — 62/62 requirements through completed Phase 9**
+- **Release:** annotated [`v1.0.0`](https://github.com/nicolasestrem/libreconsent/releases/tag/v1.0.0)
+  points to `aaee751bbddc3abc66ba547da8bf944abbdd8e0b`. The approved preserved
+  core, UI, bridge, and worker-log tarballs were published in that order; each
+  public npm record resolved at `1.0.0` with its approved shasum and SHA-512
+  integrity.
+- **Verification:** the external registry consumer gate passed against the
+  public packages, including root-only ESM/types imports, blocked deep imports,
+  one compatible core installation, head-bootstrap denied defaults, approved
+  browser assets, a Vite/TypeScript build, and Chromium ordinary-static-server
+  smoke. The subsequent main CI run also passed:
+  [`30426588446`](https://github.com/nicolasestrem/libreconsent/actions/runs/30426588446).
+- **Verdict:** Phase 9 is complete. The known limitations remain unchanged.
+
 ### Post-Phase 3 — browser test-gate simplification
 - **Date / branch:** 2026-07-29 · `codex/trim-browser-test-gates`
 - **Scope:** remove the Firefox/WebKit matrix from automatic checks and retain
