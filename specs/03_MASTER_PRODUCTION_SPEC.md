@@ -134,4 +134,4 @@ Validated at `init()`; invalid config throws synchronously with the offending pa
 | 6 | GPC E2E green; US_NOTES.md written from live Google docs |
 | 7 | Bridge E2E green; fallback (BR-4) tested |
 | 8 | Receipt round-trip E2E on a test CF account; purge tested |
-| 9 | READMEs + 4 quickstarts + demo site; `v1.0.0` tagged; npm publish dry-run clean |
+| 9 | READMEs + 4 quickstarts + demo site; each quickstart runs with tracked relative browser artifacts on an ordinary static server; `v1.0.0` tagged; npm publish dry-run clean |

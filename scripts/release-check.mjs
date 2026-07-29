@@ -8,6 +8,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { npmInvocation } from "./npm-invocation.mjs";
+import { quickstartAssetPairs } from "./quickstart-assets.mjs";
 import {
   RELEASE_VERSION,
   releasePackages,
@@ -23,6 +24,10 @@ const copyableConsentModeQuickstarts = [
   "examples/quickstarts/basic-consent-mode/index.html",
   "examples/quickstarts/gtm-basic-mode/index.html",
   "examples/quickstarts/us-only-opt-out/index.html",
+];
+const quickstartPages = [
+  ...copyableConsentModeQuickstarts,
+  "examples/quickstarts/adsense-bridge/index.html",
 ];
 const embeddedArtifactPreamble =
   /^\/\/ biome-ignore-all format: preserve the exact packaged bootstrap\r?\n\/\/ biome-ignore-all lint: preserve the exact packaged bootstrap\r?\n/;
@@ -177,6 +182,46 @@ export function validateEmbeddedHeadSnippet(html, expectedSource) {
   return errors;
 }
 
+export function validateQuickstartAssetReferences(html) {
+  return [
+    ...html.matchAll(
+      /\b(?:src|href)\s*=\s*["'](\/(?:dist|quickstarts)\/[^"']*)/g,
+    ),
+  ].map(
+    ([, reference]) =>
+      `root-absolute quickstart asset reference remains: ${reference}`,
+  );
+}
+
+export function validateQuickstartVendorAssets(
+  assets,
+  readBuffer = readFileSync,
+) {
+  const errors = [];
+  for (const asset of assets) {
+    let source;
+    let destination;
+    try {
+      source = Buffer.from(readBuffer(asset.sourcePath));
+    } catch {
+      errors.push(`${asset.source}: built browser asset is missing`);
+      continue;
+    }
+    try {
+      destination = Buffer.from(readBuffer(asset.destinationPath));
+    } catch {
+      errors.push(`${asset.destination}: tracked browser asset is missing`);
+      continue;
+    }
+    if (!source.equals(destination)) {
+      errors.push(
+        `${asset.destination}: differs from byte-identical built asset ${asset.source}`,
+      );
+    }
+  }
+  return errors;
+}
+
 function validateMetadataAndArtifacts() {
   const rootManifest = readJson(path.join(repositoryRoot, "package.json"));
   if (
@@ -267,6 +312,23 @@ function validateMetadataAndArtifacts() {
       "utf8",
     );
     const errors = validateEmbeddedHeadSnippet(html, packagedHeadSnippet);
+    if (errors.length > 0) {
+      fail(`${quickstartPath}: ${errors.join("; ")}`);
+    }
+  }
+
+  const assetErrors = validateQuickstartVendorAssets(
+    quickstartAssetPairs(repositoryRoot),
+  );
+  if (assetErrors.length > 0) {
+    fail(assetErrors.join("; "));
+  }
+  for (const quickstartPath of quickstartPages) {
+    const html = readFileSync(
+      path.join(repositoryRoot, quickstartPath),
+      "utf8",
+    );
+    const errors = validateQuickstartAssetReferences(html);
     if (errors.length > 0) {
       fail(`${quickstartPath}: ${errors.join("; ")}`);
     }
@@ -465,7 +527,7 @@ export function runReleaseCheck() {
     rmSync(tempRoot, { recursive: true, force: true });
   }
   console.log(
-    "Release check passed: 4 strict tarballs, public ESM/types/IIFE imports, blocked deep imports, copyable inline head bootstraps, MIT/SPDX metadata, and packaged Worker configuration.",
+    "Release check passed: 4 strict tarballs, public ESM/types/IIFE imports, blocked deep imports, byte-identical static quickstart assets, copyable inline head bootstraps, MIT/SPDX metadata, and packaged Worker configuration.",
   );
 }
 

@@ -6,6 +6,9 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- Made all four quickstarts portable on an ordinary static server. They now
+  load tracked, byte-identical browser artifacts through relative URLs; the
+  release audit rejects drift, root-absolute fixture paths, and missing assets.
 - Made the Consent Mode, GTM, and US opt-out quickstarts directly copyable by
   embedding the complete synchronous head bootstrap instead of relying on the
   repository-only example server to replace a placeholder. The release audit

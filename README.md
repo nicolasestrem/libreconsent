@@ -106,9 +106,14 @@ they are copied as files rather than imported as package subpaths.
 
 The quickstarts use local stand-ins for vendor loaders so automated tests make
 no third-party requests. Replace only the clearly marked local loader URLs in
-your deployment. The three Consent Mode pages already contain the complete
-inline head bootstrap; copying them does not require the repository example
-server or a preprocessing step. The [local demo](examples/demo-site/index.html)
+your deployment. To copy one, keep its complete `quickstarts/<name>/` directory
+and copy the shared `examples/vendor/libreconsent/` directory beside it. The
+pages load those exact browser files through relative URLs, so an ordinary
+static server needs no aliases, rewrites, repository preprocessing, or
+Cloudflare-specific routing. The three Consent Mode pages already contain the
+complete inline head bootstrap. The US example intentionally keeps
+`/api/region` as a deployment endpoint; on a static-only host its 404 resolves
+to `null` and the example fails closed. The [local demo](examples/demo-site/index.html)
 demonstrates accept, reject, customize, gated local content, withdrawal,
 re-entry, and the current state without contacting any vendor.
 
