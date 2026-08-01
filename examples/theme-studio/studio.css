@@ -1,0 +1,525 @@
+:root {
+  color-scheme: light dark;
+  --studio-bg: #f7f8fa;
+  --studio-panel: #ffffff;
+  --studio-fg: #16181d;
+  --studio-muted: #565b66;
+  --studio-surface: #f5f6f8;
+  --studio-border: #d5d8de;
+  --studio-accent: #1b57d6;
+  --studio-accent-fg: #ffffff;
+  --studio-pass: #1a7f37;
+  --studio-fail: #cf222e;
+  --studio-radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --studio-bg: #0e1117;
+    --studio-panel: #16181d;
+    --studio-fg: #f2f3f5;
+    --studio-muted: #a8adb8;
+    --studio-surface: #1e2128;
+    --studio-border: #343841;
+    --studio-accent: #6f9bff;
+    --studio-accent-fg: #10131a;
+    --studio-pass: #3fb950;
+    --studio-fail: #f85149;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-block-size: 100%;
+}
+
+body {
+  font:
+    15px / 1.55 system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: var(--studio-fg);
+  background: var(--studio-bg);
+}
+
+a {
+  color: var(--studio-accent);
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+/* ---- Control panel ----------------------------------------------------- */
+
+.studio-panel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 22rem;
+  max-inline-size: 92vw;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem 1.25rem 4rem;
+  background: var(--studio-panel);
+  border-inline-end: 1px solid var(--studio-border);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.studio-head h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.head-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.studio-panel section {
+  border-top: 1px solid var(--studio-border);
+  padding-block-start: 1rem;
+}
+
+.studio-panel section:first-of-type {
+  border-top: 0;
+  padding-block-start: 0;
+}
+
+.studio-panel h2 {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--studio-muted);
+}
+
+.subhead {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--studio-muted);
+}
+
+.hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--studio-muted);
+}
+
+/* ---- Shared controls --------------------------------------------------- */
+
+button,
+select,
+input[type="color"],
+input[type="range"],
+input[type="checkbox"] {
+  font: inherit;
+}
+
+button {
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+  color: var(--studio-fg);
+  cursor: pointer;
+  transition:
+    transform 0.08s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+button:hover {
+  border-color: var(--studio-accent);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:focus-visible,
+[tabindex]:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--studio-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Presets ----------------------------------------------------------- */
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem;
+  text-align: start;
+}
+
+.preset-swatches {
+  display: flex;
+  gap: 2px;
+  block-size: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preset-swatches i {
+  flex: 1;
+  display: block;
+}
+
+.preset-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.preset-card[aria-pressed="true"] {
+  border-color: var(--studio-accent);
+  box-shadow: 0 0 0 1px var(--studio-accent);
+}
+
+/* ---- Layout cards ------------------------------------------------------ */
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.layout-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.5rem;
+}
+
+.layout-thumb {
+  position: relative;
+  block-size: 38px;
+  border-radius: 4px;
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+  overflow: hidden;
+}
+
+.layout-thumb > i {
+  position: absolute;
+  display: block;
+  background: var(--studio-accent);
+  border-radius: 2px;
+}
+
+.thumb-bar {
+  inset-block-end: 0;
+  inset-inline: 0;
+  block-size: 28%;
+  border-radius: 0;
+}
+
+.thumb-box {
+  inset-block-end: 16%;
+  inset-inline-start: 10%;
+  block-size: 30%;
+  inline-size: 46%;
+}
+
+.thumb-modal {
+  inset-block: 0;
+  inset-inline: 0;
+  margin: auto;
+  block-size: 48%;
+  inline-size: 56%;
+}
+
+.layout-name {
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.layout-card[aria-pressed="true"] {
+  border-color: var(--studio-accent);
+  box-shadow: 0 0 0 1px var(--studio-accent);
+}
+
+/* ---- Segmented + selects ---------------------------------------------- */
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented button {
+  border: 0;
+  border-radius: 0;
+  border-inline-end: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+}
+
+.segmented button:last-child {
+  border-inline-end: 0;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--studio-accent);
+  color: var(--studio-accent-fg);
+}
+
+.micro-group {
+  border: 0;
+  padding: 0;
+  margin: 0.6rem 0 0;
+}
+
+.micro-group legend {
+  font-size: 0.78rem;
+  color: var(--studio-muted);
+  margin-block-end: 0.35rem;
+}
+
+/* ---- Color + range fields --------------------------------------------- */
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 0.75rem;
+}
+
+.field-grid label,
+.field-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.field-inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-block: 0.4rem;
+}
+
+.range-row output {
+  font-variant-numeric: tabular-nums;
+  min-inline-size: 2.4em;
+  text-align: end;
+}
+
+.overlay-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 0.75rem;
+  margin-block-start: 0.6rem;
+}
+
+input[type="color"] {
+  block-size: 30px;
+  inline-size: 100%;
+  min-inline-size: 2.5rem;
+  padding: 2px;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  background: var(--studio-surface);
+  cursor: pointer;
+}
+
+.field-inline input[type="color"] {
+  inline-size: 2.5rem;
+}
+
+input[type="range"] {
+  inline-size: 100%;
+  accent-color: var(--studio-accent);
+}
+
+select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+  color: var(--studio-fg);
+}
+
+/* ---- Contrast ---------------------------------------------------------- */
+
+.contrast-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.contrast-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+}
+
+.contrast-label {
+  font-size: 0.82rem;
+}
+
+.contrast-ratio {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+  color: var(--studio-muted);
+}
+
+.contrast-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--studio-border);
+  color: var(--studio-muted);
+}
+
+.contrast-row[data-state="pass"] .contrast-chip {
+  background: color-mix(in srgb, var(--studio-pass) 16%, transparent);
+  border-color: var(--studio-pass);
+  color: var(--studio-pass);
+}
+
+.contrast-row[data-state="fail"] .contrast-chip {
+  background: color-mix(in srgb, var(--studio-fail) 16%, transparent);
+  border-color: var(--studio-fail);
+  color: var(--studio-fail);
+}
+
+/* ---- Export ------------------------------------------------------------ */
+
+.code-block {
+  margin: 0;
+  padding: 0.7rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--studio-fg) 92%, transparent);
+  color: color-mix(in srgb, var(--studio-bg) 92%, transparent);
+  overflow: auto;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  max-block-size: 12rem;
+}
+
+.code-block code {
+  white-space: pre;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.copy-btn {
+  margin-block-start: 0.4rem;
+  inline-size: 100%;
+}
+
+.copy-btn[data-copied="true"] {
+  border-color: var(--studio-pass);
+  color: var(--studio-pass);
+}
+
+.btn-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.btn-stack button {
+  inline-size: 100%;
+}
+
+/* ---- Stage ------------------------------------------------------------- */
+
+.studio-stage {
+  margin-inline-start: 22rem;
+  padding: 3rem clamp(1.25rem, 4vw, 4rem) 10rem;
+}
+
+.fake-article {
+  max-inline-size: 46rem;
+  margin-inline: auto;
+}
+
+.fake-article h2 {
+  font-size: 1.9rem;
+  margin: 0 0 1rem;
+  letter-spacing: -0.02em;
+}
+
+.fake-article p {
+  color: color-mix(in srgb, var(--studio-fg) 84%, transparent);
+  margin: 0 0 1rem;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin-block-start: 2rem;
+}
+
+.placeholder-card {
+  padding: 1.1rem;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius);
+  background: var(--studio-panel);
+}
+
+.card-kicker {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--studio-accent);
+}
+
+.placeholder-card h3 {
+  margin: 0.3rem 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.placeholder-card p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+/* ---- Responsive: stack below 900px ------------------------------------ */
+
+@media (max-width: 900px) {
+  .studio-panel {
+    position: static;
+    inline-size: auto;
+    max-inline-size: none;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--studio-border);
+  }
+
+  .studio-stage {
+    margin-inline-start: 0;
+  }
+}

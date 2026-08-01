@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>libreconsent Theme Studio</title>
+    <link rel="stylesheet" href="./studio.css">
+  </head>
+  <body>
+    <aside class="studio-panel" aria-label="Theme Studio controls">
+      <section class="studio-head">
+        <h1>Theme Studio</h1>
+        <div class="head-actions">
+          <button type="button" data-studio="surprise" title="Randomize the palette">
+            🎲 Surprise me
+          </button>
+          <button type="button" data-studio="reset-all" title="Restore defaults">
+            Reset all
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Presets</h2>
+        <div class="preset-grid" data-studio="presets"></div>
+      </section>
+
+      <section>
+        <h2>Layout</h2>
+        <div class="layout-grid">
+          <button type="button" class="layout-card" data-studio-layout="bar-bottom" aria-pressed="true">
+            <span class="layout-thumb"><i class="thumb-bar"></i></span>
+            <span class="layout-name">Bottom bar</span>
+          </button>
+          <button type="button" class="layout-card" data-studio-layout="box" aria-pressed="false">
+            <span class="layout-thumb"><i class="thumb-box"></i></span>
+            <span class="layout-name">Floating box</span>
+          </button>
+          <button type="button" class="layout-card" data-studio-layout="modal" aria-pressed="false">
+            <span class="layout-thumb"><i class="thumb-modal"></i></span>
+            <span class="layout-name">Centered modal</span>
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Scheme</h2>
+        <div class="segmented">
+          <button type="button" data-studio-theme="auto" aria-pressed="true">Auto</button>
+          <button type="button" data-studio-theme="light" aria-pressed="false">Light</button>
+          <button type="button" data-studio-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Colors</h2>
+        <div class="field-grid">
+          <label>Background <input type="color" data-studio="bg" value="#ffffff"></label>
+          <label>Text <input type="color" data-studio="fg" value="#16181d"></label>
+          <label>Muted text <input type="color" data-studio="muted" value="#565b66"></label>
+          <label>Surface <input type="color" data-studio="surface" value="#f5f6f8"></label>
+          <label>Border <input type="color" data-studio="border" value="#d5d8de"></label>
+          <label>Accent <input type="color" data-studio="accent" value="#1b57d6"></label>
+          <label>Accent text <input type="color" data-studio="accent-fg" value="#ffffff"></label>
+          <label>Focus ring <input type="color" data-studio="focus" value="#1b57d6"></label>
+        </div>
+        <div class="overlay-row">
+          <label class="field-inline">Overlay
+            <input type="color" data-studio="overlay" value="#101217">
+          </label>
+          <label class="field-inline">Opacity
+            <input type="range" min="0" max="100" step="1" data-studio="overlay-alpha" value="55">
+            <output data-studio-output="overlay-alpha">55</output>%
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <h2>Shape &amp; type</h2>
+        <label class="field-inline range-row">Corner radius
+          <input type="range" min="0" max="24" step="1" data-studio="radius" value="8">
+          <output data-studio-output="radius">8</output>px
+        </label>
+        <label class="field-inline range-row">Font size
+          <input type="range" min="12" max="20" step="1" data-studio="font-size" value="16">
+          <output data-studio-output="font-size">16</output>px
+        </label>
+        <label class="field-inline">Font family
+          <select data-studio="font-family">
+            <option value="system" selected>System</option>
+            <option value="serif">Serif</option>
+            <option value="mono">Mono</option>
+            <option value="rounded">Rounded</option>
+          </select>
+        </label>
+        <label class="field-inline">Shadow
+          <select data-studio="shadow">
+            <option value="soft" selected>Soft</option>
+            <option value="none">None</option>
+            <option value="heavy">Heavy</option>
+            <option value="retro">Retro</option>
+          </select>
+        </label>
+      </section>
+
+      <section>
+        <h2>Extras</h2>
+        <label class="field-inline">
+          <input type="checkbox" data-studio="fab" checked> Floating settings button
+        </label>
+        <fieldset class="micro-group">
+          <legend>Button corner</legend>
+          <div class="segmented">
+            <button type="button" data-studio-fabpos="bottom-start" aria-pressed="true">Start</button>
+            <button type="button" data-studio-fabpos="bottom-end" aria-pressed="false">End</button>
+          </div>
+        </fieldset>
+        <fieldset class="micro-group">
+          <legend>Language</legend>
+          <div class="segmented">
+            <button type="button" data-studio-locale="en" aria-pressed="true">EN</button>
+            <button type="button" data-studio-locale="fr" aria-pressed="false">FR</button>
+          </div>
+        </fieldset>
+      </section>
+
+      <section>
+        <h2>Contrast</h2>
+        <div class="contrast-list">
+          <div class="contrast-row" data-contrast="fg-bg">
+            <span class="contrast-label">Text / background</span>
+            <span class="contrast-ratio">--:1</span>
+            <span class="contrast-chip">—</span>
+          </div>
+          <div class="contrast-row" data-contrast="accent">
+            <span class="contrast-label">Accent / button text</span>
+            <span class="contrast-ratio">--:1</span>
+            <span class="contrast-chip">—</span>
+          </div>
+          <div class="contrast-row" data-contrast="muted-bg">
+            <span class="contrast-label">Muted / background</span>
+            <span class="contrast-ratio">--:1</span>
+            <span class="contrast-chip">—</span>
+          </div>
+        </div>
+        <p class="hint">Pass needs at least 4.5:1 (WCAG AA text).</p>
+      </section>
+
+      <section>
+        <h2>Export</h2>
+        <p class="subhead">CSS custom properties</p>
+        <pre class="code-block"><code data-studio="export-css"></code></pre>
+        <button type="button" class="copy-btn" data-studio="copy-css">Copy CSS</button>
+        <p class="subhead">Mount snippet</p>
+        <pre class="code-block"><code data-studio="export-js"></code></pre>
+        <button type="button" class="copy-btn" data-studio="copy-js">Copy JS</button>
+        <button type="button" class="copy-btn" data-studio="copy-link">Copy share link</button>
+      </section>
+
+      <section>
+        <h2>Preview controls</h2>
+        <div class="btn-stack">
+          <button type="button" data-studio="restart">Restart preview</button>
+          <button type="button" data-studio="open-prefs">Open preferences</button>
+          <button type="button" data-studio="open-optout">Open Do-Not-Sell dialog</button>
+        </div>
+        <p class="hint">Accept or reject in the preview to see the floating settings button.</p>
+      </section>
+    </aside>
+
+    <main class="studio-stage">
+      <article class="fake-article">
+        <h2>The Aurora Dispatch</h2>
+        <p>
+          A short field guide for long evenings. The pieces below are
+          placeholders, here only so the consent surfaces overlay realistic
+          page content while you tune the palette. Nothing on this page leaves
+          your browser.
+        </p>
+        <p>
+          Every value flows through a <code>--libreconsent-*</code> custom
+          property, so the banner, the box, and the modal all inherit the same
+          tokens. Pick a preset, drag a slider, or roll the dice &mdash; then
+          copy the result. See the simpler <a href="/demo-site/">demo site</a>
+          for the unstyled defaults.
+        </p>
+        <div class="card-grid">
+          <article class="placeholder-card">
+            <span class="card-kicker">Field notes</span>
+            <h3>Quiet migrations</h3>
+            <p>Three ways to move visitors onto a consent record without a flash of unstyled content.</p>
+          </article>
+          <article class="placeholder-card">
+            <span class="card-kicker">Tools</span>
+            <h3>The token atlas</h3>
+            <p>A reference map from every banner element back to the custom property that paints it.</p>
+          </article>
+          <article class="placeholder-card">
+            <span class="card-kicker">Policy</span>
+            <h3>Consent in context</h3>
+            <p>How a single decision record serves analytics, advertising, and region-specific rights.</p>
+          </article>
+        </div>
+      </article>
+    </main>
+
+    <script src="/dist/core.global.js"></script>
+    <script src="/dist/ui.global.js"></script>
+    <script src="./studio.js"></script>
+  </body>
+</html>
