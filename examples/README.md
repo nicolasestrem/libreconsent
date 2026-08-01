@@ -68,6 +68,13 @@ reject, customize, withdrawal, re-entry, a gated local script, a gated local
 iframe, and the live consent state rendered as JSON. It loads its artifacts
 from the `/dist/…` routes, so it runs under `pnpm examples:serve` only.
 
+[`theme-studio`](theme-studio/index.html) is a sixth, interactive page: a
+visual customizer for the banner. Pick a preset, drag the color and shape
+controls, or roll the dice, and the live banner remounts to match. A contrast
+checker flags sub-4.5:1 pairs, and the result exports as CSS custom
+properties, a `mount()` snippet, or a shareable URL. Like the demo it loads
+`/dist/…` artifacts, so it runs under `pnpm examples:serve` only.
+
 ## Shared browser artifacts
 
 `vendor/libreconsent/` holds tracked copies of the built IIFE bundles and the

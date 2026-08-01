@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `examples/theme-studio`, an interactive customizer for the consent banner
+  served at `/theme-studio/` under `pnpm examples:serve`. It exercises the
+  existing public theming surface — the `--libreconsent-*` custom properties
+  and `UiOptions` (`layout`, `theme`, `floatingButton`,
+  `floatingButtonPosition`, `locale`) — with preset palettes, per-token color
+  and shape controls, a live preview that remounts the real banner, a WCAG
+  contrast checker, a contrast-safe "Surprise me" randomizer, copy-paste
+  CSS/JS export, and a shareable URL hash. It changes no `packages/*` code,
+  makes no external request, and stores its preview decisions under
+  `libreconsent-studio` so it never collides with the other example pages.
+
 ## [1.1.1] - 2026-07-29
 
 ### Fixed
