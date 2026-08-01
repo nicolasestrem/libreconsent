@@ -32,6 +32,7 @@ const DEFAULTS = {
     accent: "#1b57d6",
     "accent-fg": "#ffffff",
     focus: "#1b57d6",
+    overlay: { color: "#101217", alpha: 55 },
   },
   dark: {
     bg: "#16181d",
@@ -42,6 +43,7 @@ const DEFAULTS = {
     accent: "#6f9bff",
     "accent-fg": "#10131a",
     focus: "#8fb2ff",
+    overlay: { color: "#000000", alpha: 65 },
   },
 };
 
@@ -245,6 +247,13 @@ function effectiveScheme() {
     : "light";
 }
 
+function effectiveOverlay() {
+  if (state.colors.overlay) {
+    return { color: state.colors.overlay, alpha: state.overlayAlpha };
+  }
+  return DEFAULTS[effectiveScheme()].overlay;
+}
+
 function effectiveColor(token) {
   return state.colors[token] ?? DEFAULTS[effectiveScheme()][token];
 }
@@ -407,12 +416,13 @@ function syncControls() {
     }
   }
   const overlayInput = panel.querySelector('[data-studio="overlay"]');
+  const overlay = effectiveOverlay();
   if (overlayInput && overlayInput !== document.activeElement) {
-    overlayInput.value = state.colors.overlay ?? "#101217";
+    overlayInput.value = overlay.color;
   }
-  setRange("overlay-alpha", state.overlayAlpha);
+  setRange("overlay-alpha", overlay.alpha);
   setRange("radius", state.radius ?? 8);
-  setRange("font-size", state.fontSize ?? 16);
+  setRange("font-size", state.fontSize ?? 15);
 
   const fontFamily = panel.querySelector('[data-studio="font-family"]');
   if (fontFamily) fontFamily.value = state.fontFamily;
@@ -669,11 +679,21 @@ function onInput(e) {
   const target = e.target;
   const token = target.dataset.studio;
   if (!token) return;
-  if (COLOR_TOKENS.includes(token) || token === "overlay") {
+  if (COLOR_TOKENS.includes(token)) {
     state.colors[token] = target.value;
     activePreset = null;
     render();
+  } else if (token === "overlay") {
+    if (!state.colors.overlay) {
+      state.overlayAlpha = effectiveOverlay().alpha;
+    }
+    state.colors.overlay = target.value;
+    activePreset = null;
+    render();
   } else if (token === "overlay-alpha") {
+    if (!state.colors.overlay) {
+      state.colors.overlay = effectiveOverlay().color;
+    }
     state.overlayAlpha = Number(target.value);
     activePreset = null;
     render();
@@ -816,6 +836,11 @@ function start() {
   panel.addEventListener("input", onInput);
   panel.addEventListener("change", onChange);
   panel.addEventListener("click", onClick);
+
+  const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
+  colorScheme.addEventListener("change", () => {
+    if (state.theme === "auto") render();
+  });
 
   boot();
   render();

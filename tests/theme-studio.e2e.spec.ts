@@ -172,4 +172,28 @@ test.describe("Theme Studio", () => {
       "--libreconsent-overlay: rgba(16, 32, 48, 0.55)",
     );
   });
+
+  test("font-size control reflects the library default", async ({ page }) => {
+    await openStudio(page);
+
+    await expect(page.locator('[data-studio="font-size"]')).toHaveValue("15");
+  });
+
+  test("auto theme follows system color-scheme changes", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openStudio(page);
+
+    await expect(page.locator('[data-studio="overlay"]')).toHaveValue(
+      "#101217",
+    );
+
+    await page.emulateMedia({ colorScheme: "dark" });
+
+    await expect(page.locator('[data-studio="overlay"]')).toHaveValue(
+      "#000000",
+    );
+    await expect(page.locator('[data-studio="overlay-alpha"]')).toHaveValue(
+      "65",
+    );
+  });
 });
