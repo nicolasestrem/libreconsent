@@ -204,7 +204,7 @@ function defaultState() {
     fabPos: "bottom-start",
     locale: "en",
     colors: {},
-    overlayAlpha: null,
+    overlayAlpha: 55,
     radius: null,
     fontSize: null,
     fontFamily: "system",
@@ -299,6 +299,7 @@ function makeConfig() {
       },
     },
     storage: { cookieName: "libreconsent-studio" },
+    usPrivacy: { enabled: true },
   };
 }
 
@@ -359,7 +360,7 @@ function applyVars() {
       root.setProperty(PROPS[token], state.colors[token]);
     }
   }
-  if (state.colors.overlay && state.overlayAlpha !== null) {
+  if (state.colors.overlay) {
     const { r, g, b } = hexToRgb(state.colors.overlay);
     root.setProperty(
       PROPS.overlay,
@@ -409,7 +410,7 @@ function syncControls() {
   if (overlayInput && overlayInput !== document.activeElement) {
     overlayInput.value = state.colors.overlay ?? "#101217";
   }
-  setRange("overlay-alpha", state.overlayAlpha ?? 55);
+  setRange("overlay-alpha", state.overlayAlpha);
   setRange("radius", state.radius ?? 8);
   setRange("font-size", state.fontSize ?? 16);
 
@@ -456,7 +457,7 @@ function buildCss() {
       lines.push(`  ${PROPS[token]}: ${state.colors[token]};`);
     }
   }
-  if (state.colors.overlay && state.overlayAlpha !== null) {
+  if (state.colors.overlay) {
     const { r, g, b } = hexToRgb(state.colors.overlay);
     lines.push(
       `  ${PROPS.overlay}: rgba(${r}, ${g}, ${b}, ${state.overlayAlpha / 100});`,
@@ -607,6 +608,9 @@ function surprise() {
     accentL += accentFg === "#ffffff" ? -5 : 5;
     accent = hslToHex(h, 80, accentL);
   }
+  if (contrast(accentFg, accent) < 4.5) {
+    accent = hslToHex(h, 80, accentFg === "#ffffff" ? 0 : 100);
+  }
   colors.accent = accent;
   colors["accent-fg"] = accentFg;
   colors.focus = accent;
@@ -635,9 +639,9 @@ function render() {
 }
 
 function resetAll() {
-  remount();
   state = defaultState();
   activePreset = "default";
+  remount();
   history.replaceState(null, "", location.pathname);
   render();
 }
@@ -670,10 +674,6 @@ function onInput(e) {
     activePreset = null;
     render();
   } else if (token === "overlay-alpha") {
-    if (!state.colors.overlay) {
-      const overlayInput = panel.querySelector('[data-studio="overlay"]');
-      if (overlayInput) state.colors.overlay = overlayInput.value;
-    }
     state.overlayAlpha = Number(target.value);
     activePreset = null;
     render();

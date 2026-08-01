@@ -131,4 +131,45 @@ test.describe("Theme Studio", () => {
       page.locator('[data-lc-banner] [data-lc-action="accept"]'),
     ).toContainText("Tout accepter");
   });
+
+  test("reset all restores defaults and clears overrides", async ({ page }) => {
+    await openStudio(page);
+
+    await page.locator('[data-studio-layout="modal"]').click();
+    await setColor(page, "accent", "#010203");
+    await expect(page.locator("[data-lc-banner]")).toHaveAttribute(
+      "data-layout",
+      "modal",
+    );
+
+    await page.locator('[data-studio="reset-all"]').click();
+
+    await expect(page.locator("[data-lc-banner]")).toHaveAttribute(
+      "data-layout",
+      "bar-bottom",
+    );
+    await expect(page.locator('[data-studio="export-css"]')).toContainText(
+      "Using library defaults",
+    );
+  });
+
+  test("the Do-Not-Sell control opens the opt-out dialog", async ({ page }) => {
+    await openStudio(page);
+
+    await page.locator('[data-studio="open-optout"]').click();
+
+    await expect(page.locator("[data-lc-optout]")).toBeVisible();
+  });
+
+  test("the overlay color takes effect without touching opacity", async ({
+    page,
+  }) => {
+    await openStudio(page);
+
+    await setColor(page, "overlay", "#102030");
+
+    await expect(page.locator('[data-studio="export-css"]')).toContainText(
+      "--libreconsent-overlay: rgba(16, 32, 48, 0.55)",
+    );
+  });
 });

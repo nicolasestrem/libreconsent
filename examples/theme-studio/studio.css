@@ -1,5 +1,6 @@
 :root {
   color-scheme: light dark;
+  --libreconsent-z-index: 1000;
   --studio-bg: #f7f8fa;
   --studio-panel: #ffffff;
   --studio-fg: #16181d;
@@ -61,6 +62,7 @@ code {
 
 .studio-panel {
   position: fixed;
+  z-index: 1001;
   inset-block: 0;
   inset-inline-start: 0;
   inline-size: 22rem;
