@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
@@ -134,6 +135,29 @@ describe("phase-aware traceability", () => {
           repositoryRoot,
         ).errors,
       ).toEqual([]);
+    }
+  });
+
+  test("treats a missing or non-file workflow as declaring no CI checks", () => {
+    // The workflow is read once, atomically. The previous exists/stat check
+    // followed by a read validated one file and could read another if the
+    // path was swapped in between; both failure shapes here must keep
+    // producing an empty check set so citing CI evidence against them still
+    // fails the traceability gate.
+    const sandbox = mkdtempSync(path.join(tmpdir(), "libreconsent-ci-"));
+    try {
+      const directoryWorkflow = path.join(sandbox, "directory-workflow");
+      mkdirSync(path.join(directoryWorkflow, ".github", "workflows"), {
+        recursive: true,
+      });
+      mkdirSync(path.join(directoryWorkflow, ".github", "workflows", "ci.yml"));
+
+      expect(ciWorkflowCheckNames(directoryWorkflow)).toEqual(new Set());
+      expect(ciWorkflowCheckNames(path.join(sandbox, "no-workflow"))).toEqual(
+        new Set(),
+      );
+    } finally {
+      rmSync(sandbox, { force: true, recursive: true });
     }
   });
 

@@ -3,7 +3,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { UsageError } from "./cli-usage.mjs";
 import { RELEASE_VERSION } from "./release-config.mjs";
 import {
@@ -15,6 +15,13 @@ import {
   renderApprovalManifest,
   validateExternalEmptyOutput,
 } from "./release-prepare.mjs";
+
+// A version carrying regex metacharacters exercises the escaping of the
+// heading interpolation: only the dots would leave `+` as a quantifier.
+vi.mock("./release-config.mjs", async (importOriginal) => ({
+  ...(await importOriginal()),
+  RELEASE_VERSION: "1.2.0+canary",
+}));
 
 const temporaryDirectories = [];
 
@@ -132,6 +139,26 @@ describe("release preparation", () => {
     expect(() =>
       parseReleaseNotes(
         "# Changelog\n\n## [Unreleased]\n\n## [0.9.0] - 2026-07-29\n\n- Old.\n",
+      ),
+    ).toThrow(
+      `CHANGELOG.md must contain a non-empty dated [${RELEASE_VERSION}] section`,
+    );
+  });
+
+  test("matches a version carrying regex metacharacters as a literal heading", () => {
+    // The heading is built by interpolating the configured version into a
+    // RegExp. Escaping only the dots leaves every other metacharacter live:
+    // a `+` becomes a quantifier and the section is never found. Escaping
+    // the full set — backslash first — matches this heading and only this
+    // heading.
+    const ready = `# Changelog\n\n## [Unreleased]\n\n## [${RELEASE_VERSION}] - 2026-07-29\n\n### Added\n\n- Released.\n`;
+    expect(parseReleaseNotes(ready)).toEqual({
+      date: "2026-07-29",
+      notes: "### Added\n\n- Released.",
+    });
+    expect(() =>
+      parseReleaseNotes(
+        "# Changelog\n\n## [Unreleased]\n\n## [1.2.0Xcanary] - 2026-07-29\n\n- Released.\n",
       ),
     ).toThrow(
       `CHANGELOG.md must contain a non-empty dated [${RELEASE_VERSION}] section`,

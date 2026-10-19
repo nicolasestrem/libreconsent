@@ -200,8 +200,11 @@ export function parseReleaseNotes(changelog) {
 
   // Derived from the configured version rather than pinned to one release, so
   // a version bump cannot leave preparation quietly reading an older section's
-  // notes into a newer release.
-  const heading = RELEASE_VERSION.replace(/\./g, "\\.");
+  // notes into a newer release. The interpolation escapes the full regex
+  // metacharacter set — backslash included — so a version carrying any of
+  // them (`1.2.0-beta.1+build`, or worse) matches its own heading and cannot
+  // reshape the pattern.
+  const heading = RELEASE_VERSION.replace(/[\\^$*+?.()|[\]{}]/g, "\\$&");
   const release = changelog.match(
     new RegExp(
       `^## \\[${heading}\\] - (\\d{4}-\\d{2}-\\d{2})\\r?\\n([\\s\\S]*?)(?=^## \\[|(?![\\s\\S]))`,

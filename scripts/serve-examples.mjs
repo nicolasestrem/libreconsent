@@ -1,5 +1,4 @@
-import { createReadStream } from "node:fs";
-import { access, readFile, stat } from "node:fs/promises";
+import { open, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, relative, resolve } from "node:path";
 
@@ -148,54 +147,71 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  // Open once and do every later step through the handle: fstat and the
+  // reads below see the same file even if the path is swapped underneath,
+  // which an access/stat check followed by a path read cannot promise.
+  let fileHandle;
   try {
-    await access(filePath);
-    const fileStats = await stat(filePath);
-    if (!fileStats.isFile()) {
-      sendText(response, 404, "Not found");
-      return;
-    }
+    fileHandle = await open(filePath, "r");
   } catch {
     sendText(response, 404, "Not found");
     return;
   }
 
-  const contentType =
-    mimeTypes[extname(filePath)] ?? "application/octet-stream";
-  if (contentType !== "text/html; charset=utf-8") {
-    response.writeHead(200, { "content-type": contentType });
-    createReadStream(filePath).pipe(response);
-    return;
-  }
-
-  const html = await readFile(filePath, "utf8");
-  if (!html.includes(headSnippetMarker)) {
-    response.writeHead(200, { "content-type": contentType });
-    response.end(html);
-    return;
-  }
-
-  let headSnippet;
   try {
-    headSnippet = (await readFile(headSnippetPath, "utf8")).replace(
-      sourceMappingComment,
-      "",
+    const contentType =
+      mimeTypes[extname(filePath)] ?? "application/octet-stream";
+    if (contentType !== "text/html; charset=utf-8") {
+      const body = await fileHandle.readFile();
+      response.writeHead(200, { "content-type": contentType });
+      response.end(body);
+      return;
+    }
+
+    let html;
+    try {
+      html = await fileHandle.readFile("utf8");
+    } catch {
+      sendText(response, 404, "Not found");
+      return;
+    }
+    if (!html.includes(headSnippetMarker)) {
+      response.writeHead(200, { "content-type": contentType });
+      response.end(html);
+      return;
+    }
+
+    let headSnippet;
+    try {
+      headSnippet = (await readFile(headSnippetPath, "utf8")).replace(
+        sourceMappingComment,
+        "",
+      );
+    } catch {
+      sendText(
+        response,
+        500,
+        missingArtifactMessage("Consent Mode head artifact"),
+      );
+      return;
+    }
+    response.writeHead(200, { "content-type": contentType });
+    response.end(
+      html.replace(
+        headSnippetMarker,
+        `<script data-libreconsent-head-artifact>${headSnippet}</script>`,
+      ),
     );
   } catch {
-    sendText(
-      response,
-      500,
-      missingArtifactMessage("Consent Mode head artifact"),
-    );
-    return;
+    // A read that fails after the open (the file was a directory and the
+    // buffer read threw EISDIR, or the file shrank beneath the handle)
+    // reads as missing, matching the previous stat-based behavior.
+    if (!response.headersSent) {
+      sendText(response, 404, "Not found");
+    }
+  } finally {
+    await fileHandle.close();
   }
-  response.writeHead(200, { "content-type": contentType });
-  response.end(
-    html.replace(
-      headSnippetMarker,
-      `<script data-libreconsent-head-artifact>${headSnippet}</script>`,
-    ),
-  );
 });
 
 server.listen(port, "127.0.0.1", () => {

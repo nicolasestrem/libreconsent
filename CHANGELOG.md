@@ -65,7 +65,30 @@ All notable changes to this project are documented in this file.
   scoped selectors (`'undici@<7.29.1'`) so they rewrite only the vulnerable
   range and leave a future 8.x resolution untouched.
 
-
+- Every CodeQL finding on `main` is closed at its source rather than
+  suppressed. The two `xss-through-dom` alerts in `packages/core/src/blocking.ts`
+  were real sink rules: a gated element's `data-cmp-src` is DOM text, and both
+  restore paths (`recreate()` for scripts, `reveal()` for iframes) assigned it
+  straight back to `src`. Restoration now goes through an http(s)-only check
+  (`restorableSource`), so a tampered gate can no longer smuggle a
+  `javascript:` or `data:` URL through the consent gate's own grant path, while
+  relative sources are restored exactly as the author wrote them.
+- The two `file-system-race` alerts replaced check-then-use with a single
+  atomic operation: `scripts/check-traceability.mjs` reads the workflow once
+  and lets the read fail, and `scripts/serve-examples.mjs` opens the fixture
+  once and stats and reads through that handle, so no swap of the path between
+  check and use can change what is served or parsed.
+- The command-execution alerts in `scripts/registry-consumer-gate.mjs` are
+  closed three ways: `run()` validates every argument against a strict token
+  pattern before `execFileSync`, the npm specifier is built from the release
+  contract's own constants instead of the parsed approval manifest, and
+  `npm-invocation.mjs` pins the Windows shell to `cmd.exe` instead of reading
+  `ComSpec` from the environment.
+- `scripts/release-prepare.mjs` escapes the full regex metacharacter set —
+  backslash included — when interpolating the version into the changelog
+  heading pattern, and the network-silence e2e spec parses URLs and compares
+  `hostname` exactly instead of substring-matching or using unanchored
+  patterns.
 ## [1.1.1] - 2026-07-29
 
 ### Fixed

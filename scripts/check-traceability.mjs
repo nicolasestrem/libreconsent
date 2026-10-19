@@ -78,7 +78,17 @@ function gateScriptNames(rootDirectory) {
  */
 export function ciWorkflowCheckNames(rootDirectory) {
   const workflowPath = path.resolve(rootDirectory, CI_WORKFLOW_REFERENCE);
-  if (!existsSync(workflowPath) || !statSync(workflowPath).isFile()) {
+
+  // Read once and let the read fail instead of checking first. An
+  // `existsSync`/`statSync` pair followed by a `readFileSync` validates one
+  // file and reads another whenever the path is swapped between the check
+  // and the use; a single read has no window to lose. A missing or
+  // unreadable workflow (including a path that is a directory) means no CI
+  // checks can be cited, which is what the previous early return produced.
+  let lines;
+  try {
+    lines = readFileSync(workflowPath, "utf8").split(/\r?\n/);
+  } catch {
     return new Set();
   }
 
@@ -86,7 +96,7 @@ export function ciWorkflowCheckNames(rootDirectory) {
   const names = new Set();
   let pendingStep;
 
-  for (const line of readFileSync(workflowPath, "utf8").split(/\r?\n/)) {
+  for (const line of lines) {
     const step = line.match(/^\s*-\s+name:\s*(.+?)\s*$/);
     if (step?.[1] !== undefined) {
       pendingStep = unquote(step[1]);
