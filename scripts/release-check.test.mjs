@@ -67,6 +67,27 @@ describe("release package audit", () => {
     });
   });
 
+  test("pins the Windows shell against a tampered ComSpec", () => {
+    // The default shell must be the pinned system default, never the
+    // environment: ComSpec is attacker-influenceable configuration, and the
+    // program that interprets npm's argv must not be chosen by it. Callers
+    // that genuinely need a different shell pass it explicitly.
+    const previous = process.env.ComSpec;
+    process.env.ComSpec = "evil.exe";
+    try {
+      expect(npmInvocation(["pack", "--json"], { platform: "win32" })).toEqual({
+        args: ["/d", "/s", "/c", "npm", "pack", "--json"],
+        command: "cmd.exe",
+      });
+    } finally {
+      if (previous === undefined) {
+        delete process.env.ComSpec;
+      } else {
+        process.env.ComSpec = previous;
+      }
+    }
+  });
+
   test("accepts complete public-package metadata", () => {
     expect(validateManifest(validManifest(), releasePackage)).toEqual([]);
   });

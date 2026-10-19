@@ -64,8 +64,20 @@ function forbiddenHits(hits: string[]): string[] {
   return hits.filter((url) => FORBIDDEN.some((host) => url.includes(host)));
 }
 
+/**
+ * True when the URL's host is `host` or one of its subdomains.
+ *
+ * Host identity is compared on the parsed `hostname`, never on a substring of
+ * the URL: `https://evil.example/?x=google-analytics.com` must not count as an
+ * analytics host, while `https://www.google-analytics.com/...` must.
+ */
+function isHost(url: string | URL, host: string): boolean {
+  const { hostname } = new URL(url);
+  return hostname === host || hostname.endsWith(`.${host}`);
+}
+
 function loaderHits(hits: string[]): string[] {
-  return hits.filter((url) => url.includes("googletagmanager.com"));
+  return hits.filter((url) => isHost(url, "googletagmanager.com"));
 }
 
 function isConsentCommand(command: unknown, action: string): boolean {
@@ -100,8 +112,8 @@ async function instrument(page: Page): Promise<string[]> {
       return;
     }
     if (
-      url.includes("google-analytics.com") ||
-      url.includes("analytics.google.com")
+      isHost(url, "google-analytics.com") ||
+      isHost(url, "analytics.google.com")
     ) {
       await route.fulfill({ status: 204 });
       return;
@@ -198,11 +210,14 @@ test("accepting loads real gtag.js, grants the update, and lets collects through
   await openFixture(page);
   await settle(page);
 
-  const collect = page.waitForRequest(
-    (request) =>
-      /google-analytics\.com|analytics\.google\.com/.test(request.url()) &&
-      request.url().includes("collect"),
-  );
+  const collect = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      (isHost(url, "google-analytics.com") ||
+        isHost(url, "analytics.google.com")) &&
+      url.pathname.includes("collect")
+    );
+  });
   await page.evaluate(acceptAll);
   await collect;
 

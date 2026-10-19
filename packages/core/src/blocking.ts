@@ -24,6 +24,31 @@ const SELECTOR = [
 const PLACEHOLDER_STYLE =
   "border:1px solid currentColor;padding:1rem;text-align:center";
 
+/**
+ * Returns the URL to restore for a gated element's source, or null.
+ *
+ * `data-cmp-src` is DOM text: whatever the page author — or anything that can
+ * mutate the page — wrote into the attribute. Re-assigning it to a script or
+ * iframe `src` on a grant must never smuggle a script-executing scheme past
+ * the consent net, so only URLs that resolve to http(s) against the current
+ * document are restored; anything else (a `javascript:` or `data:` URL, or
+ * text that is not a URL at all) is treated as though there were nothing to
+ * reveal.
+ */
+function restorableSource(value: string | null): string | null {
+  if (value === null || value.trim() === "") {
+    return null;
+  }
+  try {
+    const url = new URL(value, document.baseURI);
+    // The original attribute value is restored, not a re-serialization: a
+    // relative source must keep resolving exactly as the author wrote it.
+    return url.protocol === "http:" || url.protocol === "https:" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 interface GatedEntry {
   kind: GatedKind;
   element: HTMLElement;
@@ -84,10 +109,12 @@ function recreate(
   }
 
   // A gate produced by the BLK-4 net holds its URL here rather than in `src`,
-  // so that nothing can make the original fetch it. Restore it now.
-  const diverted = original.getAttribute("data-cmp-src");
-  if (diverted !== null) {
-    script.setAttribute("src", diverted);
+  // so that nothing can make the original fetch it. Restore it now — through
+  // the http(s)-only check, so DOM text can never become a script-executing
+  // scheme on the replacement.
+  const restored = restorableSource(original.getAttribute("data-cmp-src"));
+  if (restored !== null) {
+    script.setAttribute("src", restored);
   }
 
   // The nonce IDL property is read first: CSP nonce hiding blanks the content
@@ -519,7 +546,12 @@ export class BlockingController {
     entry.element.hidden = false;
     entry.element.style.display = entry.previousDisplay;
     if (entry.kind === "iframe") {
-      const source = entry.element.getAttribute("data-cmp-src");
+      // Same http(s)-only check as `recreate()`: the attribute is DOM text,
+      // and a grant must not execute a scheme the consent gate cannot vouch
+      // for.
+      const source = restorableSource(
+        entry.element.getAttribute("data-cmp-src"),
+      );
       if (source !== null) {
         entry.element.setAttribute("src", source);
       }

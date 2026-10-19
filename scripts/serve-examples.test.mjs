@@ -54,6 +54,23 @@ describe("example fixture server", () => {
     }
   });
 
+  test("serves a directory path as a 404", async () => {
+    // The server opens the target once and reads through the handle, so a
+    // path that is not a regular file — this directory, or a file swapped
+    // for one after a stat check — can never be streamed as if it were.
+    const port = randomPort();
+    const server = await startServer(port);
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/basic-site`);
+
+      expect(response.status).toBe(404);
+      await expect(response.text()).resolves.toBe("Not found");
+    } finally {
+      await stopServer(server);
+    }
+  });
+
   test("returns a clear 500 when the compiled core artifact is unavailable", async () => {
     const port = randomPort();
     const server = await startServer(port, {

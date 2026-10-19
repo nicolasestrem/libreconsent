@@ -78,6 +78,22 @@ function fail(message) {
 }
 
 function run(command, args, options = {}) {
+  // execFileSync never spawns a shell, but a value built from manifest file
+  // content or a caller-supplied path must still not shape the child's
+  // command line: this pattern admits exactly the tokens the gate execs —
+  // npm flags and `name@version` specifiers, and paths under the consumer
+  // root — and refuses whitespace, shell metacharacters, control characters
+  // and anything non-ASCII before the child ever starts.
+  for (const argument of args) {
+    if (
+      typeof argument !== "string" ||
+      !/^[A-Za-z0-9@:./_+=\\-]+$/.test(argument)
+    ) {
+      fail(
+        `refusing to exec ${command} with an argument outside the gate's safe token set: ${JSON.stringify(argument)}`,
+      );
+    }
+  }
   return execFileSync(command, args, {
     encoding: "utf8",
     maxBuffer: 20 * 1024 * 1024,
@@ -300,22 +316,23 @@ function readApprovedManifest(approvalPath) {
   return validateApprovalManifest(readJson(resolvedApproval));
 }
 
-function verifyRegistryPackage(manifestPackage) {
+function verifyRegistryPackage(manifestPackage, packageName) {
+  // The npm specifier is built from the release contract's own constants,
+  // never from the parsed manifest: the manifest record only contributes the
+  // integrity that the registry response is checked against, so file content
+  // cannot shape a command line even before `run()`'s own validation.
   const output = runNpm(
-    publicRegistryArgs([
-      "view",
-      `${manifestPackage.name}@${RELEASE_VERSION}`,
-      "--json",
-    ]),
+    publicRegistryArgs(["view", `${packageName}@${RELEASE_VERSION}`, "--json"]),
   );
-  const registryPackage = parseNpmJson(output, manifestPackage.name);
+  const registryPackage = parseNpmJson(output, packageName);
   if (
-    registryPackage?.name !== manifestPackage.name ||
+    manifestPackage?.name !== packageName ||
+    registryPackage?.name !== packageName ||
     registryPackage.version !== RELEASE_VERSION ||
     registryPackage.dist?.integrity !== manifestPackage.integrity
   ) {
     fail(
-      `${manifestPackage.name}: registry version or integrity differs from the approved tarball`,
+      `${packageName}: registry version or integrity differs from the approved tarball`,
     );
   }
 }
@@ -777,9 +794,9 @@ export async function runRegistryConsumerGate({ approval, output }) {
   const bridgePackage = manifest.packages.find(
     (releasePackage) => releasePackage.name === "@libreconsent/bridge",
   );
-  verifyRegistryPackage(corePackage);
-  verifyRegistryPackage(uiPackage);
-  verifyRegistryPackage(bridgePackage);
+  verifyRegistryPackage(corePackage, "@libreconsent/core");
+  verifyRegistryPackage(uiPackage, "@libreconsent/ui");
+  verifyRegistryPackage(bridgePackage, "@libreconsent/bridge");
 
   const consumerRoot = path.join(outputDirectory, "consumer");
   mkdirSync(consumerRoot);

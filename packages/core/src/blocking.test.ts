@@ -374,6 +374,42 @@ describe("gated script execution (BLK-1)", () => {
     expect(stillGated("denied")).toBe(true);
   });
 
+  test("re-creates a diverted gate only onto an http(s) source", async () => {
+    // The diverted URL is DOM text: whatever sits in the attribute when the
+    // grant lands. Restoring it must never hand a script-executing scheme
+    // (`javascript:`, `data:`) to the replacement's src, so a tampered gate
+    // is re-created sourceless instead of executed.
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-category="analytics" id="hijacked" data-cmp-src="javascript:alert(1)"></script>
+    `;
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    api.acceptAll();
+    await flushChain();
+
+    expect(stillGated("hijacked")).toBe(false);
+    expect(script("hijacked").hasAttribute("src")).toBe(false);
+    expect(script("hijacked").textContent).toBe("");
+  });
+
+  test("restores a relative diverted source exactly as the author wrote it", async () => {
+    // The http(s) check must not re-serialize the URL: a relative source is
+    // restored as the original attribute value and resolves against the
+    // document base the same way it would have before it was gated.
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-category="marketing" id="relative" data-cmp-src="/tracker.js"></script>
+    `;
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    api.acceptAll();
+    await flushChain();
+
+    expect(stillGated("relative")).toBe(false);
+    expect(script("relative").getAttribute("src")).toBe("/tracker.js");
+  });
+
   test("holds document order across an inline, src, inline sequence", async () => {
     document.body.innerHTML = `
       <script type="text/plain" data-cmp-category="analytics" id="first">window.firstRan = true;</script>
@@ -691,6 +727,26 @@ describe("embed placeholders (BLK-3)", () => {
     expect(
       document.querySelector("[data-libreconsent-placeholder]"),
     ).toBeNull();
+  });
+
+  test("reveals an iframe gate holding a script-executing URL with no src", async () => {
+    // The attribute is DOM text. A grant reveals the embed to the user, but
+    // the URL it holds is only restored when it resolves to http(s): a
+    // `javascript:` (or `data:`) source in a tampered `data-cmp-src` must
+    // never execute through the consent gate's own reveal path.
+    document.body.innerHTML = `
+      <iframe id="video" data-cmp-src="javascript:alert(1)" data-cmp-category="analytics" style="display: block"></iframe>
+    `;
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    acceptButton(placeholderBefore("video")).click();
+
+    const iframe = byId("video");
+    expect(api.getConsent()?.categories.analytics).toBe(true);
+    expect(iframe.hasAttribute("src")).toBe(false);
+    expect(iframe.hidden).toBe(false);
+    expect(iframe.style.display).toBe("block");
   });
 
   test("gates and reveals a generic data-cmp-placeholder element", async () => {
