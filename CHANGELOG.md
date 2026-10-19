@@ -38,6 +38,33 @@ All notable changes to this project are documented in this file.
 
 ### Security
 
+- Three dev-only transitive dependencies now resolve to their patched
+  releases through `overrides` in `pnpm-workspace.yaml`: `undici` 7.29.1
+  (TLS certificate validation bypass through dropped connect options in
+  `BalancedPool`, and cross-user disclosure through degenerate private cache
+  directives), `sharp` 0.35.5 (the libheif and librsvg advisories), and
+  `source-map-js` 1.2.2 (event-loop denial of service through indexed
+  source-map section offsets). Every one of them arrives through
+  `devDependencies` — `miniflare` under `wrangler`, `jsdom`, and `postcss` under
+  `tsup` — so nothing changes in a published package and the
+  zero-runtime-dependency rule (G-2) still holds.
+- `esbuild` 0.28.1 joins the same override set for the GHSA-g7r4-m6w7-qqqr
+  dev-server advisory. `vite` 8.1.5 still declares `esbuild@^0.27.x`, so a
+  plain refresh would keep 0.27.7 in the lockfile; the scoped override moves
+  every consumer (`vite`, `wrangler`, `tsup`) onto 0.28.1 without a major
+  `vite` bump.
+- `undici` and `sharp` need the override because the vulnerable versions are
+  declared exactly, not by range: `miniflare` asks for `sharp: "0.35.2"` and
+  `undici: "7.28.0"` with no caret, and the newest 4.x release
+  (`4.20260730.0`) still pins that pair, so no refresh can move them. The
+  corrected pins only appear in the `miniflare` 5 line, which is beta-only
+  today, and reaching it through `wrangler` would put a beta test harness in
+  the dev path. `source-map-js` is different — `postcss` and `css-tree` both
+  ask for `^1.2.1`, so a re-resolution would have picked 1.2.2 up on its own;
+  it is pinned anyway so the lockfile cannot drift back. The overrides use
+  scoped selectors (`'undici@<7.29.1'`) so they rewrite only the vulnerable
+  range and leave a future 8.x resolution untouched.
+
 - Every CodeQL finding on `main` is closed at its source rather than
   suppressed. The two `xss-through-dom` alerts in `packages/core/src/blocking.ts`
   were real sink rules: a gated element's `data-cmp-src` is DOM text, and both
@@ -62,7 +89,6 @@ All notable changes to this project are documented in this file.
   heading pattern, and the network-silence e2e spec parses URLs and compares
   `hostname` exactly instead of substring-matching or using unanchored
   patterns.
-
 ## [1.1.1] - 2026-07-29
 
 ### Fixed
