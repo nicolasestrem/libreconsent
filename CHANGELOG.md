@@ -17,6 +17,25 @@ All notable changes to this project are documented in this file.
   makes no external request, and stores its preview decisions under
   `libreconsent-studio` so it never collides with the other example pages.
 
+### Fixed
+
+- `packages/worker-log`'s suite runs again. `@cloudflare/vitest-pool-workers`
+  declares `vitest: ^4.1.0`, and the 5.0.0 bump in #28 pushed the Cloudflare
+  pool outside that range: workerd threw `jsg.SyntaxError: Unexpected
+  identifier 'file'` while starting the pool worker, the suite reported
+  "no tests", and the CI gate died on the unit-test step before build, size,
+  E2E and accessibility ever ran — so nothing downstream was verified for
+  five weeks. `vitest` is pinned back to `4.1.12`, the last 4.x, which is the
+  combination the pool package actually supports.
+- The successor package, `@cloudflare/vitest-plugin`, does accept
+  `vitest: ^5.0.0`, but every published 1.x release depends on a pre-release
+  `miniflare` 5 (`-alpha`/`-beta`) and its matching `wrangler`. Moving the
+  test harness onto a beta of the very runtime it is meant to hold to
+  account — and punching nine versions through the `minimumReleaseAge`
+  policy to install them — is not a trade this repository should make for a
+  test runner. The migration waits until `miniflare` 5 reaches a stable
+  release.
+
 ## [1.1.1] - 2026-07-29
 
 ### Fixed
