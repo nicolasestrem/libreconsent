@@ -48,6 +48,11 @@ All notable changes to this project are documented in this file.
   `devDependencies` — `miniflare` under `wrangler`, `jsdom`, and `postcss` under
   `tsup` — so nothing changes in a published package and the
   zero-runtime-dependency rule (G-2) still holds.
+- `esbuild` 0.28.1 joins the same override set for the GHSA-g7r4-m6w7-qqqr
+  dev-server advisory. `vite` 8.1.5 still declares `esbuild@^0.27.x`, so a
+  plain refresh would keep 0.27.7 in the lockfile; the scoped override moves
+  every consumer (`vite`, `wrangler`, `tsup`) onto 0.28.1 without a major
+  `vite` bump.
 - `undici` and `sharp` need the override because the vulnerable versions are
   declared exactly, not by range: `miniflare` asks for `sharp: "0.35.2"` and
   `undici: "7.28.0"` with no caret, and the newest 4.x release
