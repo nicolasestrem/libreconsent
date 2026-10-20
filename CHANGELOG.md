@@ -19,6 +19,13 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- A declarative gate's own `src` now goes through the same http(s)-only check
+  as `data-cmp-src`. `recreate()` copied every author attribute verbatim, so
+  `<script type="text/plain" data-cmp-category="…" src="data:text/javascript,…">`
+  executed its payload once consent was granted, even though the identical URL
+  in `data-cmp-src` was already refused. The copied `src` is resolved against
+  the document base and dropped unless it is http(s); relative and
+  protocol-relative sources still restore exactly as written.
 - `packages/worker-log`'s suite runs again. `@cloudflare/vitest-pool-workers`
   declares `vitest: ^4.1.0`, and the 5.0.0 bump in #28 pushed the Cloudflare
   pool outside that range: workerd threw `jsg.SyntaxError: Unexpected
