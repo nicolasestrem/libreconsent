@@ -100,7 +100,17 @@ function recreate(
     ) {
       continue;
     }
-    script.setAttribute(attribute.name, attribute.value);
+    // A gate's own `src` is DOM text exactly like `data-cmp-src` below, so it
+    // goes through the same http(s) check: copying the author's attributes
+    // must not carry a script-executing scheme onto the replacement.
+    const value =
+      attribute.name.toLowerCase() === "src"
+        ? restorableSource(attribute.value)
+        : attribute.value;
+    if (value === null) {
+      continue;
+    }
+    script.setAttribute(attribute.name, value);
   }
 
   const type = original.getAttribute("data-cmp-type");

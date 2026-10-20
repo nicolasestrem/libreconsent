@@ -393,6 +393,24 @@ describe("gated script execution (BLK-1)", () => {
     expect(script("hijacked").textContent).toBe("");
   });
 
+  test("re-creates a declarative gate only onto an http(s) src", async () => {
+    // A gate's own `src` is DOM text exactly like `data-cmp-src`. Copying the
+    // author's attributes onto the replacement must not carry a
+    // script-executing scheme (`data:`) through, or a tampered gate executes
+    // payload code on grant.
+    document.body.innerHTML = `
+      <script type="text/plain" data-cmp-category="analytics" id="data-src" src="data:text/javascript,window.pwned=1"></script>
+    `;
+    const api = start(baseConfig());
+    await waitForReady(api);
+
+    api.acceptAll();
+    await flushChain();
+
+    expect(stillGated("data-src")).toBe(false);
+    expect(script("data-src").hasAttribute("src")).toBe(false);
+  });
+
   test("restores a relative diverted source exactly as the author wrote it", async () => {
     // The http(s) check must not re-serialize the URL: a relative source is
     // restored as the original attribute value and resolves against the
