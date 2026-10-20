@@ -84,6 +84,15 @@ All notable changes to this project are documented in this file.
   contract's own constants instead of the parsed approval manifest, and
   `npm-invocation.mjs` pins the Windows shell to `cmd.exe` instead of reading
   `ComSpec` from the environment.
+- The gate's command allowlist now has regression coverage of its own.
+  `assertSafeArguments` is exported so a test can drive it directly; the suite
+  refuses embedded whitespace, shell metacharacters, control characters,
+  non-ASCII text and non-string tokens, and admits the npm flags,
+  `name@version` specifiers and consumer paths the gate really execs —
+  including the argv the pinned Windows interpreter receives. A source
+  assertion keeps the gate to one `execFileSync` call site and requires the
+  allowlist to run before it, so a second exec path cannot slip in beside the
+  guard unnoticed.
 - `scripts/release-prepare.mjs` escapes the full regex metacharacter set —
   backslash included — when interpolating the version into the changelog
   heading pattern, and the network-silence e2e spec parses URLs and compares

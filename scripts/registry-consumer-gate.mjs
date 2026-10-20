@@ -77,23 +77,39 @@ function fail(message) {
   throw new Error(message);
 }
 
-function run(command, args, options = {}) {
-  // execFileSync never spawns a shell, but a value built from manifest file
-  // content or a caller-supplied path must still not shape the child's
-  // command line: this pattern admits exactly the tokens the gate execs —
-  // npm flags and `name@version` specifiers, and paths under the consumer
-  // root — and refuses whitespace, shell metacharacters, control characters
-  // and anything non-ASCII before the child ever starts.
+/**
+ * The one token shape the gate is allowed to exec: npm flags, `name@version`
+ * specifiers and absolute paths under the consumer root. Everything else —
+ * whitespace, shell metacharacters, control characters, non-ASCII — is
+ * refused before the child process starts.
+ */
+const SAFE_ARGUMENT_TOKEN = /^[A-Za-z0-9@:./_+=\\-]+$/;
+
+/**
+ * Refuse an argv the gate must not hand to `execFileSync`.
+ *
+ * Exported so the allowlist can be tested directly: `run()` is not reachable
+ * from a test without spawning the real gate.
+ *
+ * @param {string} command Program that would be executed.
+ * @param {unknown[]} args Arguments that would be passed to it.
+ * @returns {void}
+ */
+export function assertSafeArguments(command, args) {
   for (const argument of args) {
-    if (
-      typeof argument !== "string" ||
-      !/^[A-Za-z0-9@:./_+=\\-]+$/.test(argument)
-    ) {
+    if (typeof argument !== "string" || !SAFE_ARGUMENT_TOKEN.test(argument)) {
       fail(
         `refusing to exec ${command} with an argument outside the gate's safe token set: ${JSON.stringify(argument)}`,
       );
     }
   }
+}
+
+function run(command, args, options = {}) {
+  // execFileSync never spawns a shell, but a value built from manifest file
+  // content or a caller-supplied path must still not shape the child's
+  // command line.
+  assertSafeArguments(command, args);
   return execFileSync(command, args, {
     encoding: "utf8",
     maxBuffer: 20 * 1024 * 1024,
