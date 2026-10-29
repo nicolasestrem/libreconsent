@@ -45,6 +45,20 @@ All notable changes to this project are documented in this file.
 
 ### Security
 
+- `vite` now resolves to 8.1.6 through a scoped `'vite@<8.1.6'` override in
+  `pnpm-workspace.yaml`, closing five Dependabot advisories filed against
+  8.1.5: GHSA-587h-7wmj-h5pm (CVE-2026-112942, `launch-editor`'s
+  `fs.existsSync()` existence check can be bypassed on Windows),
+  GHSA-698v-4r3x-3vcv (CVE-2026-112943, `escapeCmdArgs()` omits `%` escaping
+  on Windows), GHSA-r825-w8mm-5pxw (CVE-2026-112944, editor CLI flag
+  misinterpretation allowing arbitrary command execution for some editors),
+  GHSA-rq7h-c2jc-7f22 (CVE-2026-112946, files outside `server.fs.allow` could
+  be served when project paths match system paths) and GHSA-9jrq-w75r-8gcw
+  (CVE-2026-112945, cross-origin script execution through Vite custom
+  middleware). `vite` reaches the tree only as an auto-installed peer of
+  `vitest`, so the override changes no published package, keeps the fix inside
+  the range `vitest` already declares, and leaves the zero-runtime-dependency
+  rule (G-2) intact.
 - Three dev-only transitive dependencies now resolve to their patched
   releases through `overrides` in `pnpm-workspace.yaml`: `undici` 7.29.1
   (TLS certificate validation bypass through dropped connect options in
